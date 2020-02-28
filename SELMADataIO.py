@@ -27,7 +27,7 @@ from PyQt5 import (QtCore, QtGui, QtWidgets)
 import SimpleITK as sitk
 import pydicom
 import imageio
-#import scipy.io
+import scipy.io
 import h5py
 # ====================================================================
 
@@ -104,14 +104,20 @@ def loadMask( fname):
         mask = np.load(fname)
     elif    ext == ".mat":
         
-        arrays = {}
-        f = h5py.File(fname, 'r')
-        for key, value in f.items():
-            arrays[key] = np.array(value)
-            
-        mask = arrays[key]
-        mask = np.swapaxes(mask, 0,1)
-        
+        try:
+            #H5 file
+            arrays = {}
+            f = h5py.File(fname, 'r')
+            for key, value in f.items():
+                arrays[key] = np.array(value)
+                
+            mask = arrays[key]
+            mask = np.swapaxes(mask, 0,1)
+        except:
+            #Non-h5 file
+            maskDict    = scipy.io.loadmat(fname)
+            maskKey     = list(maskDict.keys())[-1]
+            mask        = maskDict[maskKey]
     else:
         #TODO: error popup
         return np.zeros((100,100))

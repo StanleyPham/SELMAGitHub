@@ -345,10 +345,10 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         self.applyMaskSignal.emit(mask)
         
         #Next, get the filename to save the mask to.
-        fname = QtWidgets.QFileDialog.getOpenFileName(self,
+        fname = QtWidgets.QFileDialog.getSaveFileName(self,
                                                       'Save Mask',
                                                       '',
-                                                      '(*.npy *.png)')
+                                                      '(*.npy, *.png)')
         self.saveMaskSignal.emit(fname)
     
     #Analyse Menu

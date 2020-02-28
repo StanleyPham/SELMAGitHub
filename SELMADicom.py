@@ -167,21 +167,27 @@ class SELMADicom:
 
 
     def _findVEncoding(self):
-        """Gets the velocity encoding maximum from the DCM.
+        """Gets the velocity encoding maximum in the z-direction from the DCM.
         It's assumed that this is constant for all frames."""
         
         #Philips
+        
         if self._tags['manufacturer'] == 'Philips Medical Systems':
-            dcmFrameAddress             = 0x5200, 0x9230
-            vEncAddress                 = 0x0018, 0x9197
-            vEncMaxAddress              = 0x0018, 0x9217
-            
-            try:
-                venc = self._DCM[dcmFrameAddress] [0]       \
-                                [vEncAddress]     [0]       \
-                                [vEncMaxAddress].value
-            except:
-                venc = 0
+            vencAddress                 = 0x2001, 0x101A
+            venc                        = self._DCM[vencAddress].value
+            venc                        = venc[-1] 
+        
+#        if self._tags['manufacturer'] == 'Philips Medical Systems':
+#            dcmFrameAddress             = 0x5200, 0x9230
+#            vEncAddress                 = 0x0018, 0x9197
+#            vEncMaxAddress              = 0x0018, 0x9217
+#            
+#            try:
+#                venc = self._DCM[dcmFrameAddress] [0]       \
+#                                [vEncAddress]     [0]       \
+#                                [vEncMaxAddress].value
+#            except:
+#                venc = 0
                 
         #Other manufacturers
                 
