@@ -263,19 +263,28 @@ class SELMADataObject:
         rmsSTD              = np.sqrt( (realSignalSTD**2 + imagSignalSTD**2))
         
         
-        objList = [(diameter, meanVelocityFrame),
-                   (diameter, meanMagnitudeFrame),
-                   (diameter, rmsSTD)]
+#        objList = [(diameter, meanVelocityFrame),
+#                   (diameter, meanMagnitudeFrame),
+#                   (diameter, rmsSTD)]
+#        
+#        nProcesses = min(cpu_count(), len(objList))
+#        
+#        freeze_support() #prevent multiprocessing from freezing
+#        with Pool(nProcesses) as pool:
+#            res = pool.map(applyMedianFilter, objList)
+#            
+#        self._medianVelocityFrame   = res[0]
+#        self._medianMagnitudeFrame  = res[1]
+#        self._medianRMSSTD          = res[2]
         
-        nProcesses = min(cpu_count(), len(objList))
         
-        freeze_support() #prevent multiprocessing from freezing
-        with Pool(nProcesses) as pool:
-            res = pool.map(applyMedianFilter, objList)
-            
-        self._medianVelocityFrame   = res[0]
-        self._medianMagnitudeFrame  = res[1]
-        self._medianRMSSTD          = res[2]
+        self._medianVelocityFrame = scipy.signal.medfilt2d(meanVelocityFrame,
+                                                           diameter)
+        self._medianMagnitudeFrame= scipy.signal.medfilt2d(meanMagnitudeFrame,
+                                                           diameter)
+        self._medianRMSSTD          = scipy.signal.medfilt2d(rmsSTD,
+                                                           diameter)
+        
         
         
     def _subtractMedian(self):
