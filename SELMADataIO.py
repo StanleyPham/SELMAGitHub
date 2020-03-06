@@ -118,9 +118,6 @@ def loadMask( fname):
             maskDict    = scipy.io.loadmat(fname)
             maskKey     = list(maskDict.keys())[-1]
             mask        = maskDict[maskKey]
-    else:
-        #TODO: error popup
-        return np.zeros((100,100))
         
     return mask
 
@@ -136,9 +133,11 @@ def saveMask(fname, mask):
     """
 
     #find extension
-    ext = fname[-4:]
+    fname       = fname[0]
+    ext         = fname[-4:]
     
     if      ext == ".png":
+        mask = mask.astype(np.uint8)
         imageio.imwrite(fname, mask)
     elif    ext == ".npy":
         np.save(fname, mask)

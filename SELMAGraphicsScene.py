@@ -119,9 +119,11 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         """
         
         #Turn the mask into a blue transparent pixmap
-        maskr = np.zeros((1,mask.shape[0], mask.shape[1]))
-        maskg = np.zeros((1,mask.shape[0], mask.shape[1]))
-        maskb = np.reshape(mask, (1,mask.shape[0], mask.shape[1]))
+#        maskr = np.zeros((1,mask.shape[0], mask.shape[1]))
+#        maskg = np.zeros((1,mask.shape[0], mask.shape[1]))
+        maskr   = np.reshape(mask, (1,mask.shape[0], mask.shape[1])) / 3
+        maskg   = np.reshape(mask, (1,mask.shape[0], mask.shape[1])) / 3
+        maskb   = np.reshape(mask, (1,mask.shape[0], mask.shape[1]))
         maskalpha   = maskb / 2
         
         mask = np.vstack((maskr, maskg, maskb, maskalpha))
@@ -136,6 +138,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self._vesselPixmapItem.setOffset(-vesselMaskPixmap.width()  / 2.0,
                                          -vesselMaskPixmap.height() / 2.0)
         self._vesselPixmapItem.setZValue(2)
+        self._vesselPixmapItem.show()
         
     
     def setMask(self, mask):
@@ -359,10 +362,10 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self._brightness    = self._prevBrightness  + int(dBrightness) 
         
         #Truncate the values
-        self._contrast      = max(self._contrast, -255)
-        self._contrast      = min(self._contrast, 255)
-        self._brightness    = max(self._brightness, -255)
-        self._brightness    = min(self._brightness, 255)
+        self._contrast      = max(self._contrast, -254)
+        self._contrast      = min(self._contrast, 254)
+        self._brightness    = max(self._brightness, -254)
+        self._brightness    = min(self._brightness, 100)
         
         #Send signal to imageViewer
         self.adjustContrastSignal.emit(self._contrast,

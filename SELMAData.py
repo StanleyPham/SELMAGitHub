@@ -86,7 +86,7 @@ class SELMADataObject:
         #TODO: apply settings
         
         if self._selmaDicom is None:
-            #TODO: Error popup
+            self._signalObject.errorMessageSignal.emit("No DICOM loaded.")
             return
         
         self._calculateMedians()
@@ -104,6 +104,9 @@ class SELMADataObject:
         
         self._findSignificantMagnitude()
         self._clusterVessels()
+        
+        #Send vessels back to the GUI
+        self._signalObject.sendVesselMaskSignal.emit(self._vesselMask)
         
         #make dictionary and write to disk
         self._makeVesselDict()
@@ -140,9 +143,6 @@ class SELMADataObject:
     
     def setMask(self, mask):
         self._mask = mask
-    
-    def setVesselMask(self,mask):
-        self._vesselMask = mask
         
     def setT1(self, t1Fname):
         self._t1 = SELMADicom.SELMADicom(t1Fname)
@@ -168,8 +168,8 @@ class SELMADataObject:
         try:
             val = settings.value(key)
         except:
-            #TODO: error message
-            pass
+            self._signalObject.errorMessageSignal.emit("Wrong setting accessed.")
+            return val
         
         #Return the right type
         if val == "true":
@@ -378,7 +378,7 @@ class SELMADataObject:
         mask = self._mask
         
         if mask is None:
-            #TODO: error message
+            self._signalObject.errorMessageSignal.emit("No mask loaded.")
             return
         
         mask = mask.astype(bool) #prevent casting errors
@@ -480,7 +480,13 @@ class SELMADataObject:
         """
         Uses the flow and magnitude classifications to cluser the vessels.
         The clusters are made per combination of velocity and magnitude 
-        and are later added together.        
+        and are later added together.   
+        
+        TODO: Maybe change from open-cv to scipy:
+            https://docs.scipy.org/doc/scipy-0.16.0/reference/generated/
+            scipy.ndimage.measurements.label.html
+        
+            That way, less packages in total need to be managed.
         """
         
         VNegMPos      = self._sigFlowNeg * self._sigMagPos
@@ -531,6 +537,10 @@ class SELMADataObject:
         labels[labels != 0]     += np.max(self._labels)
         self._labels            += labels
         
+        
+        #Write _labels to _vesselMask
+        self._vesselMask        = (self._labels != 0)
+        
     def _makeVesselDict(self):
         """Makes a dictionary containing the following statistics
         for each voxel in a vessel:
@@ -568,36 +578,36 @@ class SELMADataObject:
         i       = 0 
         total   = len(np.nonzero(self._labels)[0])
         
-        
-        for pixel in np.transpose(np.nonzero(self._labels)):
-            x,y = pixel
-            value_dict = dict()
-            value_dict['pixelID']       = int(y*self._labels.shape[-1] + x+1)
-            value_dict['row']           = int(x+1)
-            value_dict['column']        = int(y+1)
-            value_dict['blob']          = int(self._labels[x, y])
-            value_dict['vNeg']          = self._sigFlowNeg[x,y]
-            value_dict['vPos']          = self._sigFlowPos[x,y]
-            value_dict['mPos']          = self._sigMagPos[x,y] 
-            value_dict['mIso']          = self._sigMagIso[x,y]
-            value_dict['mNeg']          = self._sigMagNeg[x,y]
-            value_dict['meanMag']       = meanMagnitude[x,y]
-            value_dict['stdMagNoise']   = self._medianRMSSTD[x,y]
-            value_dict['meanV']         = meanVelocity[x,y]
-            value_dict['stdVNoise']     = np.mean(self._velocitySTD[:,x,y])
-            value_dict['minV']          = np.min(self._correctedVelocityFrames[:,x,y])
-            value_dict['maxV']          = np.max(self._correctedVelocityFrames[:,x,y])
-            value_dict['PI']            = div0([(value_dict['maxV'] -  value_dict['minV'])],
-                                          value_dict['meanV'])
-            value_dict['nPhase']        = self._correctedVelocityFrames.shape[0]
-            value_dict['magPerPhase']   = magFrames[:,x,y].tolist()
-            value_dict['velPerPhase']   = self._correctedVelocityFrames[:,x,y].tolist()
-            
-            self._vesselDict[i] = value_dict
-            
-            #Emit progress to progressbar
-            self._signalObject.setProgressBarSignal.emit(int(100 * i / total))
-            i+= 1
+        for ncomp in range(1, self._nComp + 1):        #iterate over blobs
+            for pixel in np.transpose(np.nonzero(self._labels == ncomp)):
+                x,y = pixel
+                value_dict = dict()
+                value_dict['pixelID']       = int(y*self._labels.shape[-1] + x+1)
+                value_dict['row']           = int(x+1)
+                value_dict['column']        = int(y+1)
+                value_dict['blob']          = int(self._labels[x, y])
+                value_dict['vNeg']          = self._sigFlowNeg[x,y]
+                value_dict['vPos']          = self._sigFlowPos[x,y]
+                value_dict['mPos']          = self._sigMagPos[x,y] 
+                value_dict['mIso']          = self._sigMagIso[x,y]
+                value_dict['mNeg']          = self._sigMagNeg[x,y]
+                value_dict['meanMag']       = meanMagnitude[x,y]
+                value_dict['stdMagNoise']   = self._medianRMSSTD[x,y]
+                value_dict['meanV']         = meanVelocity[x,y]
+                value_dict['stdVNoise']     = np.mean(self._velocitySTD[:,x,y])
+                value_dict['minV']          = np.min(self._correctedVelocityFrames[:,x,y])
+                value_dict['maxV']          = np.max(self._correctedVelocityFrames[:,x,y])
+                value_dict['PI']            = div0([(value_dict['maxV'] -  value_dict['minV'])],
+                                              value_dict['meanV'])
+                value_dict['nPhase']        = self._correctedVelocityFrames.shape[0]
+                value_dict['magPerPhase']   = magFrames[:,x,y].tolist()
+                value_dict['velPerPhase']   = self._correctedVelocityFrames[:,x,y].tolist()
+                
+                self._vesselDict[i] = value_dict
+                
+                #Emit progress to progressbar
+                self._signalObject.setProgressBarSignal.emit(int(100 * i / total))
+                i+= 1
         
         self._signalObject.setProgressBarSignal.emit(100)
         
@@ -606,6 +616,11 @@ class SELMADataObject:
         Creates a filename for the output and passes it to writeVesselDict
         along with the vesselDict object to be written.
         """
+        
+        #Message if no vessels were found
+        if np.nonzero(self._labels)[0] == 0:
+            self._signalObject.errorMessageSignal.emit("No vessels Found")
+            return
         
         #Get filename for textfile output
         fname = self._dcmFilename[:-4]

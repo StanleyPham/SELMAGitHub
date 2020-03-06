@@ -21,6 +21,7 @@ from PyQt5 import (QtCore, QtGui, QtWidgets)
 
 import SELMADataModels
 import SELMAGUIModels
+import SELMAGUISettings
 
 # ====================================================================
 
@@ -35,11 +36,15 @@ def main():
     QtCore.QSettings.setDefaultFormat(QtCore.QSettings.IniFormat)
     app.setOrganizationName(COMPANY)
     app.setApplicationName(APPNAME)
-    app.setWindowIcon(QtGui.QIcon("icon.png"))
+    app.setWindowIcon(QtGui.QIcon("SELMA.png"))
 
     #Model classes
     SGM = SELMAGUIModels.SelmaGUIModel(APPNAME = APPNAME)
     SDM = SELMADataModels.SelmaDataModel()
+    
+    #Initialise settings
+    settings = SELMAGUISettings.SelmaSettings()
+    settings.applySettings()
     
     #Connect signals
     # ----------------------------------------
@@ -64,7 +69,10 @@ def main():
             SGM.mainWin._imageViewer.setProgressBar)
     SDM.signalObject.setFrameCountSignal.connect(SGM.setFrameCounterSlot)
     SDM.signalObject.sendMaskSignal.connect(SGM.setMaskSlot)
-    SDM.signalObject.pixelValueSignal.connect(SGM.mainWin._imageViewer.mouseHover)
+    SDM.signalObject.pixelValueSignal.connect(
+            SGM.mainWin._imageViewer.mouseHover)
+    SDM.signalObject.errorMessageSignal.connect(
+            SGM.mainWin.errorMessageSlot)
 
     # ---------------------------------------
     sys.exit(app.exec_())
