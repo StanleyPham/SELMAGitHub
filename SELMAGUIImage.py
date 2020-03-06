@@ -633,18 +633,27 @@ class ImageViewer(QtWidgets.QFrame):
     
     def adjustDisplay(self, contrastFactor, brightness):
         """Adjusts the display pixmap by the defined brightness 
-        and contrast."""
+        and contrast.
+        
+        
+        The pixmap doesn't seem to be normalised between 0 and 255 correctly.
+        This leads to the image being very bright once it's adjusted and 
+        truncated in the code below. 
+        Properly normalising the image causes the adjustment of contrast and 
+        brightness to malfunction. Therefore the bug is left in. 
+        """
         
         #Begin with the original
         displayPixmap   = np.copy(self._originalPixmap)
-        
-        #Change the brightness
-        displayPixmap   += brightness
-        
+
         #Change the contrast
         C               = contrastFactor
         F               = (259*(C + 255) / (255*(259 - C)))
+        
         displayPixmap   = F * (displayPixmap - 128) + 128
+        
+        #Change the brightness
+        displayPixmap   += brightness
         
         #Truncate the values
         displayPixmap[displayPixmap < 0]    = 0

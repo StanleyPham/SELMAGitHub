@@ -281,6 +281,16 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         self.menuBar().addMenu(self.settingsMenu)
         
 
+    #Public slots
+    # ------------------------------------------------------------------
+    
+    @QtCore.pyqtSlot(str)
+    def errorMessageSlot(self, message):
+        """Creates an error dialog with the input message."""
+        self._error_dialog = QtWidgets.QErrorMessage()
+        self._error_dialog.showMessage(message)
+    
+    #Private slots
     # ------------------------------------------------------------------
     
     @QtCore.pyqtSlot()
@@ -291,7 +301,8 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
                                                       'Open Dicom',
                                                       '',
                                                       'Dicom (*.dcm)')
-        self.openFileSignal.emit(fname)
+        if len(fname[0]) != 0:
+            self.openFileSignal.emit(fname)
         
     @QtCore.pyqtSlot()
     def _openDir(self):
@@ -301,14 +312,22 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
                                                       'Open Dicom folder',
                                                       ''
                                                       )
-        self.openDirSignal.emit(fname)
+        if len(fname[0]) != 0:
+            self.openDirSignal.emit(fname)
         
     #Mask Menu
     @QtCore.pyqtSlot()
     def _loadMask(self):
         """Triggered when the load Mask action is called."""
-        fname = QtWidgets.QFileDialog.getOpenFileName(self, 'Open mask')
-        self.loadMaskSignal.emit(fname)
+        fname = QtWidgets.QFileDialog.getOpenFileName(self,
+                                                      'Open mask',
+                                                      '',
+                                                      '(*.npy *.png *.mat)')
+        if len(fname[0]) != 0:
+            self.loadMaskSignal.emit(fname)
+        
+        
+#   Apply mask is now called upon analyseVessel        
         
 #    @QtCore.pyqtSlot()
 #    def _applyMask(self):
@@ -324,10 +343,10 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         fname = QtWidgets.QFileDialog.getOpenFileName(self,
                                                       'Open T1',
                                                       '',
-                                                      '(*.dcm *.nii)')
+                                                      '(*.dcm)')
         
-        self.segmentMaskSignal.emit(fname)
-        pass
+        if len(fname[0]) != 0:
+            self.segmentMaskSignal.emit(fname)
 
     @QtCore.pyqtSlot()
     def _clearMask(self):
@@ -342,14 +361,20 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         
         #First, write the current mask to the Dataobject.
         mask = self._imageViewer._scene.getMask()
+        
+        if mask is None:
+            self.errorMessageSlot("No mask loaded")
+            return
+        
         self.applyMaskSignal.emit(mask)
         
         #Next, get the filename to save the mask to.
         fname = QtWidgets.QFileDialog.getSaveFileName(self,
                                                       'Save Mask',
                                                       '',
-                                                      '(*.npy, *.png)')
-        self.saveMaskSignal.emit(fname)
+                                                      '(*.npy *.png)')
+        if len(fname[0]) != 0:
+            self.saveMaskSignal.emit(fname)
     
     #Analyse Menu
     @QtCore.pyqtSlot()
@@ -360,6 +385,10 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         """
         
         mask = self._imageViewer._scene.getMask()
+        if mask is None:
+            self.errorMessageSlot("No mask loaded")
+            return
+        
         self.applyMaskSignal.emit(mask)
         
         self.analyseVesselSignal.emit()
@@ -373,7 +402,8 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
                                                       'Open folder',
                                                       ''
                                                       )
-        self.analyseBatchSignal.emit(fname)
+        if len(fname[0]) != 0:
+            self.analyseBatchSignal.emit(fname)
         
     @QtCore.pyqtSlot()
     def _openSettings(self):

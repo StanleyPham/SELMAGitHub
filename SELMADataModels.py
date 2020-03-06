@@ -43,6 +43,7 @@ class SDMSignals(QtCore.QObject):
     setProgressBarSignal    = QtCore.pyqtSignal(int) 
     setFrameCountSignal     = QtCore.pyqtSignal(int, int) 
     pixelValueSignal        = QtCore.pyqtSignal(int, int, float)
+    errorMessageSignal      = QtCore.pyqtSignal(str)
     
 class SelmaDataModel:
     """
@@ -229,8 +230,8 @@ class SelmaDataModel:
         
         """
         if self._SDO is None:
+            self.signalObject.errorMessageSignal.emit("No DICOM loaded.")
             return
-            #TODO: error popup
         
         self._SDO.analyseVessels()
         
