@@ -35,10 +35,12 @@ The easiest way to do this is to create a new Anaconda environment from the selm
 To do this, launch the 'Anaconda Prompt (Anaconda3)' program, navigate to the directory where the selmaEnvironment.yml file is located, and type the following command:
 `conda env create -f selmaEnvironment.yml -n selmaEnvironment`
 
-End then:
+The environment can then be activated with:
 `conda activate selmaEnvironment`
 
-Alternatively, the correct packages can be found by trying to run the program and whenever an error pops up regarding a missing module, installing that module via anaconda or pip. This is not recommended.
+Once the environment is active, the program can be launched by with either:
+*  Typing `python selma.py`
+*  Launching Spyder with `spyder` and running it from there.
 
 
 **Loading Dicoms**
