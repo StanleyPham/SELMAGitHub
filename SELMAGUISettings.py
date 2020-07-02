@@ -3,22 +3,14 @@
 """
 This module contains the following classes:
 
-+ :class:`ValueHoverLabel`
-+ :class:`SynchableGraphicsView`
-+ :class:`ImageViewer`
++ :class:`SelmaSettings`
 
 """
 
 # ====================================================================
 
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-#from future_builtins import *
-
-# ====================================================================
-
 from PyQt5 import (QtCore, QtGui, QtWidgets)
+import os
 
 # ====================================================================
 class QHLine(QtWidgets.QFrame):
@@ -26,7 +18,22 @@ class QHLine(QtWidgets.QFrame):
         super(QHLine, self).__init__()
         self.setFrameShape(QtWidgets.QFrame.HLine)
         self.setFrameShadow(QtWidgets.QFrame.Sunken)
+
+
+def getInfo():
+    """Reads the name, companyname and version number from info.txt and 
+    returns them."""
+    
+    fn = "info.txt"
+    fullpath = os.path.join(os.getcwd(), fn)
+    
+    with open (fullpath, "r") as info:
+        data=info.readlines()
+        company     = data[0]
+        appname     = data[1]
+        version     = data[2]
         
+        return company, appname, version
         
 
 class SelmaSettings(QtWidgets.QWidget):
@@ -35,9 +42,10 @@ class SelmaSettings(QtWidgets.QWidget):
     Settings are viewed, edited and saved.
     
     The settings window displays the following tabs:
-        General     - for the main functioning of the program
-        Ghosting    - for the removeGhosting function
-        Reset       - for resetting the settings to their default
+        General         - for the main functioning of the program
+        Ghosting        - for the removeGhosting function
+        Perpendicular   - for the removeNonPerpendicular function
+        Reset           - for resetting the settings to their default
     """
     def __init__(self):
         QtWidgets.QWidget.__init__(self)
@@ -58,15 +66,21 @@ class SelmaSettings(QtWidgets.QWidget):
         self.tabs           = QtWidgets.QTabWidget()
         self.mainTab        = QtWidgets.QWidget()
         self.ghostingTab    = QtWidgets.QWidget()
+        self.nonPerpTab     = QtWidgets.QWidget()
+        self.segmentTab     = QtWidgets.QWidget()
         self.resetTab       = QtWidgets.QWidget()
         
         self.tabs.addTab(self.mainTab,      "General")
         self.tabs.addTab(self.ghostingTab,  "Ghosting")
+        self.tabs.addTab(self.nonPerpTab,   "Non-Perpendicular")
+        self.tabs.addTab(self.segmentTab,   "Segmentation")
         self.tabs.addTab(self.resetTab,     "Reset")
         
         #Design Tabs
         self.initMainTab()
         self.initGhostingTab()
+        self.initNonPerpTab()
+        self.initSegmentTab()
         self.initResetTab()
         
         #Add to layout
@@ -95,50 +109,67 @@ class SelmaSettings(QtWidgets.QWidget):
     def initMainTab(self):
         """The tab containing the general settings.        """
         
-        self.mainTab.lineEdit1  = QtWidgets.QLineEdit()
-        self.mainTab.lineEdit2  = QtWidgets.QLineEdit()
-        self.mainTab.lineEdit3  = QtWidgets.QLineEdit()
-        self.mainTab.cBox1      = QtWidgets.QCheckBox()
-        self.mainTab.cBox2      = QtWidgets.QCheckBox()
+        self.mainTab.medDiamEdit                = QtWidgets.QLineEdit()
+        self.mainTab.confidenceInterEdit        = QtWidgets.QLineEdit()
+#        self.mainTab.whiteMatterProbEdit        = QtWidgets.QLineEdit()
+        self.mainTab.averageCardiacCycleBox     = QtWidgets.QCheckBox()
+        self.mainTab.gaussianSmoothingBox       = QtWidgets.QCheckBox()
+        self.mainTab.ignoreOuterBandBox         = QtWidgets.QCheckBox()
+        self.mainTab.decimalCommaBox            = QtWidgets.QCheckBox()
         
         self.mainTab.label1     = QtWidgets.QLabel("Median filter diameter")
         self.mainTab.label2     = QtWidgets.QLabel("Confindence interval")
-        self.mainTab.label3     = QtWidgets.QLabel("White Matter Probability")
+#        self.mainTab.label3     = QtWidgets.QLabel("White Matter Probability")
         self.mainTab.label4     = QtWidgets.QLabel("Average over cardiac cycle")
-        self.mainTab.label5     = QtWidgets.QLabel("Exclude perpendicular vessels")
+        self.mainTab.label5     = QtWidgets.QLabel("Use Gaussian smoothing\n"+
+                                                   "instead of median filter")
+        self.mainTab.label6     = QtWidgets.QLabel("Ignore the outer 80 pixels\n"+
+                                                   "of the image.")
+        self.mainTab.label7     = QtWidgets.QLabel("Use a decimal comma in the \n" + 
+                                                   " output instead of a dot.")
         
         self.mainTab.label1.setToolTip("Diameter of the kernel used in"             +
-                                       " the median filtering operations."          +
-                                       "\nDefault is 53.")
+                                       " the median filtering operations.")
         self.mainTab.label2.setToolTip("Confidence interval used to determine"      + 
                                        " whether a vessel is significant."          +
                                        "\nDefault is 0.05.")
-        self.mainTab.label3.setToolTip("Threshold for classifying a voxel"          +
-                                       " as white matter. \nDefault is 0.5")
+#        self.mainTab.label3.setToolTip("Threshold for classifying a voxel"          +
+#                                       " as white matter. \nDefault is 0.5")
         self.mainTab.label4.setToolTip("When toggled on, the reported values"       +
                                        " per voxel are averaged over the \n"        +
                                        "cycle. If not on, the values are from"      +
                                        " the first phase.")
-        self.mainTab.label5.setToolTip("When toggled on, the significant vessels"   +
-                                       " are filtered for any vessels that lie \n"  +
-                                       "perpendicular to the imaging plane.")
-        
+        self.mainTab.label5.setToolTip("Speeds up analysis drastically, might"      +
+                                       " yield the most accurate results.\nUse"      +
+                                       " only for testing.")
+        self.mainTab.label6.setToolTip("Removes the outer 80 pixels at each edge"   +
+                                       " from the mask. ")
 
+        #Add items to layout
         self.mainTab.layout     = QtWidgets.QGridLayout()
-        self.mainTab.layout.addWidget(self.mainTab.lineEdit1, 0,0)
-        self.mainTab.layout.addWidget(self.mainTab.lineEdit2, 1,0)
-        self.mainTab.layout.addWidget(self.mainTab.lineEdit3, 2,0)
+        self.mainTab.layout.addWidget(self.mainTab.medDiamEdit, 0,0)
+        self.mainTab.layout.addWidget(self.mainTab.confidenceInterEdit, 1,0)
+#        self.mainTab.layout.addWidget(self.mainTab.whiteMatterProbEdit, 2,0)
         
         self.mainTab.layout.addWidget(QHLine(),               3,0,1,2)
         
-        self.mainTab.layout.addWidget(self.mainTab.cBox1,     4,0)
-        self.mainTab.layout.addWidget(self.mainTab.cBox2,     5,0)
+        self.mainTab.layout.addWidget(self.mainTab.averageCardiacCycleBox,
+                                      4,0)
+        self.mainTab.layout.addWidget(self.mainTab.gaussianSmoothingBox,
+                                      5,0)
+        self.mainTab.layout.addWidget(self.mainTab.ignoreOuterBandBox,
+                                      6,0)
+        self.mainTab.layout.addWidget(self.mainTab.decimalCommaBox,
+                                      7,0)
         
-        self.mainTab.layout.addWidget(self.mainTab.label1,    0,1)
-        self.mainTab.layout.addWidget(self.mainTab.label2,    1,1)
-        self.mainTab.layout.addWidget(self.mainTab.label3,    2,1)
-        self.mainTab.layout.addWidget(self.mainTab.label4,    4,1)
-        self.mainTab.layout.addWidget(self.mainTab.label5,    5,1)
+        #Add labels to layout
+        self.mainTab.layout.addWidget(self.mainTab.label1,      0,1)
+        self.mainTab.layout.addWidget(self.mainTab.label2,      1,1)
+#        self.mainTab.layout.addWidget(self.mainTab.label3,      2,1)
+        self.mainTab.layout.addWidget(self.mainTab.label4,      4,1)
+        self.mainTab.layout.addWidget(self.mainTab.label5,      5,1)
+        self.mainTab.layout.addWidget(self.mainTab.label6,      6,1)
+        self.mainTab.layout.addWidget(self.mainTab.label7,      7,1)
         
         self.mainTab.setLayout(self.mainTab.layout)
         
@@ -146,45 +177,53 @@ class SelmaSettings(QtWidgets.QWidget):
         """The tab containing the removeGhosting settings."""
 
         #Toggle Ghosting
-        self.ghostingTab.cBox1      = QtWidgets.QCheckBox()
+        self.ghostingTab.doGhostingBox      = QtWidgets.QCheckBox()
         
         #Inputs
-        self.ghostingTab.lineEdit1  = QtWidgets.QLineEdit()
-        self.ghostingTab.lineEdit2  = QtWidgets.QLineEdit()
-        self.ghostingTab.lineEdit3  = QtWidgets.QLineEdit()
-        self.ghostingTab.lineEdit4  = QtWidgets.QLineEdit()
-        self.ghostingTab.lineEdit5  = QtWidgets.QLineEdit()
-        self.ghostingTab.lineEdit6  = QtWidgets.QLineEdit()
-        self.ghostingTab.lineEdit7  = QtWidgets.QLineEdit()
-        self.ghostingTab.lineEdit8  = QtWidgets.QLineEdit()
+        self.ghostingTab.noVesselThreshEdit     = QtWidgets.QLineEdit()
+        self.ghostingTab.smallVesselThreshEdit  = QtWidgets.QLineEdit()
+        self.ghostingTab.smallVesselExclXEdit   = QtWidgets.QLineEdit()
+        self.ghostingTab.smallVesselExclYEdit   = QtWidgets.QLineEdit()
+        self.ghostingTab.largeVesselExclXEdit   = QtWidgets.QLineEdit()
+        self.ghostingTab.largeVesselExclYEdit   = QtWidgets.QLineEdit()
+        self.ghostingTab.brightVesselPercEdit   = QtWidgets.QLineEdit()
         
         #Labels
         self.ghostingTab.label0 = QtWidgets.QLabel("Exclude ghosting zones")
-        self.ghostingTab.label1 = QtWidgets.QLabel("Vessel thresholds, no "     +
-                                                       "vessel, small vessel, " +
-                                                       "large vessel")
+        self.ghostingTab.label1 = QtWidgets.QLabel("Vessel thresholds"     +
+                                                       "small vessel & large vessel")
         self.ghostingTab.label2 = QtWidgets.QLabel("Small vessel exclusion zone"+
                                                        " X, Y")
         self.ghostingTab.label3 = QtWidgets.QLabel("Large vessel exclusion zone"+
                                                        " X, Y")
         self.ghostingTab.label4 = QtWidgets.QLabel("Bright pixel percentile")
         
+        #Tooltips
+        self.ghostingTab.label0.setToolTip("When toggled on, the areas near particulary"   +
+                                       " bright vessels are excluded from analysis.")
+        self.ghostingTab.label1.setToolTip("Thresholds for qualifying as a small or large vessel. "             +
+                                       "\nAnything smaller than a small vessel is considered not to be a vessel.")
+        self.ghostingTab.label2.setToolTip("The ghosting zone around a small vessel is increased in the X- and Y-directions \nby this much.")
+        self.ghostingTab.label3.setToolTip("The ghosting zone around a large vessel is increased in the X- and Y-directions \nby this much.")
+        self.ghostingTab.label4.setToolTip("What percentage intensity a voxel needs to have in order to be classified as a bright vessel.")
+        
+        
         #Add to layout
         self.ghostingTab.layout     = QtWidgets.QGridLayout()
-        self.ghostingTab.layout.addWidget(self.ghostingTab.cBox1,     0,0)
+        self.ghostingTab.layout.addWidget(self.ghostingTab.doGhostingBox,     0,0)
         
         self.ghostingTab.layout.addWidget(QHLine(),                   1,0,1,4)
         
-        self.ghostingTab.layout.addWidget(self.ghostingTab.lineEdit1, 2,0)
-        self.ghostingTab.layout.addWidget(self.ghostingTab.lineEdit2, 2,1)
+        self.ghostingTab.layout.addWidget(self.ghostingTab.noVesselThreshEdit, 2,0)
+        self.ghostingTab.layout.addWidget(self.ghostingTab.smallVesselThreshEdit, 2,1)
         
-        self.ghostingTab.layout.addWidget(self.ghostingTab.lineEdit4, 3,0)
-        self.ghostingTab.layout.addWidget(self.ghostingTab.lineEdit5, 3,1)
+        self.ghostingTab.layout.addWidget(self.ghostingTab.smallVesselExclXEdit, 3,0)
+        self.ghostingTab.layout.addWidget(self.ghostingTab.smallVesselExclYEdit, 3,1)
         
-        self.ghostingTab.layout.addWidget(self.ghostingTab.lineEdit6, 4,0)
-        self.ghostingTab.layout.addWidget(self.ghostingTab.lineEdit7, 4,1)
+        self.ghostingTab.layout.addWidget(self.ghostingTab.largeVesselExclXEdit, 4,0)
+        self.ghostingTab.layout.addWidget(self.ghostingTab.largeVesselExclYEdit, 4,1)
         
-        self.ghostingTab.layout.addWidget(self.ghostingTab.lineEdit8, 5,0)
+        self.ghostingTab.layout.addWidget(self.ghostingTab.brightVesselPercEdit, 5,0)
 
         self.ghostingTab.layout.addWidget(self.ghostingTab.label0,    0,3)
         self.ghostingTab.layout.addWidget(self.ghostingTab.label1,    2,3)
@@ -193,6 +232,104 @@ class SelmaSettings(QtWidgets.QWidget):
         self.ghostingTab.layout.addWidget(self.ghostingTab.label4,    5,3)
         
         self.ghostingTab.setLayout(self.ghostingTab.layout)
+        
+    def initNonPerpTab(self):
+        """The tab containing the removeGhosting settings."""
+
+        #Toggle nonPerp
+        self.nonPerpTab.removeNonPerpBox       = QtWidgets.QCheckBox()
+        
+        #Inputs
+        self.nonPerpTab.removePerpXEdit         = QtWidgets.QLineEdit()
+        self.nonPerpTab.removePerpYEdit         = QtWidgets.QLineEdit()
+        self.nonPerpTab.removePerpMagThreshEdit = QtWidgets.QLineEdit()
+        self.nonPerpTab.removePerpRatioThreshEdit  = QtWidgets.QLineEdit()
+        
+        #Labels
+        self.nonPerpTab.label0 = QtWidgets.QLabel("Exclude non-perpendicular zones")
+        self.nonPerpTab.label1 = QtWidgets.QLabel("Window size for measuring vessel shape.")
+        self.nonPerpTab.label2 = QtWidgets.QLabel("Magnitude threshold for measuring vessel shape.")
+        self.nonPerpTab.label3 = QtWidgets.QLabel("Major / minor axis threshold ratio.")
+        #Tooltips        
+        self.nonPerpTab.label0.setToolTip("When toggled on, the significant vessels"   +
+                                       " are filtered for any vessels that lie \n"  +
+                                       "perpendicular to the imaging plane.")
+        self.nonPerpTab.label1.setToolTip("The vessel shape is measured in a window\naround each cluster. These are\nthe window dimensions (X,Y).")
+        self.nonPerpTab.label2.setToolTip("The vessel shape is measured on the\nmagnitude data. This is the magnitude\nthreshold for vessels.")
+        self.nonPerpTab.label3.setToolTip("The criterion for exlusion is: major\nradius / minor radius > X.\n This is X")
+        
+        #Add to layout
+        self.nonPerpTab.layout              = QtWidgets.QGridLayout()
+        self.nonPerpTab.layout.addWidget(self.nonPerpTab.removeNonPerpBox,     0,0)
+        
+        self.nonPerpTab.layout.addWidget(QHLine(),                   1,0,1,4)
+        
+        self.nonPerpTab.layout.addWidget(self.nonPerpTab.removePerpXEdit, 2,0)
+        self.nonPerpTab.layout.addWidget(self.nonPerpTab.removePerpYEdit, 2,1)
+        
+        self.nonPerpTab.layout.addWidget(self.nonPerpTab.removePerpMagThreshEdit, 3,0)
+        self.nonPerpTab.layout.addWidget(self.nonPerpTab.removePerpRatioThreshEdit,  4,0)
+        
+        self.nonPerpTab.layout.addWidget(self.nonPerpTab.label0,    0,3)
+        self.nonPerpTab.layout.addWidget(self.nonPerpTab.label1,    2,3)
+        self.nonPerpTab.layout.addWidget(self.nonPerpTab.label2,    3,3)
+        self.nonPerpTab.layout.addWidget(self.nonPerpTab.label3,    4,3)
+        
+        self.nonPerpTab.setLayout(self.nonPerpTab.layout)
+        
+    def initSegmentTab(self):
+        
+        #Brainmask
+        self.segmentTab.brainMaskProb              = QtWidgets.QLineEdit()
+        self.segmentTab.brainMaskClosingDiam       = QtWidgets.QLineEdit()
+        self.segmentTab.brainMaskClosingIter       = QtWidgets.QLineEdit()
+        
+        #Tissue Segmentation
+        self.segmentTab.segmentModel               = QtWidgets.QComboBox()
+        self.segmentTab.segmentModel.addItem("3k")
+        self.segmentTab.segmentModel.addItem("test")
+        self.segmentTab.segmentModel.addItem("test2")
+        
+        self.segmentTab.segmentIterations          = QtWidgets.QLineEdit()
+        self.segmentTab.segmentNgb_size            = QtWidgets.QLineEdit()
+        self.segmentTab.segmentBeta                = QtWidgets.QLineEdit()
+        
+        self.segmentTab.label1     = QtWidgets.QLabel("Brain mask probability")
+        self.segmentTab.label2     = QtWidgets.QLabel("Closing diameter")
+        self.segmentTab.label3     = QtWidgets.QLabel("Closing iterations")
+        
+        self.segmentTab.label4     = QtWidgets.QLabel("Segmentation model")
+        self.segmentTab.label5     = QtWidgets.QLabel("Segmentation iterations")
+        self.segmentTab.label6     = QtWidgets.QLabel("Segmentation ngb_size parameter")
+        self.segmentTab.label7     = QtWidgets.QLabel("Segmentation beta parameter")
+
+        #Add items to layout
+        self.segmentTab.layout     = QtWidgets.QGridLayout()
+        self.segmentTab.layout.addWidget(self.segmentTab.brainMaskProb, 0,0)
+        self.segmentTab.layout.addWidget(self.segmentTab.brainMaskClosingDiam, 1,0)
+        self.segmentTab.layout.addWidget(self.segmentTab.brainMaskClosingIter, 2,0)
+        
+        self.segmentTab.layout.addWidget(QHLine(),               3,0,1,2)
+        
+        self.segmentTab.layout.addWidget(self.segmentTab.segmentModel,
+                                      4,0)
+        self.segmentTab.layout.addWidget(self.segmentTab.segmentIterations,
+                                      5,0)
+        self.segmentTab.layout.addWidget(self.segmentTab.segmentNgb_size,
+                                      6,0)
+        self.segmentTab.layout.addWidget(self.segmentTab.segmentBeta,
+                                      7,0)
+        
+        #Add labels to layout
+        self.segmentTab.layout.addWidget(self.segmentTab.label1,      0,1)
+        self.segmentTab.layout.addWidget(self.segmentTab.label2,      1,1)
+        self.segmentTab.layout.addWidget(self.segmentTab.label3,      2,1)
+        self.segmentTab.layout.addWidget(self.segmentTab.label4,      4,1)
+        self.segmentTab.layout.addWidget(self.segmentTab.label5,      5,1)
+        self.segmentTab.layout.addWidget(self.segmentTab.label6,      6,1)
+        self.segmentTab.layout.addWidget(self.segmentTab.label7,      7,1)
+        
+        self.segmentTab.setLayout(self.segmentTab.layout)
         
         
     def initResetTab(self):
@@ -222,39 +359,54 @@ class SelmaSettings(QtWidgets.QWidget):
         #==========================================
         
         #medDiam
-        medDiam = settings.value("medDiam")
+        medDiam                 = settings.value("medDiam")
         if medDiam is None:
-            medDiam = 53
-        self.mainTab.lineEdit1.setText(str(medDiam))
+            medDiam             = 53
+        self.mainTab.medDiamEdit.setText(str(medDiam))
         
         #confidence interval
-        confidenceInter = settings.value("confidenceInter")
+        confidenceInter         = settings.value("confidenceInter")
         if confidenceInter is None:
-            confidenceInter = 0.05
-        self.mainTab.lineEdit2.setText(str(confidenceInter))
+            confidenceInter     = 0.05
+        self.mainTab.confidenceInterEdit.setText(str(confidenceInter))
         
         #white matter probability
-        whiteMatterProb = settings.value("whiteMatterProb")
-        if whiteMatterProb is None:
-            whiteMatterProb = 0.5
-        self.mainTab.lineEdit3.setText(str(whiteMatterProb))
+#        whiteMatterProb         = settings.value("whiteMatterProb")
+#        if whiteMatterProb is None:
+#            whiteMatterProb     = 0.5
+#        self.mainTab.whiteMatterProbEdit.setText(str(whiteMatterProb))
         
         #average over cardiac cycle
-        averageCardiacCycle = settings.value("averageCardiacCycle")
+        averageCardiacCycle     = settings.value("averageCardiacCycle")
         if averageCardiacCycle is None:
             averageCardiacCycle = True
         else:
             averageCardiacCycle = averageCardiacCycle == 'true'
-        self.mainTab.cBox1.setChecked(averageCardiacCycle)
+        self.mainTab.averageCardiacCycleBox.setChecked(averageCardiacCycle)
         
-        #exclude perpendicular vessels
-        excludePerpendicular = settings.value("excludePerpendicular")
-        if excludePerpendicular is None:
-            excludePerpendicular = True
+        #Do Gaussian smoothing - default is False
+        gaussianSmoothing       = settings.value("gaussianSmoothing")
+        if gaussianSmoothing is None:
+            gaussianSmoothing   = False
         else:
-            excludePerpendicular = excludePerpendicular == 'true'
-        self.mainTab.cBox2.setChecked(excludePerpendicular)
+            gaussianSmoothing   = gaussianSmoothing == 'true'
+        self.mainTab.gaussianSmoothingBox.setChecked(gaussianSmoothing)
         
+        #Ignore outer band
+        ignoreOuterBand         = settings.value("ignoreOuterBand")
+        if ignoreOuterBand is None:
+            ignoreOuterBand = True
+        else:
+            ignoreOuterBand     = ignoreOuterBand == 'true'
+        self.mainTab.ignoreOuterBandBox.setChecked(ignoreOuterBand)
+        
+        #Use decimal comma
+        decimalComma         = settings.value("decimalComma")
+        if decimalComma is None:
+            decimalComma = True
+        else:
+            decimalComma     = decimalComma == 'true'
+        self.mainTab.decimalCommaBox.setChecked(decimalComma)
         
         #Ghosting settings
         #=============================================
@@ -265,50 +417,138 @@ class SelmaSettings(QtWidgets.QWidget):
             doGhosting = True
         else:
             doGhosting = doGhosting == 'true'
-        self.ghostingTab.cBox1.setChecked(doGhosting)
+        self.ghostingTab.doGhostingBox.setChecked(doGhosting)
         
         
         #Vessel thresholds
         noVesselThresh = settings.value("noVesselThresh")
         if noVesselThresh is None:
             noVesselThresh = 5
-        self.ghostingTab.lineEdit1.setText(str(noVesselThresh))
+        self.ghostingTab.noVesselThreshEdit.setText(str(noVesselThresh))
         
         smallVesselThresh = settings.value("smallVesselThresh")
         if smallVesselThresh is None:
             smallVesselThresh = 20
-        self.ghostingTab.lineEdit2.setText(str(smallVesselThresh))
+        self.ghostingTab.smallVesselThreshEdit.setText(str(smallVesselThresh))
         
         
         #small vessel exclusion zone
         smallVesselExclX = settings.value("smallVesselExclX")
         if smallVesselExclX is None:
             smallVesselExclX = 3
-        self.ghostingTab.lineEdit4.setText(str(smallVesselExclX))
+        self.ghostingTab.smallVesselExclXEdit.setText(str(smallVesselExclX))
         
         smallVesselExclY = settings.value("smallVesselExclY")
         if smallVesselExclY is None:
             smallVesselExclY = 40
-        self.ghostingTab.lineEdit5.setText(str(smallVesselExclY))
+        self.ghostingTab.smallVesselExclYEdit.setText(str(smallVesselExclY))
         
         
         #large vessel exclusion zone
         largeVesselExclX = settings.value("largeVesselExclX")
         if largeVesselExclX is None:
             largeVesselExclX = 5
-        self.ghostingTab.lineEdit6.setText(str(largeVesselExclX))
+        self.ghostingTab.largeVesselExclXEdit.setText(str(largeVesselExclX))
         
         largeVesselExclY = settings.value("largeVesselExclY")
         if largeVesselExclY is None:
             largeVesselExclY = 70
-        self.ghostingTab.lineEdit7.setText(str(largeVesselExclY))        
+        self.ghostingTab.largeVesselExclYEdit.setText(str(largeVesselExclY))        
         
         
         #Bright vessel percentile
         brightVesselPerc = settings.value("brightVesselPerc")
         if brightVesselPerc is None:
-            brightVesselPerc = 0.5
-        self.ghostingTab.lineEdit8.setText(str(brightVesselPerc))    
+            brightVesselPerc = 0.997
+        self.ghostingTab.brightVesselPercEdit.setText(str(brightVesselPerc)) 
+        
+        
+        
+        #Non Perpendicular settings
+        #=============================================
+        
+        #RemoveNonPerpendicular
+        removeNonPerp = settings.value("removeNonPerp")
+        if removeNonPerp is None:
+            removeNonPerp = True
+        else:
+            removeNonPerp = removeNonPerp == 'true'
+        self.nonPerpTab.removeNonPerpBox.setChecked(removeNonPerp)
+        
+        
+        #Window
+        removePerpX = settings.value("removePerpX")
+        if removePerpX is None:
+            removePerpX = 5
+        self.nonPerpTab.removePerpXEdit.setText(str(removePerpX))
+        
+        removePerpY = settings.value("removePerpY")
+        if removePerpY is None:
+            removePerpY = 5
+        self.nonPerpTab.removePerpYEdit.setText(str(removePerpY))
+        
+        
+        #magnitude threshold
+        removePerpMagThresh = settings.value("removePerpMagThresh")
+        if removePerpMagThresh is None:
+            removePerpMagThresh = 0.8
+        self.nonPerpTab.removePerpMagThreshEdit.setText(str(removePerpMagThresh))
+        
+        
+        #Exclusion ratio threshold
+        removePerpRatioThresh = settings.value("removePerpRatioThresh")
+        if removePerpRatioThresh is None:
+            removePerpRatioThresh = 5
+        self.nonPerpTab.removePerpRatioThreshEdit.setText(str(removePerpRatioThresh))
+        
+        
+        #Segmentation settings
+        #=============================================
+        
+        #Brain tissue probability
+        brainMaskProb = settings.value("brainMaskProb")
+        if brainMaskProb is None:
+            brainMaskProb = 0.05
+        self.segmentTab.brainMaskProb.setText(str(brainMaskProb))
+        
+        #Closing diameter
+        brainMaskClosingDiam = settings.value("brainMaskClosingDiam")
+        if brainMaskClosingDiam is None:
+            brainMaskClosingDiam = 10
+        self.segmentTab.brainMaskClosingDiam.setText(str(brainMaskClosingDiam))
+        
+        #Closing iterations
+        brainMaskClosingIter = settings.value("brainMaskClosingIter")
+        if brainMaskClosingIter is None:
+            brainMaskClosingIter = 5
+        self.segmentTab.brainMaskClosingIter.setText(str(brainMaskClosingIter))
+        
+        #Segmentation model
+        segmentModel = settings.value("segmentModel")
+        if segmentModel is None:
+            segmentModel = '3k'
+        
+        for i in range(self.segmentTab.segmentModel.count()):
+            if self.segmentTab.segmentModel.itemText(i) == segmentModel:
+                self.segmentTab.segmentModel.setCurrentIndex(i)
+        
+        #Segmentation iterations
+        segmentIterations = settings.value("segmentIterations")
+        if segmentIterations is None:
+            segmentIterations = 25
+        self.segmentTab.segmentIterations.setText(str(segmentIterations))
+        
+        #Segmentation ngb_size parameter
+        segmentNgb_size = settings.value("segmentNgb_size")
+        if segmentNgb_size is None:
+            segmentNgb_size = 6
+        self.segmentTab.segmentNgb_size.setText(str(segmentNgb_size))
+        
+        #Segmentation beta parameter
+        segmentBeta = settings.value("segmentBeta")
+        if segmentBeta is None:
+            segmentBeta = 0.5
+        self.segmentTab.segmentBeta.setText(str(segmentBeta))
         
         
     def applySettings(self):
@@ -325,7 +565,7 @@ class SelmaSettings(QtWidgets.QWidget):
         
         #median diameter
         
-        medDiam = self.mainTab.lineEdit1.text()
+        medDiam = self.mainTab.medDiamEdit.text()
         try: 
             medDiam = int(medDiam)
         except:
@@ -340,7 +580,7 @@ class SelmaSettings(QtWidgets.QWidget):
         # Confidence interval
         
         
-        confidenceInter = self.mainTab.lineEdit2.text()
+        confidenceInter = self.mainTab.confidenceInterEdit.text()
         try: 
             confidenceInter = float(confidenceInter)
         except:
@@ -355,35 +595,37 @@ class SelmaSettings(QtWidgets.QWidget):
         
         
         # White matter probability
-        whiteMatterProb = self.mainTab.lineEdit3.text()
-        try: 
-            whiteMatterProb = float(whiteMatterProb)
-        except:
-            self.errorLabel.setText(
-                    "White matter probabilty has to be a number.")
-            return
-        
-        if whiteMatterProb < 0 or whiteMatterProb > 1:
-            self.errorLabel.setText(
-                    "White matter probability has to be between 0 and 1.")
-            return        
+#        whiteMatterProb = self.mainTab.whiteMatterProbEdit.text()
+#        try: 
+#            whiteMatterProb = float(whiteMatterProb)
+#        except:
+#            self.errorLabel.setText(
+#                    "White matter probabilty has to be a number.")
+#            return
+#        
+#        if whiteMatterProb < 0 or whiteMatterProb > 1:
+#            self.errorLabel.setText(
+#                    "White matter probability has to be between 0 and 1.")
+#            return        
         
         
         # Average over cycle
-        averageCardiacCycle = self.mainTab.cBox1.isChecked()
+        averageCardiacCycle = self.mainTab.averageCardiacCycleBox.isChecked()
+        gaussianSmoothing   = self.mainTab.gaussianSmoothingBox.isChecked()
+        ignoreOuterBand     = self.mainTab.ignoreOuterBandBox.isChecked()
+        decimalComma        = self.mainTab.decimalCommaBox.isChecked()
         
-        # Exclude perpendicular Vessels
-        excludePerpendicular= self.mainTab.cBox2.isChecked()
         
-        
-        #Ghosting settings
         #=========================================
-        
+        #=========================================
+        #           Ghosting settings
+        #=========================================
+        #=========================================
         #perform the ghosting filter
-        doGhosting = self.ghostingTab.cBox1.isChecked()
+        doGhosting = self.ghostingTab.doGhostingBox.isChecked()
         
         #No Vessel threshold
-        noVesselThresh = self.ghostingTab.lineEdit1.text()
+        noVesselThresh = self.ghostingTab.noVesselThreshEdit.text()
         try: 
             noVesselThresh = int(noVesselThresh)
         except:
@@ -397,7 +639,7 @@ class SelmaSettings(QtWidgets.QWidget):
         
         #
         #small Vessel threshold
-        smallVesselThresh = self.ghostingTab.lineEdit2.text()
+        smallVesselThresh = self.ghostingTab.smallVesselThreshEdit.text()
         try: 
             smallVesselThresh = int(smallVesselThresh)
         except:
@@ -412,7 +654,7 @@ class SelmaSettings(QtWidgets.QWidget):
         
         #
         #small vessel exclusion zone - X
-        smallVesselExclX = self.ghostingTab.lineEdit4.text()
+        smallVesselExclX = self.ghostingTab.smallVesselExclXEdit.text()
         try: 
             smallVesselExclX = int(smallVesselExclX)
         except:
@@ -426,7 +668,7 @@ class SelmaSettings(QtWidgets.QWidget):
         
         #
         #small vessel exclusion zone - Y
-        smallVesselExclY = self.ghostingTab.lineEdit5.text()
+        smallVesselExclY = self.ghostingTab.smallVesselExclYEdit.text()
         try: 
             smallVesselExclY = int(smallVesselExclY)
         except:
@@ -440,7 +682,7 @@ class SelmaSettings(QtWidgets.QWidget):
         
         #
         #large vessel exclusion zone - X
-        largeVesselExclX = self.ghostingTab.lineEdit6.text()
+        largeVesselExclX = self.ghostingTab.largeVesselExclXEdit.text()
         try: 
             largeVesselExclX = int(largeVesselExclX)
         except:
@@ -454,7 +696,7 @@ class SelmaSettings(QtWidgets.QWidget):
         
         #
         #large vessel exclusion zone - Y
-        largeVesselExclY = self.ghostingTab.lineEdit7.text()
+        largeVesselExclY = self.ghostingTab.largeVesselExclYEdit.text()
         try: 
             largeVesselExclY = int(largeVesselExclY)
         except:
@@ -468,7 +710,7 @@ class SelmaSettings(QtWidgets.QWidget):
         
         #
         #Bright vessel percentile
-        brightVesselPerc = self.ghostingTab.lineEdit8.text()
+        brightVesselPerc = self.ghostingTab.brightVesselPercEdit.text()
         try: 
             brightVesselPerc = float(brightVesselPerc)
         except:
@@ -482,15 +724,194 @@ class SelmaSettings(QtWidgets.QWidget):
             return        
         
 
+        #=========================================
+        #=========================================
+        #           Non-Perpendicular
+        #=========================================
+        #=========================================
+
+        #RemoveNonPerpendicular
+        removeNonPerp = self.nonPerpTab.removeNonPerpBox.isChecked()        
+        
+        #
+        #Window
+        #X
+        removePerpX = self.nonPerpTab.removePerpXEdit.text()
+        try: 
+            removePerpX = float(removePerpX)
+        except:
+            self.errorLabel.setText(
+                    "Non-perpendicular window selection X has to be a number.")
+            return
+        
+        if removePerpX < 0:
+            self.errorLabel.setText(
+                    "Non-perpendicular window selection X has to >0.")
+            return     
+        
+        #Y
+        
+        removePerpY = self.nonPerpTab.removePerpYEdit.text()
+        try: 
+            removePerpY = float(removePerpY)
+        except:
+            self.errorLabel.setText(
+                    "Non-perpendicular window selection Y has to be a number.")
+            return
+        
+        if removePerpY < 0:
+            self.errorLabel.setText(
+                    "Non-perpendicular window selection Y has to > 0.")
+            return     
+        
+        
+        #
+        #Magnitude Percentage Threshold
+        removePerpMagThresh = self.nonPerpTab.removePerpMagThreshEdit.text()
+        try: 
+            removePerpMagThresh = float(removePerpMagThresh)
+        except:
+            self.errorLabel.setText(
+                    "Non-perpendicular window selection X has to be a number.")
+            return
+        
+        if removePerpMagThresh < 0 or removePerpMagThresh > 1:
+            self.errorLabel.setText(
+                    "Non-perpendicular window selection X has to between 0 and 1.")
+            return  
+        
+        
+        #
+        #Ratio Threshold
+        removePerpRatioThresh = self.nonPerpTab.removePerpRatioThreshEdit.text()
+        try: 
+            removePerpRatioThresh = float(removePerpRatioThresh)
+        except:
+            self.errorLabel.setText(
+                    "Non-perpendicular window selection X has to be a number.")
+            return
+        
+        if removePerpRatioThresh < 0:
+            self.errorLabel.setText(
+                    "Non-perpendicular window selection X has to be > 0.")
+            return   
+        
+        
+        
+        #=========================================
+        #=========================================
+        #           Segmentation
+        #=========================================
+        #=========================================       
+        
+        #
+        #Brain mask
+        #Prob
+        brainMaskProb = self.segmentTab.brainMaskProb.text()
+        try: 
+            brainMaskProb = float(brainMaskProb)
+        except:
+            self.errorLabel.setText(
+                    "Brain mask probability has to be a number.")
+            return
+        
+        if brainMaskProb < 0 or brainMaskProb > 1:
+            self.errorLabel.setText(
+                    "Brain mask probability has to be between 0 and 1.")
+            return     
+        
+        #Closing Diam
+        brainMaskClosingDiam = self.segmentTab.brainMaskClosingDiam.text()
+        try: 
+            brainMaskClosingDiam = int(brainMaskClosingDiam)
+        except:
+            self.errorLabel.setText(
+                    "Brain mask closing diameter has to be an integer.")
+            return
+        
+        if brainMaskClosingDiam < 0:
+            self.errorLabel.setText(
+                    "Brain mask closing diameter has to be > 0.")
+            return 
+        
+        #Closing Iterations
+        brainMaskClosingIter = self.segmentTab.brainMaskClosingIter.text()
+        try: 
+            brainMaskClosingIter = int(brainMaskClosingIter)
+        except:
+            self.errorLabel.setText(
+                    "Brain mask closing iterations has to be an integer.")
+            return
+        
+        if brainMaskClosingIter < 0:
+            self.errorLabel.setText(
+                    "Brain mask closing iterations has to be > 0.")
+            return 
+        
+        
+        #Segmentation
+        #Model
+        segmentModel = self.segmentTab.segmentModel.currentText()
+        
+
+        #Iterations        
+        segmentIterations = self.segmentTab.segmentIterations.text()
+        try: 
+            segmentIterations = int(segmentIterations)
+        except:
+            self.errorLabel.setText(
+                    "Segmentation iterations has to be an integer.")
+            return
+        
+        if segmentIterations < 0:
+            self.errorLabel.setText(
+                    "Segmentation iterations has to be > 0.")
+            return 
+        
+        #Ngb_size        
+        segmentNgb_size = self.segmentTab.segmentNgb_size.text()
+        try: 
+            segmentNgb_size = int(segmentNgb_size)
+        except:
+            self.errorLabel.setText(
+                    "Segmentation Ngb_size has to be an integer.")
+            return
+        
+        if segmentNgb_size < 0:
+            self.errorLabel.setText(
+                    "Segmentation Ngb_size has to be > 0.")
+            return 
+        
+        
+        #Beta        
+        segmentBeta = self.segmentTab.segmentBeta.text()
+        try: 
+            segmentBeta = float(segmentBeta)
+        except:
+            self.errorLabel.setText(
+                    "Segmentation Beta has to be a number.")
+            return
+        
+        if segmentBeta < 0 or segmentBeta > 1:
+            self.errorLabel.setText(
+                    "Segmentation Beta has to be between 0 and 1.")
+            return   
+        
+         
+
         #Save all to settings
         #================================
         #================================
-        settings.setValue('medDIam',                medDiam)
+        #Main
+        settings.setValue('medDiam',                medDiam)
         settings.setValue('confidenceInter',        confidenceInter)
-        settings.setValue('whiteMatterProb',        whiteMatterProb)
+#        settings.setValue('whiteMatterProb',        whiteMatterProb)
         settings.setValue('averageCardiacCycle',    averageCardiacCycle)
-        settings.setValue('excludePerpendicular',   excludePerpendicular)
+        settings.setValue('gaussianSmoothing',      gaussianSmoothing)
+        settings.setValue('ignoreOuterBand',        ignoreOuterBand)
+        settings.setValue('decimalComma',           decimalComma)
         
+        #Ghosting
         settings.setValue('doGhosting',             doGhosting)
         settings.setValue('noVesselThresh',         noVesselThresh)
         settings.setValue('smallVesselThresh',      smallVesselThresh)
@@ -499,6 +920,24 @@ class SelmaSettings(QtWidgets.QWidget):
         settings.setValue('largeVesselExclX',       largeVesselExclX)
         settings.setValue('largeVesselExclY',       largeVesselExclY)
         settings.setValue('brightVesselPerc',       brightVesselPerc)
+        
+        #nonPerp
+        settings.setValue('removeNonPerp',          removeNonPerp)
+        settings.setValue('removePerpX',            removePerpX)
+        settings.setValue('removePerpY',            removePerpY)
+        settings.setValue('removePerpMagThresh',    removePerpMagThresh)
+        settings.setValue('removePerpRatioThresh',  removePerpRatioThresh)
+        
+        #Segmentation
+        settings.setValue('brainMaskProb',          brainMaskProb)
+        settings.setValue('brainMaskClosingDiam',   brainMaskClosingDiam)
+        settings.setValue('brainMaskClosingIter',   brainMaskClosingIter)
+        settings.setValue('segmentModel',           segmentModel)
+        settings.setValue('segmentIterations',      segmentIterations)
+        settings.setValue('segmentNgb_size',        segmentNgb_size)
+        settings.setValue('segmentBeta',            segmentBeta)
+        
+        
         self.close()
         
     def reset(self):

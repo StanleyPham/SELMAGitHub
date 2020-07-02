@@ -9,15 +9,6 @@ This module contains the following classes:
 
 
 # ====================================================================
-
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-#from future_builtins import *
-
-# ====================================================================
-
-# ====================================================================
 #IO
 
 import pydicom
@@ -98,6 +89,13 @@ class SELMADicom:
     #Setter functions
     # ------------------------------------------------------------------    
     
+    def setVenc(self, venc):
+        self._tags['venc'] = venc
+        if self._tags['manufacturer'] == 'SIEMENS':
+            self._findRescaleValues()
+            self._rescaledFrames()
+        
+        
     '''Private'''
     # Setup data from .dcm header
     # ------------------------------------------------------------------    
@@ -212,8 +210,7 @@ class SELMADicom:
                                 [dcmPrivateCreatorAddress][0]               \
                                 [dcmImageTypeAddress].value[2]
                 self._tags['frameTypes'].append(frameType)
-                
-                
+            
             
         #Other manufacturers
         #

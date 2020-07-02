@@ -1,4 +1,5 @@
 # SELMA
+github version of SELMA repo. To make sharing easier with people who don't have a VPN
 
 ** *Trial-ready Small Vessel MRI Markers* **
 

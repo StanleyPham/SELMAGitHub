@@ -13,18 +13,13 @@ This module contains the following classes:
 
 # ====================================================================
 
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-#from future_builtins import *
-
-# ====================================================================
 
 import numpy as np
 import qimage2ndarray
 
 from PyQt5 import (QtCore, QtGui, QtWidgets)
 
+# ====================================================================
 
 class ROIPolygonItem(QtWidgets.QGraphicsPolygonItem):
     """|QGraphicsPolygonItem| that has information on whether it's used to add
@@ -83,8 +78,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self._button                = None  
         self._mask                  = None
         
-        self._maskBrush     = QtGui.QBrush(QtGui.QColor("#800000FF"))
-        self._addBrush      = QtGui.QBrush(QtGui.QColor("#8000FF00"))
+        self._maskBrush     = QtGui.QBrush(QtGui.QColor("#AA0000FF"))
+        self._addBrush      = QtGui.QBrush(QtGui.QColor("#6000FF00"))
         self._subtractBrush = QtGui.QBrush(QtGui.QColor("#80FF0000"))
                                                         
         self._maskBrush.setStyle(QtCore.Qt.SolidPattern)
@@ -118,13 +113,19 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             mask (numpy.ndarray): binary mask.
         """
         
-        #Turn the mask into a blue transparent pixmap
-#        maskr = np.zeros((1,mask.shape[0], mask.shape[1]))
-#        maskg = np.zeros((1,mask.shape[0], mask.shape[1]))
-        maskr   = np.reshape(mask, (1,mask.shape[0], mask.shape[1])) / 3
-        maskg   = np.reshape(mask, (1,mask.shape[0], mask.shape[1])) / 3
-        maskb   = np.reshape(mask, (1,mask.shape[0], mask.shape[1]))
-        maskalpha   = maskb / 2
+        #Turn the mask into a transparent pixmap with the color of _maskBrush
+        maskr       = np.reshape(mask * self._maskBrush.color().redF(),
+                                 (1,mask.shape[0], mask.shape[1])
+                                 )
+        maskg       = np.reshape(mask * self._maskBrush.color().greenF(),
+                                 (1,mask.shape[0], mask.shape[1])
+                                 )
+        maskb       = np.reshape(mask * self._maskBrush.color().blueF(),
+                                 (1,mask.shape[0], mask.shape[1])
+                                 )
+        maskalpha   = np.reshape(mask * self._maskBrush.color().alphaF(),
+                                 (1,mask.shape[0], mask.shape[1])
+                                 )
         
         mask = np.vstack((maskr, maskg, maskb, maskalpha))
         mask = np.swapaxes(mask, 0,2)
@@ -148,6 +149,15 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         if mask is not None:
             self._mask = mask
 
+        self.updateMaskPixmap()
+        
+    def resetMask(self):
+        """Clears the mask of any ROIs."""
+        
+        if self._mask is None:
+            return
+        
+        self._mask = np.zeros(self._mask.shape) != 0
         self.updateMaskPixmap()
         
     def resetContrast(self):
@@ -534,11 +544,19 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         
         mask = self._mask.astype(np.uint8)*255
         
-        #Make the masked area transparent green.
-        maskr = np.zeros((1,mask.shape[0], mask.shape[1]))
-        maskg = np.reshape(mask, (1,mask.shape[0], mask.shape[1]))
-        maskb = np.zeros((1,mask.shape[0], mask.shape[1]))
-        maskalpha   = maskg / 2
+        #Turn the mask into a transparent pixmap with the color of _addBrush
+        maskr       = np.reshape(mask * self._addBrush.color().redF(),
+                                 (1,mask.shape[0], mask.shape[1])
+                                 )
+        maskg       = np.reshape(mask * self._addBrush.color().greenF(),
+                                 (1,mask.shape[0], mask.shape[1])
+                                 )
+        maskb       = np.reshape(mask * self._addBrush.color().blueF(),
+                                 (1,mask.shape[0], mask.shape[1])
+                                 )
+        maskalpha   = np.reshape(mask * self._addBrush.color().alphaF(),
+                                 (1,mask.shape[0], mask.shape[1])
+                                 )
         
         mask = np.vstack((maskr, maskg, maskb, maskalpha))
         mask = np.swapaxes(mask, 0,2)

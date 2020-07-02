@@ -9,13 +9,6 @@ This module contains the following classes:
 
 # ====================================================================
 
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-#from future_builtins import *
-
-# ====================================================================
-
 import numpy as np
 from PyQt5 import (QtCore, QtGui, QtWidgets)
 
@@ -23,8 +16,22 @@ from PyQt5 import (QtCore, QtGui, QtWidgets)
 
 import SELMAGUIImage
 import SELMAGUISettings
+import SELMAGUIImVar
 
 # ====================================================================
+
+
+class SGMSignals(QtCore.QObject):
+    """
+    This class inherits from a QObject in order to store and connect
+    pyqtSignals. It's used to send new signals to any subwindows that might
+    have been opened from the GUI.
+    
+    """
+    
+    #ImVar Signals
+    getVarSignal        = QtCore.pyqtSignal()
+    setVarSignal        = QtCore.pyqtSignal(dict)
 
 
 class SELMAMainWindow(QtWidgets.QMainWindow):
@@ -40,37 +47,48 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         self.createActions()
         self.createMenus()
         
+        self.statusBar().showMessage('SELMA')
+        
+        #Subwindows:
+        self.signalObj      = SGMSignals()
+        self.imVarWindow    = SELMAGUIImVar.SelmaImVar(self.signalObj)
+        
      
     '''Public'''
     # ------------------------------------------------------------------
 
     #Signals
     
-    loadMaskSignal = QtCore.pyqtSignal(tuple)
+    loadMaskSignal = QtCore.pyqtSignal(str)
     """ Load Mask **Signal**.
     Emitted when the user triggers the loadMaskAction.    
     """
     
-    segmentMaskSignal = QtCore.pyqtSignal(tuple)
+    segmentMaskSignal = QtCore.pyqtSignal()
     """ Segment Mask **Signal**.
     Emitted when the user triggers the loadMaskAction.    
     """
     
-    saveMaskSignal = QtCore.pyqtSignal(tuple)
+    saveMaskSignal = QtCore.pyqtSignal(str)
     """ Signals that the drawn ROIs should be saved to the disk."""
     
     applyMaskSignal = QtCore.pyqtSignal(np.ndarray)
     """ Signals that the drawn ROIs should be made into a mask
     for use in the analysis."""
     
-    openFileSignal = QtCore.pyqtSignal(tuple)
+    openFileSignal = QtCore.pyqtSignal(str)
     """ Open File **Signal**.
     Emitted when the user triggers the openAct.    
     """
     
-    openDirSignal = QtCore.pyqtSignal(str)
+    openClassicSignal = QtCore.pyqtSignal(list)
     """ Open Directory **Signal**.
-    Emitted when the user triggers the openDirAct.    
+    Emitted when the user triggers the openClassicAct.    
+    """
+    
+    openT1Signal = QtCore.pyqtSignal(str)
+    """ Open T1 File **Signal**.
+    Emitted when the user triggers the openT1Act.    
     """
     
     analyseVesselSignal = QtCore.pyqtSignal()
@@ -81,6 +99,11 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
     analyseBatchSignal = QtCore.pyqtSignal(str)
     """ Analyse Batch **Signal**.
     Emitted when the user triggers the analyseBatchAct.    
+    """
+    
+    switchViewSignal = QtCore.pyqtSignal()
+    """ Switch View **Signal**
+    Emitted when the user triggers the switchViewAct
     """
     
     #Setters
@@ -115,16 +138,22 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
             triggered=QtWidgets.qApp.closeAllWindows)
         
         self.openAct = QtWidgets.QAction(
-            "O&pen", self,
+            "O&pen Dicom", self,
             shortcut=QtGui.QKeySequence.Open,
-            statusTip="Open file (Ctrl+O)",
+            statusTip="Open PCA Dicom (Ctrl+O)",
             triggered=self._openFile)
         
-        self.openDirAct = QtWidgets.QAction(
-            "O&pen Directory", self,
+        self.openClassicAct = QtWidgets.QAction(
+            "O&pen Classic Dicom", self,
             shortcut="Ctrl+Shift+O",
             statusTip="Open Directory (Ctrl+Shift+O)",
-            triggered=self._openDir)
+            triggered=self._openClassic)
+        
+        self.openT1Act  = QtWidgets.QAction(
+            "O&pen T1 image", self,
+            shortcut="Ctrl+Alt+O",
+            statusTip="Open T1 Dicom (Ctrl+Alt+O)",
+            triggered=self._openT1)
         
         
         #Mask Actions
@@ -166,7 +195,15 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
             triggered=self._analyseBatch)
         
         
-        #view actions
+        #View Actions
+        
+        self.switchViewAct = QtWidgets.QAction(
+            "&Switch View", self,
+            statusTip="Switch view between PCA and T1 image",
+            shortcut= "Tab",
+            triggered=self._switchView)
+        
+        #scroll actions
         self.scrollToTopAct = QtWidgets.QAction(
             "&Top", self,
             shortcut=QtGui.QKeySequence.MoveToStartOfDocument,
@@ -227,6 +264,10 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         self.settingsAct = QtWidgets.QAction(
             "Open &Settings", self,
             triggered = self._openSettings)
+        
+        self.imageVariablesAct = QtWidgets.QAction(
+            "Image Variables", self,
+            triggered = self._imageVariables)
 
     def createMenus(self):
         """Create the menus."""
@@ -235,7 +276,8 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         self.fileMenu = QtWidgets.QMenu("&File")
         self.fileMenu.addAction(self.exitAct)
         self.fileMenu.addAction(self.openAct)
-        self.fileMenu.addAction(self.openDirAct)
+        self.fileMenu.addAction(self.openClassicAct)
+        self.fileMenu.addAction(self.openT1Act)
         
         #Create Mask Menu
         self.maskMenu = QtWidgets.QMenu("&Mask")
@@ -249,6 +291,10 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         self.analyseMenu = QtWidgets.QMenu("&Analyse")
         self.analyseMenu.addAction(self.analyseVesselsAct)
         self.analyseMenu.addAction(self.analyseBatchAct)        
+
+        #Create view Menu
+        self.viewMenu = QtWidgets.QMenu("&View", self)
+        self.viewMenu.addAction(self.switchViewAct)
 
         #Create Scroll Menu
         self.scrollMenu = QtWidgets.QMenu("&Scroll", self)
@@ -271,11 +317,13 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         #create Settings Menu
         self.settingsMenu = QtWidgets.QMenu("&Settings", self)
         self.settingsMenu.addAction(self.settingsAct)
+        self.settingsMenu.addAction(self.imageVariablesAct)
 
         #Add menus to menubar
         self.menuBar().addMenu(self.fileMenu)
         self.menuBar().addMenu(self.maskMenu)
         self.menuBar().addMenu(self.analyseMenu)
+        self.menuBar().addMenu(self.viewMenu)
         self.menuBar().addMenu(self.scrollMenu)
         self.menuBar().addMenu(self.zoomMenu)
         self.menuBar().addMenu(self.settingsMenu)
@@ -287,8 +335,21 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
     @QtCore.pyqtSlot(str)
     def errorMessageSlot(self, message):
         """Creates an error dialog with the input message."""
-        self._error_dialog = QtWidgets.QErrorMessage()
-        self._error_dialog.showMessage(message)
+        self._error_dialog = QtWidgets.QMessageBox.critical(self,
+                                                            "Error",
+                                                            message)
+        
+
+    def setProgressBar(self, val):
+        """Updates the progressbar of the imageViewer."""
+        self._imageViewer.setProgressBar(val)
+
+    
+    def setProgressLabel(self, text):
+        """Updates the statusBar with text from elsewhere in the program."""
+#        self._imageViewer.setProgressLabel(text)
+        self.statusBar().showMessage(text)
+
     
     #Private slots
     # ------------------------------------------------------------------
@@ -297,33 +358,52 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
     def _openFile(self):
         """Triggered when the open action is called."""
         
-        fname = QtWidgets.QFileDialog.getOpenFileName(self,
+        fname, _ = QtWidgets.QFileDialog.getOpenFileName(self,
                                                       'Open Dicom',
                                                       '',
                                                       'Dicom (*.dcm)')
-        if len(fname[0]) != 0:
+        if len(fname) != 0:
             self.openFileSignal.emit(fname)
         
     @QtCore.pyqtSlot()
-    def _openDir(self):
-        """Triggered when the open action is called."""
+    def _openClassic(self):
+        """Triggered when the open classic action is called."""
         
-        fname = QtWidgets.QFileDialog.getExistingDirectory(self,
-                                                      'Open Dicom folder',
-                                                      ''
-                                                      )
-        if len(fname[0]) != 0:
-            self.openDirSignal.emit(fname)
+        
+        
+        dialog = QtWidgets.QFileDialog()
+        dialog.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
+        fnames, _ = dialog.getOpenFileNames(self,
+                                           "Open classic Dicom files")
+        
+        if len(fnames) != 0:
+            self.openClassicSignal.emit(fnames)
+            
+            
+    @QtCore.pyqtSlot()
+    def _openT1(self):
+        """Triggered when the open T1 action is called."""
+         
+        
+        dialog = QtWidgets.QFileDialog()
+        dialog.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
+        fname, _ = QtWidgets.QFileDialog.getOpenFileName(self,
+                                                      'Open T1 Dicom',
+                                                      '',
+                                                      'Dicom (*.dcm)')
+        
+        if len(fname) != 0:
+            self.openT1Signal.emit(fname)
         
     #Mask Menu
     @QtCore.pyqtSlot()
     def _loadMask(self):
         """Triggered when the load Mask action is called."""
-        fname = QtWidgets.QFileDialog.getOpenFileName(self,
+        fname, _ = QtWidgets.QFileDialog.getOpenFileName(self,
                                                       'Open mask',
                                                       '',
                                                       '(*.npy *.png *.mat)')
-        if len(fname[0]) != 0:
+        if len(fname) != 0:
             self.loadMaskSignal.emit(fname)
         
         
@@ -339,19 +419,13 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
     @QtCore.pyqtSlot()
     def _segmentMask(self):
         """Triggered when the segment Mask action is called."""
-        
-        fname = QtWidgets.QFileDialog.getOpenFileName(self,
-                                                      'Open T1',
-                                                      '',
-                                                      '(*.dcm)')
-        
-        if len(fname[0]) != 0:
-            self.segmentMaskSignal.emit(fname)
+                
+        self.segmentMaskSignal.emit()
 
     @QtCore.pyqtSlot()
     def _clearMask(self):
         """Triggered when the clear Mask action is called."""
-        pass
+        self._imageViewer._scene.resetMask()
 
 
 
@@ -369,11 +443,11 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         self.applyMaskSignal.emit(mask)
         
         #Next, get the filename to save the mask to.
-        fname = QtWidgets.QFileDialog.getSaveFileName(self,
+        fname, _ = QtWidgets.QFileDialog.getSaveFileName(self,
                                                       'Save Mask',
                                                       '',
                                                       '(*.npy *.png)')
-        if len(fname[0]) != 0:
+        if len(fname) != 0:
             self.saveMaskSignal.emit(fname)
     
     #Analyse Menu
@@ -398,17 +472,29 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
     def _analyseBatch(self):
         """Triggered when the analyse batch action is called."""
          
-        fname = QtWidgets.QFileDialog.getExistingDirectory(self,
+        dirname = QtWidgets.QFileDialog.getExistingDirectory(self,
                                                       'Open folder',
                                                       ''
                                                       )
-        if len(fname[0]) != 0:
-            self.analyseBatchSignal.emit(fname)
+        if len(dirname) != 0:
+            self.analyseBatchSignal.emit(dirname)
+            
+    @QtCore.pyqtSlot()
+    def _switchView(self):
+        self.switchViewSignal.emit()
         
     @QtCore.pyqtSlot()
     def _openSettings(self):
         self.settingsWindow = SELMAGUISettings.SelmaSettings()
         self.settingsWindow.show()
+        
+    
+    @QtCore.pyqtSlot()
+    def _imageVariables(self):
+        self.imVarWindow.show()
+        self.imVarWindow.getVariables()
+        
+    
     # ------------------------------------------------------------------
 
     #overriden events

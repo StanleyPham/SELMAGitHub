@@ -11,13 +11,6 @@ between the SELMA GUI and the data objects. It contains the following classes:
 
 # ====================================================================
 
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-#from future_builtins import *
-
-# ====================================================================
-
 import numpy as np
 from PyQt5 import (QtCore)
 import os
@@ -41,9 +34,12 @@ class SDMSignals(QtCore.QObject):
     sendVesselMaskSignal    = QtCore.pyqtSignal(np.ndarray) 
     sendMaskSignal          = QtCore.pyqtSignal(np.ndarray) 
     setProgressBarSignal    = QtCore.pyqtSignal(int) 
+    setProgressLabelSignal  = QtCore.pyqtSignal(str) 
     setFrameCountSignal     = QtCore.pyqtSignal(int, int) 
     pixelValueSignal        = QtCore.pyqtSignal(int, int, float)
     errorMessageSignal      = QtCore.pyqtSignal(str)
+    
+    sendImVarSignal         = QtCore.pyqtSignal(dict)
     
 class SelmaDataModel:
     """
@@ -67,6 +63,11 @@ class SelmaDataModel:
         
         self._frameCount = 1
         self._frameMax   = 0
+        
+        self._t1FrameCount  = 1
+        self._t1FrameMax    = 0
+        
+        self._displayT1     = False;
         
         self.signalObject = SDMSignals()
         
@@ -97,19 +98,25 @@ class SelmaDataModel:
         if self._SDO is None:
             return
         
-        self._frameCount += direction
-        if self._frameCount <= 0:
-            self._frameCount = self._frameMax
-            
-        if self._frameCount > self._frameMax:
-            self._frameCount = 1
-            
-        frames = self._SDO.getFrames()
-        frame = frames[self._frameCount - 1]
-        self.signalObject.setPixmapSignal.emit(frame)
+        #T1
+        if self._displayT1:
+            self._t1FrameCount += direction
+            if self._t1FrameCount <= 0:
+                self._t1FrameCount = self._t1FrameMax
+                
+            if self._t1FrameCount > self._t1FrameMax:
+                self._t1FrameCount = 1
         
-        self.signalObject.setFrameCountSignal.emit(self._frameCount,
-                                                   self._frameMax)
+        #PCA
+        else:
+            self._frameCount += direction
+            if self._frameCount <= 0:
+                self._frameCount = self._frameMax
+                
+            if self._frameCount > self._frameMax:
+                self._frameCount = 1
+            
+        self._displayFrame()
     
     
     def loadMaskSlot(self, fname):
@@ -128,10 +135,23 @@ class SelmaDataModel:
         if fname is None or self._SDO is None:
             return
         
-        mask = SELMADataIO.loadMask(fname[0])
+        mask = SELMADataIO.loadMask(fname)
         
-        self._SDO.setMask(mask)
-        self.signalObject.sendMaskSignal.emit(mask)
+        #Ensure that the mask has the same dimensions as the Frames
+        frames = self._SDO.getFrames()
+        frame = frames[self._frameCount - 1]
+        maskShape   = mask.shape
+        frameShape  = frame.shape
+        
+        if maskShape != frameShape:
+            errStr  = "The dimensions of the frame and the mask do not align. "
+            self.signalObject.errorMessageSignal.emit(errStr + 
+                                                      str(frameShape) + 
+                                                      str(maskShape))
+            
+        else:
+            self._SDO.setMask(mask)
+            self.signalObject.sendMaskSignal.emit(mask)
         
     def saveMaskSlot(self, fname):
         """
@@ -147,23 +167,21 @@ class SelmaDataModel:
         mask = self._SDO.getMask()
         SELMADataIO.saveMask(fname, mask)
     
-    def segmentMaskSlot(self, fname):
-        """
-        Calls the loadT1 function from SELMADataIO and sends the SELMADicom
-        object to the SDO to be segmented. Then sends the mask back to the GUI.
-        
-        Args:
-            fname (str): path to the T1 that needs to be segmented.
-            
-        Returns:
-            Signal with the following:
-                mask (numpy.ndarray): the segmented mask.        
+    def segmentMaskSlot(self):
         """
         
-        if fname is None or self._SDO is None:
+        """
+        
+        if self._SDO is None:
+            self.signalObject.errorMessageSignal.emit(
+                    "Please load a PCA dicom first.")
+            return
+        if self._SDO.getT1() is None:
+            self.signalObject.errorMessageSignal.emit(
+                    "Please load a T1 dicom first.")
             return
         
-        self._SDO.setT1(fname[0])
+        self._SDO.segmentMask()
         
         mask = self._SDO.getMask()
         self.signalObject.sendMaskSignal.emit(mask)
@@ -188,29 +206,57 @@ class SelmaDataModel:
         if fname is None:
             return
         
-        self._SDO   = SELMAData.SELMADataObject(fname[0],
-                                                self.signalObject)
-        frames      = self._SDO.getFrames()
-        frame       = frames[0]
-        self.signalObject.setPixmapSignal.emit(frame)
+        self._SDO   = SELMAData.SELMADataObject(self.signalObject,
+                                                dcmFilename= fname)
+        self._frameCount    = 1
+        self._frameMax      = self._SDO.getNumFrames()
         
-        #update frameLabel
-        self._frameMax = len(frames)
-        self.signalObject.setFrameCountSignal.emit(self._frameCount,
-                                                   self._frameMax)
+        self._displayFrame()
             
-    def loadDCMDirSlot(self, fname):
+    def loadClassicDCMSlot(self, fnames):
         """
         Loads a new classic DCM into the SDO. Triggered when the 
-        openDicomDirAct is called.
-        
-        Not implemented yet.
+        openClassicAct is called.
         
         Args:
-            fname(str): path to directory containing Dicom.
+            fnames(tuple(str)): list of filenames
                 
         """
-        pass
+        if fnames is None:
+            return
+        
+        self._SDO   = SELMAData.SELMADataObject(self.signalObject,
+                                                dcmFilename=fnames,
+                                                classic = True)
+        self._frameCount = 1
+        self._frameMax = self._SDO.getNumFrames()
+        
+        self._displayFrame()
+    
+    def loadT1DCMSlot(self, fname):
+        """
+        Loads a new T1 DCM into the program. Triggered when the 
+        openT1Act is called.
+        
+        Args:
+            fname (str): path to the Dicom file.
+                
+        """
+        if fname is None:
+            return
+        if self._SDO is None:
+            self.signalObject.errorMessageSignal.emit(
+                    "Please load a PCA dicom first.")
+            return
+        
+        self._SDO.setT1(fname)
+        self._t1FrameCount  = 1
+        self._t1FrameMax    = self._SDO.getT1().getNumFrames()
+        self._displayT1     = True
+        
+        self._displayFrame()
+        
+    
     
     def applyMaskSlot(self, mask):
         """
@@ -268,17 +314,29 @@ class SelmaDataModel:
         #Iterate over all suitable .dcm files.
         for dcm in dcms:
             
-            self._SDO   = SELMAData.SELMADataObject(dcm)
+            self._SDO   = SELMAData.SELMADataObject(self.signalObject,
+                                                    dcmFilename= dcm,
+                                                    classic = False)
             
             name        = dcm[:-4]
             #find mask
+            #TODO: catch errors with wrong filetypes
             for file in files:
                 if file.find(name) != -1 and file.find("mask") != -1:
                     if file[-4:] == ".dcm":
-                        self._SDO.setT1(file)
+                        #Now it will find the dcm object itself.
+#                        self._SDO.setT1(file)
+#                        break
+                        pass
                     else:
                         mask = SELMADataIO.loadMask(file)
                         self._SDO.setMask(mask)
+                        break
+            
+            #If no mask is found, move on to the next image
+            if self._SDO.getMask() is None:
+                #TODO: error message
+                continue
             
             #Do vessel analysis
             self._SDO.analyseVessels()
@@ -288,6 +346,16 @@ class SelmaDataModel:
             outputName = name + ".txt"
             vesselDict = self._SDO.getVesselDict()
             SELMADataIO.writeVesselDict(vesselDict, outputName)
+            
+    def switchViewSlot(self):
+        if self._SDO is None:
+            return
+        if self._SDO.getT1() is None:
+            return
+            
+        self._displayT1 = not self._displayT1
+        self._displayFrame()
+        
         
         
     def saveVesselStatisticsSlot(self, fname):
@@ -328,6 +396,30 @@ class SelmaDataModel:
         
         self.signalObject.pixelValueSignal.emit(x, y, pixelValue)
         
+    def getVarSlot(self):
+        
+        if self._SDO is None:
+            return
+        
+        variables = dict()
+        
+        venc = self._SDO.getVenc()
+        variables['venc'] = venc
+        
+        #Return the variables
+        self.signalObject.sendImVarSignal.emit(variables)
+    
+    def setVarSlot(self, variables):
+        """Sets the user-defined variables stored in the ImVar window"""
+        
+        if self._SDO is None:
+            self.signalObject.errorMessageSignal.emit("No DICOM loaded.")
+            return
+            
+        venc = variables['venc']
+        self._SDO.setVenc(venc)
+        
+        
     #Getter functions
     # ------------------------------------------------------------------    
     
@@ -350,3 +442,23 @@ class SelmaDataModel:
     
     '''Private'''
         
+
+    def _displayFrame(self):
+        
+        
+        if self._displayT1:
+            frames  = self._SDO.getT1().getFrames()
+            frame   = frames[self._t1FrameCount - 1]
+            self.signalObject.setFrameCountSignal.emit(self._t1FrameCount,
+                                                       self._t1FrameMax)
+            
+        else:
+            frames      = self._SDO.getFrames()
+            frame       = frames[self._frameCount - 1]
+            self.signalObject.setFrameCountSignal.emit(self._frameCount,
+                                                       self._frameMax)
+            
+        self.signalObject.setPixmapSignal.emit(frame)
+        
+        
+

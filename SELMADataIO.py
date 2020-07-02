@@ -10,26 +10,18 @@ This module contains the following classes:
 
 # ====================================================================
 
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-#from future_builtins import *
-
-# ====================================================================
-
 import numpy as np
-from PyQt5 import (QtCore, QtGui, QtWidgets)
-
 
 # ====================================================================
 #IO
 
-import SimpleITK as sitk
 import pydicom
 import imageio
 import scipy.io
 import h5py
 # ====================================================================
+
+import SELMAGUISettings
 
 # ====================================================================
 
@@ -105,7 +97,7 @@ def loadMask( fname):
     elif    ext == ".mat":
         
         try:
-            #H5 file
+            #H5 file, used for matlab v7.3 and higher
             arrays = {}
             f = h5py.File(fname, 'r')
             for key, value in f.items():
@@ -133,7 +125,6 @@ def saveMask(fname, mask):
     """
 
     #find extension
-    fname       = fname[0]
     ext         = fname[-4:]
     
     if      ext == ".png":
@@ -167,7 +158,7 @@ def saveMask(fname, mask):
 #    
 #    return mask
 
-def writeVesselDict(vesselDict, fname):
+def writeVesselDict(vesselDict, addonDict, fname):
     """
     Writes the vesselDict object to a .txt file.
     
@@ -179,17 +170,38 @@ def writeVesselDict(vesselDict, fname):
     
     """
     
+    #Find if the decimalComma setting is turned on
+    COMPANY, APPNAME, _ = SELMAGUISettings.getInfo()
+    COMPANY             = COMPANY.split()[0]
+    APPNAME             = APPNAME.split()[0]
+    settings            = QtCore.QSettings(COMPANY, APPNAME)
+    decimalComma        = settings.value('decimalComma') == 'true'
+    
     with open(fname, 'w') as f:    
+        #Write headers
         for key in vesselDict[0].keys():
             f.write(key)
             f.write('\t')
         f.write('\n')
     
+        #Write vesseldata
         for i in range(len(vesselDict))    :
             for key in vesselDict[0].keys():
-                f.write(str(vesselDict[i][key]))
+                text    = str(vesselDict[i][key])
+                if decimalComma:
+                    text    = text.replace('.',',')
+                f.write(text)
                 f.write('\t')
             f.write('\n')
+            
+        #Write additional info
+        f.write('\n')
+        for key in addonDict.keys():
+            f.write(key)
+            f.write('\t')
+            f.write(str(addonDict[key]))
+            f.write('\n')
+            
 
 
     

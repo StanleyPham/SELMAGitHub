@@ -11,13 +11,6 @@ This module contains the following classes:
 
 # ====================================================================
 
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-#from future_builtins import *
-
-# ====================================================================
-
 import numpy as np
 from PyQt5 import (QtCore, QtGui, QtWidgets)
 import qimage2ndarray
@@ -44,7 +37,7 @@ class ValueHoverLabel(QtWidgets.QLabel):
         self._updateText()
         
     def _updateText(self):
-        textString = "x = {},  y = {}, \n   val = {}".format(
+        textString = "x = {},\n  y = {}, \n   val = {}".format(
                                                         self.xPos, 
                                                         self.yPos, 
                                                         self.value)
@@ -367,13 +360,17 @@ class ImageViewer(QtWidgets.QFrame):
         #Labels 
         self.valueLabel         = ValueHoverLabel()
         self.frameCountLabel    = QtWidgets.QLabel()
-        #Progressbar
-        self.bar = QtWidgets.QProgressBar()
+        #Progressbar & message
+        self.bar                = QtWidgets.QProgressBar()
+#        self.progressLabel      = QtWidgets.QLabel()
+        progressLayout          = QtWidgets.QVBoxLayout()
+#        progressLayout.addWidget(self.progressLabel)
+        progressLayout.addWidget(self.bar)
         
         #Create bottom layout
         bottomLayout = QtWidgets.QHBoxLayout()
         bottomLayout.addWidget(self.valueLabel)
-        bottomLayout.addWidget(self.bar)
+        bottomLayout.addLayout(progressLayout)
         bottomLayout.addWidget(self.frameCountLabel)
         
         #Create main layout
@@ -530,10 +527,13 @@ class ImageViewer(QtWidgets.QFrame):
     
     @QtCore.pyqtSlot(int)
     def setProgressBar(self, val):
-        """Scroll to top of image."""
+        """ Updates the progressbar to the given value. """
         self.bar.setValue(val)
 
-
+#    def setProgressLabel(self, text):
+#        """ Updates the Progresslabel with the specified message."""
+#        self.progressLabel.setText(text)
+        
     '''Private'''
 
     #Private Slots

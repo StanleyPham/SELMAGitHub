@@ -9,28 +9,23 @@ of the SELMA project. It contains the following classes:
 """
 
 # ====================================================================
-
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-#from future_builtins import *
-
-# ====================================================================
-
 import numpy as np
+from scipy.ndimage import gaussian_filter
 import scipy.signal
 import scipy.stats
-#from dipy.segment import tissue
-#from dipy import io
+import time
 import cv2
-from multiprocessing import Pool, freeze_support, cpu_count
+#from multiprocessing import Pool, freeze_support, cpu_count
 
 from PyQt5 import QtCore
 
 # ====================================================================
 
 import SELMADicom
+import SELMAClassicDicom
+import SELMAT1Dicom
 import SELMADataIO
+import SELMAGUISettings
 
 # ====================================================================
 
@@ -54,7 +49,6 @@ def applyMedianFilter(obj):
     return scipy.signal.medfilt2d(array, diameter)
 
 
-
 class SELMADataObject:
     """This class stores all data used in the program. It has a SELMADicom
     object for the Dicom image of the flow data, as well as the T1.
@@ -64,7 +58,10 @@ class SELMADataObject:
     directly handling the data. It is called by SELMADataModels, which 
     manages the user specified settings."""
     
-    def __init__(self, dcmFilename = None, signalObject = None):
+    def __init__(self,
+                 signalObject,
+                 dcmFilename = None,
+                 classic = False):
         
         self._mask          = None
         self._t1            = None
@@ -72,8 +69,13 @@ class SELMADataObject:
         self._selmaDicom    = None
         
         if dcmFilename is not None:
-            self._selmaDicom    = SELMADicom.SELMADicom(dcmFilename)
-            self._dcmFilename   = dcmFilename
+            if classic:
+                self._selmaDicom    = SELMAClassicDicom.SELMAClassicDicom(
+                                                            dcmFilename)
+                self._dcmFilename   = dcmFilename[0] + ".dcm"
+            else:
+                self._selmaDicom    = SELMADicom.SELMADicom(dcmFilename)
+                self._dcmFilename   = dcmFilename 
             
         self._signalObject = signalObject
     
@@ -83,36 +85,70 @@ class SELMADataObject:
     # ------------------------------------------------------------------
     
     def analyseVessels(self):
-        #TODO: apply settings
-        
+        '''
+        The main algorithm of segmenting and analysing the significant vessels.
+        It is split in the following parts:
+            -Preprocesses the data to be a gaussian around zero.
+            -Find all significant voxels based on their SNR
+            -Filter results
+            -Cluster results into vessels
+            -Extract and save vessel properties
+        '''
         if self._selmaDicom is None:
             self._signalObject.errorMessageSignal.emit("No DICOM loaded.")
             return
         
-        self._calculateMedians()
-        self._subtractMedian()
         
+        self._signalObject.setProgressBarSignal.emit(0)
+        self._signalObject.setProgressLabelSignal.emit(
+                    "Calculating median images")
+        self._calculateMedians()
+        self._signalObject.setProgressBarSignal.emit(60)
+        self._signalObject.setProgressLabelSignal.emit(
+                    "Finding significant vessels")
+        self._subtractMedian()
+                
         #Determine SNR of all voxels
         self._SNR()
         
         #Find all vessels with significant flow.
         self._findSignificantFlow()
-        
+
+        #Adjust and apply the Mask
         self._removeZeroCrossings()
+        self._removeGhosting()
+        self._removeOuterBand()
+        self._updateMask()
         self._applyT1Mask()
+        self._signalObject.setProgressBarSignal.emit(80)
+        self._signalObject.setProgressLabelSignal.emit(
+                    "Analysing clusters")
         
-        
+        #Cluster the vessels. 
         self._findSignificantMagnitude()
         self._clusterVessels()
-        
-        #Send vessels back to the GUI
+        self._removeNonPerpendicular()
+        self._signalObject.setProgressBarSignal.emit(100)
+
+#        Send vessels back to the GUI
         self._signalObject.sendVesselMaskSignal.emit(self._vesselMask)
         
         #make dictionary and write to disk
+        self._signalObject.setProgressLabelSignal.emit(
+                    "Writing results to disk")
         self._makeVesselDict()
         self._writeToFile()
-        
     
+        self._signalObject.setProgressLabelSignal.emit("")
+        
+        
+        
+    def segmentMask(self):
+        if self._t1 is None:
+            return
+        
+        self._mask  = self._t1.getSegmentationMask(self._selmaDicom)
+        
     
     #Getter functions
     # ------------------------------------------------------------------    
@@ -121,12 +157,18 @@ class SELMADataObject:
     
     def getRawFrames(self):
         return self._selmaDicom.getRawFrames()
+    
+    def getNumFrames(self):
+        return self._selmaDicom.getNumFrames()
 
     def getMask(self):
         return self._mask
     
     def getT1(self):
         return self._t1
+    
+    def getVenc(self):
+        return self._selmaDicom.getTags()['venc']
     
     def getVesselMask(self):
         return self._vesselMask
@@ -145,23 +187,23 @@ class SELMADataObject:
         self._mask = mask
         
     def setT1(self, t1Fname):
-        self._t1 = SELMADicom.SELMADicom(t1Fname)
-        self._segmentT1()
+        self._t1 = SELMAT1Dicom.SELMAT1Dicom(t1Fname)
         
+    def setVenc(self, venc):
+        self._selmaDicom.setVenc(venc)
         
     '''Private'''
     # Setup data from .dcm file
     # ------------------------------------------------------------------    
     
     
-    def readFromSettings(self, key):
+    def _readFromSettings(self, key):
         """Loads the settings object associated with the program and 
         returns the value at the key."""
         
-        #TODO, don't hardcode this
-        COMPANY = "UMCu"
-        APPNAME = "SELMA"
-        
+        COMPANY, APPNAME, _ = SELMAGUISettings.getInfo()
+        COMPANY             = COMPANY.split()[0]
+        APPNAME             = APPNAME.split()[0]
         settings = QtCore.QSettings(COMPANY, APPNAME)
         val = None
         
@@ -179,7 +221,7 @@ class SELMADataObject:
         
         return float(val)
     
-    def getSigma(self):
+    def _getSigma(self):
         """ Returns the upper end of the confidence interval with the alpha
         value in the settings.
         
@@ -189,35 +231,13 @@ class SELMADataObject:
             interval(float): upper end of confidence interval.
         """
     
-        alpha       = self.readFromSettings('confidenceInter')
+        alpha       = self._readFromSettings('confidenceInter')
         alpha       = 1 - alpha
         
         interval    = scipy.stats.norm.interval(alpha)[1]
         
         return interval
-#        return 1.95996398454005404943 
     
-        
-    def _segmentT1(self):
-        
-#        magFrames   = self._t1MagnitudeFrames
-#        
-#        #If frames are wrapped
-#        halfway     = int(len(magFrames)/2)
-#        magFrames   = np.concatenate([magFrames[halfway:],
-#                                      magFrames[:halfway]])
-#        nclass = 3 #White, Grey, CSF
-#        beta = 0.1 #between 0 and 0.5
-#        
-#        hmrf = tissue.TissueClassifierHMRF()
-#        initSegment, finalSegment, PVE = hmrf.classify(magFrames,
-#                                                       nclass,
-#                                                       beta)
-#        self._whiteMatterMask = PVE[:,:,2]
-#        
-#        self._mask = self._getMatchingSlice(self._whiteMatterMask)
-        
-        pass
         
     def _getMatchingSlice(self, arr):
         pass
@@ -230,11 +250,10 @@ class SELMADataObject:
     def _getMedianDiameter(self):
         """Returns the diameter as specified in the settings."""
         
-        diam = self.readFromSettings("medDiam")
+        diam = self._readFromSettings("medDiam")
         if diam is None:
             diam = 0
             
-        diam = 53
         return diam
     
     
@@ -242,7 +261,8 @@ class SELMADataObject:
         """Applies median filters to some necessary arrays.
         Starts a new process for each, to reduce processing time."""
         
-        diameter = self._getMedianDiameter()
+        #Prepares the data to be filtered
+        diameter = int(self._getMedianDiameter())
         
         velocityFrames  = np.asarray(self._selmaDicom.getVelocityFrames())
         magnitudeFrames = np.asarray(self._selmaDicom.getMagnitudeFrames())
@@ -262,7 +282,7 @@ class SELMADataObject:
         
         rmsSTD              = np.sqrt( (realSignalSTD**2 + imagSignalSTD**2))
         
-        
+        #Multithreaded version, not very stable.
 #        objList = [(diameter, meanVelocityFrame),
 #                   (diameter, meanMagnitudeFrame),
 #                   (diameter, rmsSTD)]
@@ -278,12 +298,31 @@ class SELMADataObject:
 #        self._medianRMSSTD          = res[2]
         
         
-        self._medianVelocityFrame = scipy.signal.medfilt2d(meanVelocityFrame,
-                                                           diameter)
-        self._medianMagnitudeFrame= scipy.signal.medfilt2d(meanMagnitudeFrame,
-                                                           diameter)
-        self._medianRMSSTD          = scipy.signal.medfilt2d(rmsSTD,
-                                                           diameter)
+        #Either applies a gaussian smoothing filter or a median filter.
+        #NOTE: the gaussian smoothing is not very reliable, should only
+        #Be used for testing.
+        gaussianSmoothing = self._readFromSettings('gaussianSmoothing')
+        if gaussianSmoothing:
+            #Find sigma from FWHM and median diameter in settings
+            filterRadius    = int(diameter / 2.355)
+            self._medianVelocityFrame   = gaussian_filter(meanVelocityFrame,
+                                                          filterRadius)
+            self._medianMagnitudeFrame  = gaussian_filter(meanMagnitudeFrame,
+                                                          filterRadius)
+            self._medianRMSSTD          = gaussian_filter(rmsSTD,
+                                                          filterRadius)
+        
+        else:
+            
+            self._medianVelocityFrame   = scipy.signal.medfilt2d(
+                                                        meanVelocityFrame,
+                                                        diameter)
+            self._medianMagnitudeFrame  = scipy.signal.medfilt2d(
+                                                        meanMagnitudeFrame,
+                                                        diameter)
+            self._medianRMSSTD          = scipy.signal.medfilt2d(
+                                                        rmsSTD,
+                                                        diameter)
         
         
         
@@ -324,10 +363,11 @@ class SELMADataObject:
         
     def _findSignificantFlow(self):
         """Uses the velocity SNR to find vessels with significant velocity."""
-        sigma               = self.getSigma()
+        sigma               = self._getSigma()
         self._sigFlowPos    = (self._velocitySNR > sigma).astype(np.uint8)
         self._sigFlowNeg    = (self._velocitySNR < -sigma).astype(np.uint8)
         self._sigFlow       = self._sigFlowNeg + self._sigFlowPos  
+        
         
     def _removeZeroCrossings(self):
         """Removes all vessels where the flow changes sign."""
@@ -342,6 +382,175 @@ class SELMADataObject:
         self._sigFlowNeg *= noZeroCrossings
         self._sigFlow    *= noZeroCrossings
         
+        
+    def _removeGhosting(self):
+        """
+        Creates a ghostingmask that can be used to subtract the areas 
+        around bright vessels from the main mask.
+        
+        This mask is found as follows:
+            
+        Get xth percentile of vessels, read x from settings
+        Cluster the bright vessels
+        Go over each cluster and decide what size it is
+            < noVesselThresh                        -> Ignore
+            > noVesselTresh & < smallVesselThresh   -> Small exclusion zone
+            > noVesselTresh & > smallVesselThresh   -> Large exclusion zone
+        Create exclusion zone by finding the left, right , top , and bottom 
+            most voxels and adding the exclusion buffers 
+        Add exclusion zone to ghostingMask
+                    
+        
+        """
+        
+        doGhosting      = self._readFromSettings('doGhosting')
+        if not doGhosting:
+            self._ghostingMask = np.zeros(self._mask.shape)
+            return
+        
+        #Read from settings
+        percentile          = self._readFromSettings('brightVesselPerc')
+        
+        noVesselThresh      = self._readFromSettings('noVesselThresh')
+        smallVesselThresh   = self._readFromSettings('smallVesselThresh')
+        
+        smallVesselExclX    = self._readFromSettings('smallVesselExclX')
+        smallVesselExclY    = self._readFromSettings('smallVesselExclY')
+        
+        largeVesselExclX    = self._readFromSettings('largeVesselExclX')
+        largeVesselExclY    = self._readFromSettings('largeVesselExclY')
+        
+        #Remove sharp edges from mean magnitude frame.
+        magnitude       = self._selmaDicom.getMagnitudeFrames()
+        meanMagnitude   = np.mean(magnitude, axis = 0)
+        medianMagnitude = self._medianMagnitudeFrame
+        meanMagnitude   -= medianMagnitude
+        
+        #Find threshold for 'bright' vessels and mask them.
+        meanMagNonzero  = np.abs(meanMagnitude[np.nonzero(meanMagnitude)])
+        threshold       = np.percentile(meanMagNonzero, percentile*100)
+        brightVesselMask= (np.abs(meanMagnitude) > threshold)
+        brightVesselMask= brightVesselMask.astype(np.uint8)
+        
+        #Cluster the bright vessels
+        nClusters, clusters = cv2.connectedComponents(brightVesselMask)
+        ghostingMask    = np.zeros(meanMagnitude.shape)
+        
+        #Go over all the clusters and add to ghostingMask
+        for idx in range(1, nClusters):     #skip 0, that's the background
+            cluster = clusters == idx
+            size    = np.sum(cluster)
+            
+            #If the cluster is too small, ignore
+            if size <= noVesselThresh:
+                continue
+            
+            #find left, right, top and bottom of cluster
+            clusterCoords   = np.nonzero(cluster)
+            left            = np.min(clusterCoords[1])
+            right           = np.max(clusterCoords[1])
+            top             = np.min(clusterCoords[0])
+            bottom          = np.max(clusterCoords[0])
+            
+            #Small Vessel
+            if size <= smallVesselThresh:
+                
+                #add buffer to left right, extend along y axis
+                newLeft         = int(max(left      - smallVesselExclX,
+                                      0))
+                newRight        = int(min(right     + smallVesselExclX,
+                                      meanMagnitude.shape[0] ))
+                newTop          = int(max(top       - smallVesselExclY,
+                                      0))
+                newBottom       = int(min(bottom    + smallVesselExclY,
+                                      meanMagnitude.shape[1]))
+                
+            #Large Vessel                
+            else:
+                #add buffer to left right, extend along y axis
+                
+                #Expand window with values from settings
+                newLeft         = int(max(left      - largeVesselExclX,
+                                      0))
+                newRight        = int(min(right     + largeVesselExclX,
+                                      meanMagnitude.shape[0] ))
+                newTop          = int(max(top       - largeVesselExclY,
+                                      0))
+                newBottom       = int(min(bottom    + largeVesselExclY,
+                                      meanMagnitude.shape[1]))
+                
+            #increase cluster size
+            exclZone        = np.zeros(cluster.shape)
+            exclZone[newTop : newBottom, newLeft : newRight] = 1
+            
+            #Update the ghostingMask
+            ghostingMask += exclZone
+        
+        
+        #store ghosting mask
+        ghostingMask        = ghostingMask > 0
+        self._ghostingMask  = ghostingMask.astype(np.uint8)
+#        self._signalObject.sendVesselMaskSignal.emit(self._ghostingMask)
+        
+    def _removeOuterBand(self):
+        """
+        Creates an exclusion mask around the outer edges of the image with a 
+        certain width.
+        """
+        
+        ignoreOuterBand         = self._readFromSettings('ignoreOuterBand')
+        self._outerBandMask     = np.zeros(self._mask.shape)
+        if not ignoreOuterBand:
+            return
+        
+        band                            = 80    #TODO, get from settings
+        self._outerBandMask[:band, :]   = 1
+        self._outerBandMask[:, :band]   = 1
+        self._outerBandMask[-band:, :]  = 1
+        self._outerBandMask[:, -band:]  = 1
+        
+    def _updateMask(self):
+        """
+        Removes the exclusion zones found in removeGhosting and 
+        removeNonPerpendicular from the mask.
+        
+        Sends the updated mask to the GUI.
+        """
+        
+        mask            = self._mask.astype(bool)
+        ghost           = self._ghostingMask.astype(bool)
+        outer           = self._outerBandMask.astype(bool)
+        
+        #Make mask without ghosting
+        ghost           = ghost * mask
+        maskMinGhost    = mask  ^ ghost
+        
+        #Make mask without outer edge
+        outer           = outer * mask
+        maskMinOuter    = mask  ^ outer
+        
+        #Combine all masks
+        mask            = maskMinGhost & maskMinOuter
+        
+        self._mask = mask.astype(np.uint8)
+        self._signalObject.sendMaskSignal.emit(self._mask)
+
+    
+    def _applyT1Mask(self):
+        """First normalises, then applies the T1 mask (if any) to the 
+        sigFlowPos, sigFlowNeg and sigFlow arrays."""
+        mask = self._mask
+        
+        if mask is None:
+            self._signalObject.errorMessageSignal.emit("No mask loaded.")
+            return
+        
+        mask = mask.astype(bool) #prevent casting errors
+        self._sigFlowPos *= mask
+        self._sigFlowNeg *= mask
+        self._sigFlow    *= mask
+    
+        
     def _findSignificantMagnitude(self):
         """
         Makes masks for all vessels with:
@@ -351,7 +560,7 @@ class SELMADataObject:
         """          
         magnitudeFrames     = self._selmaDicom.getMagnitudeFrames()
         meanMagnitude       = np.mean(magnitudeFrames, axis = 0)
-        sigma               = self.getSigma()
+        sigma               = self._getSigma()
         
 #        medianMagnitude     = scipy.signal.medfilt2d(meanMagnitude,
 #                                                     self._medianDiameter)
@@ -371,111 +580,6 @@ class SELMADataObject:
         self._sigMagIso     = self._sigFlow - self._sigMagNeg - self._sigMagPos
         self._sigMagIso     = (self._sigMagIso > 0).astype(np.uint8)
         
-        
-    def _applyT1Mask(self):
-        """Applies the T1 mask (if any) to the sigFlowPos, sigFlowNeg and 
-        sigFlow arrays."""
-        mask = self._mask
-        
-        if mask is None:
-            self._signalObject.errorMessageSignal.emit("No mask loaded.")
-            return
-        
-        mask = mask.astype(bool) #prevent casting errors
-        self._sigFlowPos *= mask
-        self._sigFlowNeg *= mask
-        self._sigFlow    *= mask
-        
-    def _removeGhosting(self):
-        """
-        Get xth percentile of vessels
-        Cluster
-        Go over each cluster
-        if too small, ignore
-        if normal: make small stripe
-        if large: make large stripe
-        
-        remove stripes from mask
-        
-        
-        """
-        
-        doGhosting      = self.readFromSettings('doGhosting')
-        if not doGhosting:
-            self._ghostingMask = np.zeros(self._mask.shape)
-            
-        
-        #Read from settings
-        percentile          = self.readFromSettings('brightVesselPerc')
-        
-        noVesselThresh      = self.readFromSettings('noVesselThresh')
-        smallVesselThresh   = self.readFromSettings('smallVesselThresh')
-        
-        smallVesselExclX    = self.readFromSettings('smallVesselExclX')
-        smallVesselExclY    = self.readFromSettings('smallVesselExclY')
-        
-        largeVesselExclX    = self.readFromSettings('largeVesselExclX')
-        largeVesselExclY    = self.readFromSettings('largeVesselExclY')
-        
-        #Remove sharp edges from mean magnitude frame.
-        magnitude       = self._selmaDicom.getMagnitudeFrames()
-        meanMagnitude   = np.mean(magnitude, axis = 0)
-        medianMagnitude = self._medianMagnitudeFrame
-        meanMagnitude   -= medianMagnitude
-        
-        #Find threshold for 'bright' vessels and mask them.
-        meanMagNonzero  = meanMagnitude(np.nonzero(meanMagnitude))
-        threshold       = np.percentile(meanMagNonzero, percentile)
-        brightVesselMask= (meanMagnitude > threshold)
-        brightVesselMask= brightVesselMask.astype(np.uint8)
-        
-        #Cluster the bright vessels
-        nClusters, clusters = cv2.connectedComponents(brightVesselMask)
-        ghostingMask    = np.zeros(meanMagnitude.shape)
-        
-        #Go over all the clusters and add to ghostingMask
-        for idx in range(nClusters):
-            cluster = clusters == idx
-            size    = np.sum(cluster)
-            
-            #If the cluster is too small, ignore
-            if size <= noVesselThresh:
-                continue
-            
-            elif size <= smallVesselThresh:
-                #TODO:
-                #find left, right, top and bottom
-                #add buffer to left right,
-                #Extend in y direction by [lenght[]]
-                
-                pass
-            else:
-                
-                pass
-                #same, but larger
-            
-            ghostingMask += cluster
-            
-        
-        
-        
-        #store ghosting mask
-        self._ghostingMask = ghostingMask
-        
-        
-    def _removePerpendicularVessels(self):
-        """
-        Go over all clusters
-        per cluster:
-            Take window around it
-            threshold magnitude on x percentage
-            cluster result
-            Find minor & major radius of main blob
-            if major > x*minor, remove        
-        
-        """
-        
-
     def _clusterVessels(self):
         """
         Uses the flow and magnitude classifications to cluser the vessels.
@@ -497,50 +601,157 @@ class SELMADataObject:
         VPosMIso      = self._sigFlowPos * self._sigMagIso   
         
         
-        self._nComp   = 0
-        self._labels  = np.zeros(self._sigFlow.shape,
-                                 dtype = np.int32)
+        self._nComp     = 0
+        self._clusters  = []
         
         #VNegMPos
         ncomp, labels = cv2.connectedComponents(VNegMPos.astype(np.uint8))
-        self._nComp             += ncomp - 1
-        labels[labels != 0]     += np.max(self._labels)
-        self._labels            += labels
+        for comp in range(1,ncomp):
+            self._clusters.append(labels == comp)
         
         #VPosMPos
         ncomp, labels = cv2.connectedComponents(VPosMPos.astype(np.uint8))
-        self._nComp             += ncomp - 1
-        labels[labels != 0]     += np.max(self._labels)
-        self._labels            += labels
-        
+        for comp in range(1,ncomp):
+            self._clusters.append(labels == comp)
+            
         #VNegMNeg
         ncomp, labels = cv2.connectedComponents(VNegMNeg.astype(np.uint8))
-        self._nComp             += ncomp - 1
-        labels[labels != 0]     += np.max(self._labels)
-        self._labels            += labels
-        
+        for comp in range(1,ncomp):
+            self._clusters.append(labels == comp)
+            
         #VPosMNeg
         ncomp, labels = cv2.connectedComponents(VPosMNeg.astype(np.uint8))
-        self._nComp             += ncomp - 1
-        labels[labels != 0]     += np.max(self._labels)
-        self._labels            += labels
-        
+        for comp in range(1,ncomp):
+            self._clusters.append(labels == comp)
+            
         #VNegMIso
         ncomp, labels = cv2.connectedComponents(VNegMIso.astype(np.uint8))
-        self._nComp             += ncomp - 1
-        labels[labels != 0]     += np.max(self._labels)
-        self._labels            += labels
-        
+        for comp in range(1,ncomp):
+            self._clusters.append(labels == comp)
+            
         #VPosMIso
         ncomp, labels = cv2.connectedComponents(VPosMIso.astype(np.uint8))
-        self._nComp             += ncomp - 1
-        labels[labels != 0]     += np.max(self._labels)
-        self._labels            += labels
+        for comp in range(1,ncomp):
+            self._clusters.append(labels == comp)        
+        
+        #Write _clusters to _vesselMask
+        self._createVesselMask()
         
         
-        #Write _labels to _vesselMask
-        self._vesselMask        = (self._labels != 0)
+        #Cluster only significant magnitude
+        _, self._posMagClusters     = cv2.connectedComponents(
+                                        self._sigMagPos)
+        self._posMagClusters       *= self._mask
+        _, self._negMagClusters     = cv2.connectedComponents(
+                                        self._sigMagNeg)
+        self._negMagClusters       *= self._mask
         
+        
+
+    def _createVesselMask(self):
+        """
+        Iterates over the clusters found in _clusters and creates
+        a mask of all the vessels.
+        """
+        
+        mask = np.zeros(self._mask.shape,
+                        dtype = np.int32)
+        
+        for labels in self._clusters:
+            mask += labels
+        
+        self._vesselMask        = mask.astype(bool)
+        
+    
+    
+    def _removeNonPerpendicular(self):
+        """
+        Go over all clusters
+        per cluster:
+            Take window around it
+            threshold magnitude on x percentage
+            cluster result
+            Find minor & major radius of main blob
+            if major > x*minor, remove        
+        
+        """
+        
+        
+        removeNonPerp      = self._readFromSettings('removeNonPerp')
+        if not removeNonPerp:
+            return
+        
+        #Get other values from settings
+        removePerpX             = self._readFromSettings('removePerpX')
+        removePerpY             = self._readFromSettings('removePerpY')
+        removePerpMagThresh     = self._readFromSettings('removePerpMagThresh')
+        removePerpRatioThresh   = self._readFromSettings('removePerpRatioThresh')
+        
+        #Get mean magnitude frame
+        magnitudeFrames         = self._selmaDicom.getMagnitudeFrames()
+        meanMagnitude           = np.mean(magnitudeFrames, axis = 0)
+        
+        #Iterate over clusters:
+        for idx, cluster in enumerate(self._clusters):
+            
+            #find left, right, top and bottom of cluster
+            clusterCoords   = np.nonzero(cluster)
+            left            = np.min(clusterCoords[1])
+            right           = np.max(clusterCoords[1])
+            top             = np.min(clusterCoords[0])
+            bottom          = np.max(clusterCoords[0])
+            
+            #Expand window with values from settings
+            left            = int(max(left - removePerpX, 0))
+            right           = int(min(right + removePerpX,
+                                      meanMagnitude.shape[0]))
+            top             = int(max(top - removePerpY, 0))
+            bottom          = int(min(bottom + removePerpY,
+                                      meanMagnitude.shape[1]))
+            
+            #Get magnitude voxels in window around cluster:
+            magWindow       = meanMagnitude[top  : bottom,
+                                            left : right]
+            
+            #threshold
+            threshold       = np.percentile(magWindow, removePerpMagThresh * 100)
+            magWindowThresh = magWindow > threshold
+            
+            #cluster the result
+            ncomp, labels   = cv2.connectedComponents(
+                                        magWindowThresh.astype(np.uint8))
+            
+            #find largest (nonzero) cluster
+            counts          = np.bincount(labels[np.nonzero(labels)])
+            largestCluster  = np.argmax(counts)
+            
+            #find major and minor radius of cluster
+            blob        = labels == largestCluster
+            contours,_  = cv2.findContours(blob.astype(np.uint8), 1, 1)
+            cnt         = contours[0]
+            try:
+                ellipse     = cv2.fitEllipse(cnt)
+                rad1, rad2  = ellipse[1]
+                majorRad    = max(rad1, rad2)
+                minorRad    = min(rad1, rad2)
+            except:
+                #if fitEllipse crashes because the contour size is too small,
+                #assume that it's a round vessel
+                continue
+            
+            
+            #Remove cluster from list if ellipse not circular enough
+            if minorRad == 0:
+                del(self._clusters[idx])
+                continue
+            
+            if majorRad / minorRad > removePerpRatioThresh:
+                del(self._clusters[idx])
+                
+        #Add the edited clusters to self._vesselMask
+        self._createVesselMask()
+        
+
     def _makeVesselDict(self):
         """Makes a dictionary containing the following statistics
         for each voxel in a vessel:
@@ -561,6 +772,7 @@ class SELMADataObject:
             -max Velocity
             -PI         (maxV - minV)/meanV
             -nPhases    (how many heart cycles)
+            -iMblob
             -Mag per cycle 
             -Velocity per cycle"""
 
@@ -573,40 +785,82 @@ class SELMADataObject:
                                   axis = 0)
         magFrames       = np.asarray(self._selmaDicom.getMagnitudeFrames())
         
+        iMblob          = self._posMagClusters - self._negMagClusters 
+        
         
         #Keep track of the progress to emit to the progressbar
         i       = 0 
-        total   = len(np.nonzero(self._labels)[0])
+        total   = np.sum(np.asarray(self._clusters))
         
-        for ncomp in range(1, self._nComp + 1):        #iterate over blobs
-            for pixel in np.transpose(np.nonzero(self._labels == ncomp)):
-                x,y = pixel
+        for idx, cluster in enumerate(self._clusters):
+            
+            
+            #Sort pixels in cluster by mean velocity (largest to smallest)
+            pixels  = np.nonzero(cluster)
+            velocities  = np.abs(meanVelocity[pixels])
+            indexes     = np.argsort(velocities)
+            indexes     = indexes[::-1]    #largest to smallest            
+            
+            pixels      = np.transpose(pixels)
+            
+            for pidx in indexes:
+                x,y = pixels[pidx]
                 value_dict = dict()
-                value_dict['pixelID']       = int(y*self._labels.shape[-1] + x+1)
-                value_dict['row']           = int(x+1)
-                value_dict['column']        = int(y+1)
-                value_dict['blob']          = int(self._labels[x, y])
-                value_dict['vNeg']          = self._sigFlowNeg[x,y]
-                value_dict['vPos']          = self._sigFlowPos[x,y]
-                value_dict['mPos']          = self._sigMagPos[x,y] 
-                value_dict['mIso']          = self._sigMagIso[x,y]
-                value_dict['mNeg']          = self._sigMagNeg[x,y]
-                value_dict['meanMag']       = meanMagnitude[x,y]
-                value_dict['stdMagNoise']   = self._medianRMSSTD[x,y]
-                value_dict['meanV']         = meanVelocity[x,y]
-                value_dict['stdVNoise']     = np.mean(self._velocitySTD[:,x,y])
-                value_dict['minV']          = np.min(self._correctedVelocityFrames[:,x,y])
-                value_dict['maxV']          = np.max(self._correctedVelocityFrames[:,x,y])
-                value_dict['PI']            = div0([(value_dict['maxV'] -  value_dict['minV'])],
-                                              value_dict['meanV'])
-                value_dict['nPhase']        = self._correctedVelocityFrames.shape[0]
-                value_dict['magPerPhase']   = magFrames[:,x,y].tolist()
-                value_dict['velPerPhase']   = self._correctedVelocityFrames[:,x,y].tolist()
+                value_dict['pixel']         = int(y*cluster.shape[-1] + x+1)
+                value_dict['ir']            = int(x+1)
+                value_dict['ic']            = int(y+1)
+                value_dict['iblob']         = int(idx + 1)
+                value_dict['ipixel']        = int(pidx + 1)
+                value_dict['Vneg']          = round(self._sigFlowNeg[x,y],  4)
+                value_dict['Vpos']          = round(self._sigFlowPos[x,y],  4)
+                value_dict['Mpos']          = round(self._sigMagPos[x,y],   4)
+                value_dict['Miso']          = round(self._sigMagIso[x,y],   4)
+                value_dict['Mneg']          = round(self._sigMagNeg[x,y],   4)
+                value_dict['meanMag']       = round(meanMagnitude[x,y],     4)
+                value_dict['stdMagnoise']   = round(self._medianRMSSTD[x,y],4)
+                value_dict['meanV']         = round(meanVelocity[x,y],      4)
+                value_dict['stdVnoise']     = round(np.mean(
+                                                self._velocitySTD[:,x,y]),  4)
+                value_dict['minV']          = round(np.min(
+                                        self._correctedVelocityFrames[:,x,y]),
+                                                    4)
+                value_dict['maxV']          = round(np.max(
+                                        self._correctedVelocityFrames[:,x,y]),
+                                                    4)
+                value_dict['PI']            = abs(round(div0(
+                                             [(value_dict['maxV'] -
+                                              value_dict['minV'])],
+                                              value_dict['meanV'])[0],
+                                                    4))
+                value_dict['nPha']          = self._correctedVelocityFrames.shape[0]
+                value_dict['imBlob']        = int(iMblob[x,y])
+                #Magnitude per phase
+                for num, value in enumerate(magFrames[:,x,y].tolist()):
+                    num += 1
+                    if num < 10:
+                        numStr = '0' + str(num)
+                    else:
+                        numStr = str(num)
+                        
+                    value_dict['Mpha' + numStr] = round(value, 4)
                 
+                #Velocity per phase
+                for num, value in enumerate(
+                        self._correctedVelocityFrames[:,x,y].tolist()):
+                    num += 1
+                    if num < 10:
+                        numStr = '0' + str(num)
+                    else:
+                        numStr = str(num)
+                        
+                    value_dict['Vpha' + numStr] = round(value, 4)
+                
+                #Add vesselinfo to vessel dictionary
                 self._vesselDict[i] = value_dict
                 
                 #Emit progress to progressbar
-                self._signalObject.setProgressBarSignal.emit(int(100 * i / total))
+                self._signalObject.setProgressBarSignal.emit(
+                        int(100 * i / total))
                 i+= 1
         
         self._signalObject.setProgressBarSignal.emit(100)
@@ -618,7 +872,7 @@ class SELMADataObject:
         """
         
         #Message if no vessels were found
-        if np.nonzero(self._labels)[0] == 0:
+        if len(np.nonzero(self._clusters)[0]) == 0:
             self._signalObject.errorMessageSignal.emit("No vessels Found")
             return
         
@@ -626,7 +880,41 @@ class SELMADataObject:
         fname = self._dcmFilename[:-4]
         fname += "-Vessel_Data.txt"
         
+        addonDict = self.getAddonDict()
+        
         SELMADataIO.writeVesselDict(self._vesselDict,
+                                    addonDict,
                                     fname)
+        
+    def getAddonDict(self):
+        """Makes a dictionary that contains the necessary information for
+        repeating the analysis.""" 
+        
+        COMPANY, APPNAME, version = SELMAGUISettings.getInfo()
+        COMPANY             = COMPANY.split()[0]
+        APPNAME             = APPNAME.split()[0]
+        version             = version.split()[0]
+        settings            = QtCore.QSettings(COMPANY, APPNAME)
+        
+        addonDict   = dict()
+        
+        for key in settings.allKeys():
+            addonDict[key]  = settings.value(key)
+        
+        venc                = self._selmaDicom.getTags()['venc']
+        addonDict['venc']   = venc
+        addonDict['version']= version
+        
+        date                = time.localtime()
+        datestr     = str(date[2]) + '/' + str(date[1]) + '/' + str(date[0])
+        timestr     = str(date[3]) + ':' + str(date[4]) + ':' + str(date[5])
+        addonDict['date']   = datestr
+        addonDict['time']   = timestr
+        
+        addonDict['filename'] = self._dcmFilename
+        
+        return addonDict
+        
+        
         
         

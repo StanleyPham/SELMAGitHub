@@ -11,19 +11,6 @@ between the SELMA GUI and the data objects. It contains the following classes:
 
 # ====================================================================
 
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-#from future_builtins import *
-
-# ====================================================================
-
-import numpy as np
-from PyQt5 import (QtCore, QtGui, QtWidgets, Qt)
-#import qimage2ndarray
-
-# ====================================================================
-
 import SELMAGUI
 
 # ====================================================================
@@ -64,6 +51,18 @@ class SelmaGUIModel:
     def setVesselMaskSlot(self, mask):
         """Passes the vesselMask to the mainWin."""
         self.mainWin.setVesselMask(mask)
+        
+    def listenForVarsSlot(self, variables):
+        """passes the variables to mainwin.ImVar"""
+        self.mainWin.imVarWindow.listenForVars(variables)
+        
+    def setProgressBarSlot(self, val):
+        """Passes the progressbar value to mainwin"""
+        self.mainWin.setProgressBar(val)
+        
+    def setProgressLabelSlot(self, text):
+        """Passes the progress message to mainwin"""
+        self.mainWin.setProgressLabel(text)
     
     #Getter functions
     # ------------------------------------------------------------------    
