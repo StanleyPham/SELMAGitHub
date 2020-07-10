@@ -19,6 +19,7 @@ import pydicom
 import imageio
 import scipy.io
 import h5py
+from PyQt5 import (QtCore, QtGui, QtWidgets)
 # ====================================================================
 
 import SELMAGUISettings

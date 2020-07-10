@@ -91,9 +91,6 @@ class SELMADicom:
     
     def setVenc(self, venc):
         self._tags['venc'] = venc
-        if self._tags['manufacturer'] == 'SIEMENS':
-            self._findRescaleValues()
-            self._rescaledFrames()
         
         
     '''Private'''
@@ -232,6 +229,15 @@ class SELMADicom:
             self._tags['targets']['velocity']   = 'VELOCITY MAP'
             self._tags['targets']['magnitude']  = "M_FFE"
             self._tags['targets']['modulus']    = "M_PCA"
+            
+        
+        #Siemens
+        elif self._tags['manufacturer'] == 'SIEMENS':
+            self._tags['targets']['phase']      = 'P'
+            self._tags['targets']['velocity']   = 'V'
+            self._tags['targets']['magnitude']  = "MAG"
+            self._tags['targets']['modulus']    = "M"
+            
             
     
     # Apply changes to the frames

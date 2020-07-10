@@ -772,7 +772,7 @@ class SELMADataObject:
             -max Velocity
             -PI         (maxV - minV)/meanV
             -nPhases    (how many heart cycles)
-            -iMblob
+            -iMblob     (magnitude clustering list)
             -Mag per cycle 
             -Velocity per cycle"""
 
@@ -785,6 +785,7 @@ class SELMADataObject:
                                   axis = 0)
         magFrames       = np.asarray(self._selmaDicom.getMagnitudeFrames())
         
+        #TODO: check if needs to be multiplication.
         iMblob          = self._posMagClusters - self._negMagClusters 
         
         
