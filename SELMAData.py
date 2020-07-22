@@ -804,14 +804,14 @@ class SELMADataObject:
             
             pixels      = np.transpose(pixels)
             
-            for pidx in indexes:
+            for num, pidx in enumerate(indexes):
                 x,y = pixels[pidx]
                 value_dict = dict()
                 value_dict['pixel']         = int(y*cluster.shape[-1] + x+1)
                 value_dict['ir']            = int(x+1)
                 value_dict['ic']            = int(y+1)
                 value_dict['iblob']         = int(idx + 1)
-                value_dict['ipixel']        = int(pidx + 1)
+                value_dict['ipixel']        = int(num + 1)
                 value_dict['Vneg']          = round(self._sigFlowNeg[x,y],  4)
                 value_dict['Vpos']          = round(self._sigFlowPos[x,y],  4)
                 value_dict['Mpos']          = round(self._sigMagPos[x,y],   4)
