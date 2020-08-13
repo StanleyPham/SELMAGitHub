@@ -265,6 +265,16 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
             
             venc = self._tags['venc']
             
+            #Check if the velocity frames aren't accidentally stored as phase
+            
+            if np.round(np.max(self._phaseFrames), 1) == venc and \
+               np.round(np.min(self._phaseFrames), 1) == -venc:
+               
+                self._velocityFrames        = self._phaseFrames
+                self._rawVelocityFrames     = self._rawPhaseFrames
+                return
+            
+            #Else, compute velocity frames from the phaseFrames
             for idx in range(len(self._phaseFrames)):
                 phaseFrame  = self._phaseFrames[idx] * venc / np.pi
                 rawPhaseFrame  = self._rawPhaseFrames[idx] * venc / np.pi
