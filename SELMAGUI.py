@@ -53,6 +53,9 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         self.signalObj      = SGMSignals()
         self.imVarWindow    = SELMAGUIImVar.SelmaImVar(self.signalObj)
         
+        #filenames
+        self._fname         = None
+        
      
     '''Public'''
     # ------------------------------------------------------------------
@@ -363,6 +366,7 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
                                                       '',
                                                       'Dicom (*.dcm)')
         if len(fname) != 0:
+            self._fname     = fname
             self.openFileSignal.emit(fname)
         
     @QtCore.pyqtSlot()
@@ -442,10 +446,12 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         
         self.applyMaskSignal.emit(mask)
         
+        maskFname   = self._fname[:-4] + "-mask"
+        
         #Next, get the filename to save the mask to.
         fname, _ = QtWidgets.QFileDialog.getSaveFileName(self,
                                                       'Save Mask',
-                                                      '',
+                                                      maskFname,
                                                       '(*.npy *.png)')
         if len(fname) != 0:
             self.saveMaskSignal.emit(fname)
