@@ -52,8 +52,8 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         self._findManufacturer()
         
         #find important Tags
-        self._findRescaleValues()    
         self._findVEncoding()
+        self._findRescaleValues()    
         self._findFrameTypes()
         
         self._findTargets()
@@ -109,35 +109,48 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
 
         elif self._tags['manufacturer'] == 'SIEMENS':
             #Try to find the rescale values in the slices. If not available,
-            #???
             #Also try to calculate the value for venc
             
             dcmRescaleInterceptAddress  = 0x0028, 0x1052
             dcmRescaleSlopeAddress      = 0x0028, 0x1053
 
             for i in range(self._numFrames):
-                try:
-                    rescaleSlope        = float(self._DCMs[i]
-                                        [dcmRescaleSlopeAddress].value)
-                    rescaleIntercept    = float(self._DCMs[i]
-                                        [dcmRescaleInterceptAddress].value)
-                    rescaleSlopes.append(rescaleSlope)
-                    rescaleIntercepts.append(rescaleIntercept)
-                    
-                    #Set the venc based on the rescale slope of the phase 
-                    #images
-#                    try:
-#                        self._tags['venc']
-#                    
-#                    except:
-#                        #TODO: Check if right
-#                        if self._DCMs[i][0x8, 0x8].value[2] == 'V':
-#                            self._tags['venc'] = rescaleSlope
-                    
-                except:
-                    rescaleSlopes.append([])  
-                    rescaleIntercepts.append([])
-                    
+                
+                #If no rescale values can be found, the values can be 
+                #calculated as such: 
+                #Set the rescale slope and intersect to go from -venc to 
+                #venc. Only if the frame is velocity or phase.
+                
+                #Note: This assumes that the values in the frame do 
+                #actually range from -venc to venc. If this is not the 
+                #case, the calculated velocities might be off slightly.
+                
+                if self._DCMs[i][0x8, 0x8].value[2] == 'V' or \
+                    self._DCMs[i][0x8, 0x8].value[2] == 'P':
+                
+                        venc    = self._tags['venc'] 
+                        minVal  = np.min(self._rawFrames[i])
+                        maxVal  = np.max(self._rawFrames[i])
+                        
+                        slope   = (maxVal - minVal) / ( 2 * venc) 
+                        intercept   = (maxVal - minVal) / 2
+                        
+                        rescaleSlopes.append(slope)
+                        rescaleIntercepts.append(intercept)
+                
+                else:
+                    try:
+                        rescaleSlope        = float(self._DCMs[i]
+                                            [dcmRescaleSlopeAddress].value)
+                        rescaleIntercept    = float(self._DCMs[i]
+                                            [dcmRescaleInterceptAddress].value)
+                           
+                        rescaleSlopes.append(rescaleSlope)
+                        rescaleIntercepts.append(rescaleIntercept)
+                        
+                    except:
+                        rescaleSlopes.append([])  
+                        rescaleIntercepts.append([])
 
 
          #Other manufacturers
@@ -155,10 +168,30 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         """Gets the velocity encoding maximum in the z-direction from the DCM.
         It's assumed that this is constant for all frames."""
         
+        #First try default location:
+        address1    = 0x0018, 0x9197
+        address2    = 0x0018, 0x9217
+        
+        venc    = None
+        
         try:
-            venc    = self._tags['venc']
-        except:        
-            venc = 1            #Default value, if nothing can be found.
+            venc    = self._DCMs[0][address1][address2].value
+            
+        except:
+            #Try other frames
+            for frameNo in range(1,self._numFrames):
+                try:
+                    venc    = self._DCMs[frameNo][address1][address2].value
+                except:
+                    pass
+        
+        if venc is not None:
+            self._tags['venc'] = venc
+            return
+        
+        
+        
+        #Next try the private locations
         
         #Philips        
         if self._tags['manufacturer'] == 'Philips Medical Systems':
@@ -176,10 +209,26 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         
         
         #Siemens
-        #possible location:         0x0019, 0x1012
-        #possible location:         0x0019, 0x1013
-        
-        
+        if self._tags['manufacturer'] == "SIEMENS":
+            
+            #Gather the venc from the sequence name.
+            seqAddress                  = 0x0018, 0x0024
+            
+            for frameNo in range(self._numFrames):
+                seqName                 = self._DCMs[frameNo][seqAddress].value
+            
+                #sequence name has the format: fl2d1_[venc]
+                #Example: fl2d1_v200in
+                
+                #Find venc by getting the text after the underscore
+                pos     = seqName.find("_v")
+                if pos == -1:
+                    continue
+                
+                vencStr = seqName[pos:]
+                import re
+                venc    = [int(s) for s in re.findall(r'\d+', vencStr)][0]
+                
         #Other manufacturers
                 
         self._tags['venc'] = venc
