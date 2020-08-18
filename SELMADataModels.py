@@ -64,9 +64,6 @@ class SelmaDataModel:
         self._frameCount = 1
         self._frameMax   = 0
         
-        self._t1FrameCount  = 1
-        self._t1FrameMax    = 0
-        
         self._displayT1     = False;
         
         self.signalObject = SDMSignals()
@@ -98,17 +95,7 @@ class SelmaDataModel:
         if self._SDO is None:
             return
         
-        #T1
-        if self._displayT1:
-            self._t1FrameCount += direction
-            if self._t1FrameCount <= 0:
-                self._t1FrameCount = self._t1FrameMax
-                
-            if self._t1FrameCount > self._t1FrameMax:
-                self._t1FrameCount = 1
-        
-        #PCA
-        else:
+        if not self._displayT1:
             self._frameCount += direction
             if self._frameCount <= 0:
                 self._frameCount = self._frameMax
@@ -447,10 +434,9 @@ class SelmaDataModel:
         
         
         if self._displayT1:
-            frames  = self._SDO.getT1().getFrames()
-            frame   = frames[self._t1FrameCount - 1]
-            self.signalObject.setFrameCountSignal.emit(self._t1FrameCount,
-                                                       self._t1FrameMax)
+            frame   = self._SDO.getT1().getFrames()
+#            frame   = frames[self._t1FrameCount - 1]
+            self.signalObject.setFrameCountSignal.emit(1, 1)
             
         else:
             frames      = self._SDO.getFrames()

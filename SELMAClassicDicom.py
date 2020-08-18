@@ -125,6 +125,12 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
                 #actually range from -venc to venc. If this is not the 
                 #case, the calculated velocities might be off slightly.
                 
+                
+                #TODO: find the min and max possible raw values and not just
+                #the ones that occur. Look into how many bits are used to store
+                #data per voxel.
+                #16 bits -> 4096?
+                
                 if self._DCMs[i][0x8, 0x8].value[2] == 'V' or \
                     self._DCMs[i][0x8, 0x8].value[2] == 'P':
                 

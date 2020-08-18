@@ -187,7 +187,8 @@ class SELMADataObject:
         self._mask = mask
         
     def setT1(self, t1Fname):
-        self._t1 = SELMAT1Dicom.SELMAT1Dicom(t1Fname)
+        self._t1 = SELMAT1Dicom.SELMAT1Dicom(t1Fname, 
+                                             self._selmaDicom.getDCM())
         
     def setVenc(self, venc):
         self._selmaDicom.setVenc(venc)
