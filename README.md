@@ -39,7 +39,7 @@ To do this, launch the 'Anaconda Prompt (Anaconda3)' program, navigate to the di
 The environment can then be activated with:
 `conda activate selmaEnvironment`
 
-*** Installing Matlab dependency ***
+** Installing Matlab dependency **
 The program uses some Matlab scripts. In order to run these, python needs to have access to the Matlab engine.
 The following instructions are for installations using Anaconda, if you want to run the code in a different way, refer to [this](https://nl.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html) link.
 
