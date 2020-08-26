@@ -39,6 +39,17 @@ To do this, launch the 'Anaconda Prompt (Anaconda3)' program, navigate to the di
 The environment can then be activated with:
 `conda activate selmaEnvironment`
 
+** Installing Matlab dependency **
+The program uses some Matlab scripts. In order to run these, python needs to have access to the Matlab engine.
+The following instructions are for installations using Anaconda, if you want to run the code in a different way, refer to [this](https://nl.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html) link.
+
+1. Start Anaconda Prompt as an administrator
+2. Navigate to `matlabroot/extern/engines/python`, this is probably in: `C:\Program Files\MATLAB\R2020a\extern\engines\python`
+3. Make sure the correct environment is activated
+4. Run: `python setup.py install`
+5. Test if it's working by starting spyder and running: `import matlab.engine`
+
+
 Once the environment is active, the program can be launched by with either:
 *  Typing `python selma.py`
 *  Launching Spyder with `spyder` and running it from there.
