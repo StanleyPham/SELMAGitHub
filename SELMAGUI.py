@@ -67,7 +67,7 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
     Emitted when the user triggers the loadMaskAction.    
     """
     
-    segmentMaskSignal = QtCore.pyqtSignal()
+    segmentMaskSignal = QtCore.pyqtSignal(list)
     """ Segment Mask **Signal**.
     Emitted when the user triggers the loadMaskAction.    
     """
@@ -423,8 +423,8 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
     @QtCore.pyqtSlot()
     def _segmentMask(self):
         """Triggered when the segment Mask action is called."""
-                
-        self.segmentMaskSignal.emit()
+        libs    = self.getLibraries()                
+        self.segmentMaskSignal.emit(libs)
 
     @QtCore.pyqtSlot()
     def _clearMask(self):
@@ -560,3 +560,49 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
             self.restoreGeometry(settings.value('windowgeometry'))
         if settings.contains('windowstate'):
             self.restoreState(settings.value('windowstate'))
+            
+            
+    def getLibraries(self):
+        """
+            Checks for the existence of necessary libraries, prompts the user if
+            none exist. 
+            
+            returns
+                A list with all the libraries
+        """
+    
+        COMPANY, APPNAME, _ = SELMAGUISettings.getInfo()
+        settings = QtCore.QSettings(COMPANY, APPNAME)
+        
+        libs    = []
+        
+        #SPM
+        try:
+            dirname     = settings.value("spmDir")
+            if dirname  is None:
+                raise Exception
+        except:
+            dirname = QtWidgets.QFileDialog.getExistingDirectory(
+                                                            self,
+                                                            'Open SPM12 folder',
+                                                            ''
+                                                            )
+            settings.setValue("spmDir",      dirname)
+            
+        libs.append(dirname)
+            
+        try:
+            dirname     = settings.value("dcm2niiDir")
+            if dirname  is None:
+                raise Exception
+        except:
+            dirname = QtWidgets.QFileDialog.getExistingDirectory(
+                                                            self,
+                                                            'Open dcm2nii folder',
+                                                            ''
+                                                            )
+            settings.setValue("dcm2niiDir",      dirname)
+        
+        libs.append(dirname)
+        
+        return libs

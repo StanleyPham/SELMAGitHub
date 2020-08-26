@@ -147,8 +147,18 @@ class SELMADataObject:
         if self._t1 is None:
             return
         
-        self._mask  = self._t1.getSegmentationMask(self._selmaDicom)
+        self._signalObject.setProgressLabelSignal.emit(
+                    "Segmenting white matter from T1 - This may take a while.")
+        self._mask  = self._t1.getSegmentationMask()
         
+        #threshold the mask based on the value in the settings
+        threshold   = self._readFromSettings("whiteMatterProb")
+        self._mask[self._mask < threshold]  = 0
+        self._mask[self._mask >= threshold] = 1
+        self._mask = np.asarray(self._mask, dtype=int)
+        
+        self._signalObject.setProgressLabelSignal.emit(
+                    "")
     
     #Getter functions
     # ------------------------------------------------------------------    

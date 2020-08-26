@@ -18,7 +18,7 @@ import numpy as np
 import pydicom
 import imageio
 import scipy.io
-import h5py
+#import h5py
 from PyQt5 import (QtCore, QtGui, QtWidgets)
 # ====================================================================
 

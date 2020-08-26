@@ -34,6 +34,8 @@ def getInfo():
         version     = data[2]
         
         return company, appname, version
+    
+    
         
 
 class SelmaSettings(QtWidgets.QWidget):
@@ -279,55 +281,16 @@ class SelmaSettings(QtWidgets.QWidget):
         
     def initSegmentTab(self):
         
-        #Brainmask
-        self.segmentTab.brainMaskProb              = QtWidgets.QLineEdit()
-        self.segmentTab.brainMaskClosingDiam       = QtWidgets.QLineEdit()
-        self.segmentTab.brainMaskClosingIter       = QtWidgets.QLineEdit()
+        self.segmentTab.whiteMatterProb            = QtWidgets.QLineEdit()
         
-        #Tissue Segmentation
-        self.segmentTab.segmentModel               = QtWidgets.QComboBox()
-        self.segmentTab.segmentModel.addItem("3k")
-        self.segmentTab.segmentModel.addItem("test")
-        self.segmentTab.segmentModel.addItem("test2")
-        
-        self.segmentTab.segmentIterations          = QtWidgets.QLineEdit()
-        self.segmentTab.segmentNgb_size            = QtWidgets.QLineEdit()
-        self.segmentTab.segmentBeta                = QtWidgets.QLineEdit()
-        
-        self.segmentTab.label1     = QtWidgets.QLabel("Brain mask probability")
-        self.segmentTab.label2     = QtWidgets.QLabel("Closing diameter")
-        self.segmentTab.label3     = QtWidgets.QLabel("Closing iterations")
-        
-        self.segmentTab.label4     = QtWidgets.QLabel("Segmentation model")
-        self.segmentTab.label5     = QtWidgets.QLabel("Segmentation iterations")
-        self.segmentTab.label6     = QtWidgets.QLabel("Segmentation ngb_size parameter")
-        self.segmentTab.label7     = QtWidgets.QLabel("Segmentation beta parameter")
+        self.segmentTab.label1     = QtWidgets.QLabel("White matter probability")
 
         #Add items to layout
         self.segmentTab.layout     = QtWidgets.QGridLayout()
         self.segmentTab.layout.addWidget(self.segmentTab.brainMaskProb, 0,0)
-        self.segmentTab.layout.addWidget(self.segmentTab.brainMaskClosingDiam, 1,0)
-        self.segmentTab.layout.addWidget(self.segmentTab.brainMaskClosingIter, 2,0)
-        
-        self.segmentTab.layout.addWidget(QHLine(),               3,0,1,2)
-        
-        self.segmentTab.layout.addWidget(self.segmentTab.segmentModel,
-                                      4,0)
-        self.segmentTab.layout.addWidget(self.segmentTab.segmentIterations,
-                                      5,0)
-        self.segmentTab.layout.addWidget(self.segmentTab.segmentNgb_size,
-                                      6,0)
-        self.segmentTab.layout.addWidget(self.segmentTab.segmentBeta,
-                                      7,0)
         
         #Add labels to layout
         self.segmentTab.layout.addWidget(self.segmentTab.label1,      0,1)
-        self.segmentTab.layout.addWidget(self.segmentTab.label2,      1,1)
-        self.segmentTab.layout.addWidget(self.segmentTab.label3,      2,1)
-        self.segmentTab.layout.addWidget(self.segmentTab.label4,      4,1)
-        self.segmentTab.layout.addWidget(self.segmentTab.label5,      5,1)
-        self.segmentTab.layout.addWidget(self.segmentTab.label6,      6,1)
-        self.segmentTab.layout.addWidget(self.segmentTab.label7,      7,1)
         
         self.segmentTab.setLayout(self.segmentTab.layout)
         
@@ -506,49 +469,11 @@ class SelmaSettings(QtWidgets.QWidget):
         #=============================================
         
         #Brain tissue probability
-        brainMaskProb = settings.value("brainMaskProb")
-        if brainMaskProb is None:
-            brainMaskProb = 0.05
-        self.segmentTab.brainMaskProb.setText(str(brainMaskProb))
+        whiteMatterProb = settings.value("whiteMatterProb")
+        if whiteMatterProb is None:
+            whiteMatterProb = 0.5
+        self.segmentTab.whiteMatterProb.setText(str(whiteMatterProb))
         
-        #Closing diameter
-        brainMaskClosingDiam = settings.value("brainMaskClosingDiam")
-        if brainMaskClosingDiam is None:
-            brainMaskClosingDiam = 10
-        self.segmentTab.brainMaskClosingDiam.setText(str(brainMaskClosingDiam))
-        
-        #Closing iterations
-        brainMaskClosingIter = settings.value("brainMaskClosingIter")
-        if brainMaskClosingIter is None:
-            brainMaskClosingIter = 5
-        self.segmentTab.brainMaskClosingIter.setText(str(brainMaskClosingIter))
-        
-        #Segmentation model
-        segmentModel = settings.value("segmentModel")
-        if segmentModel is None:
-            segmentModel = '3k'
-        
-        for i in range(self.segmentTab.segmentModel.count()):
-            if self.segmentTab.segmentModel.itemText(i) == segmentModel:
-                self.segmentTab.segmentModel.setCurrentIndex(i)
-        
-        #Segmentation iterations
-        segmentIterations = settings.value("segmentIterations")
-        if segmentIterations is None:
-            segmentIterations = 25
-        self.segmentTab.segmentIterations.setText(str(segmentIterations))
-        
-        #Segmentation ngb_size parameter
-        segmentNgb_size = settings.value("segmentNgb_size")
-        if segmentNgb_size is None:
-            segmentNgb_size = 6
-        self.segmentTab.segmentNgb_size.setText(str(segmentNgb_size))
-        
-        #Segmentation beta parameter
-        segmentBeta = settings.value("segmentBeta")
-        if segmentBeta is None:
-            segmentBeta = 0.5
-        self.segmentTab.segmentBeta.setText(str(segmentBeta))
         
         
     def applySettings(self):
@@ -807,95 +732,18 @@ class SelmaSettings(QtWidgets.QWidget):
         #
         #Brain mask
         #Prob
-        brainMaskProb = self.segmentTab.brainMaskProb.text()
+        whiteMatterProb = self.segmentTab.whiteMatterProb.text()
         try: 
-            brainMaskProb = float(brainMaskProb)
+            whiteMatterProb = float(whiteMatterProb)
         except:
             self.errorLabel.setText(
-                    "Brain mask probability has to be a number.")
+                    "White matter probability has to be a number.")
             return
         
-        if brainMaskProb < 0 or brainMaskProb > 1:
+        if whiteMatterProb < 0 or whiteMatterProb > 1:
             self.errorLabel.setText(
-                    "Brain mask probability has to be between 0 and 1.")
+                    "White matter probability has to be between 0 and 1.")
             return     
-        
-        #Closing Diam
-        brainMaskClosingDiam = self.segmentTab.brainMaskClosingDiam.text()
-        try: 
-            brainMaskClosingDiam = int(brainMaskClosingDiam)
-        except:
-            self.errorLabel.setText(
-                    "Brain mask closing diameter has to be an integer.")
-            return
-        
-        if brainMaskClosingDiam < 0:
-            self.errorLabel.setText(
-                    "Brain mask closing diameter has to be > 0.")
-            return 
-        
-        #Closing Iterations
-        brainMaskClosingIter = self.segmentTab.brainMaskClosingIter.text()
-        try: 
-            brainMaskClosingIter = int(brainMaskClosingIter)
-        except:
-            self.errorLabel.setText(
-                    "Brain mask closing iterations has to be an integer.")
-            return
-        
-        if brainMaskClosingIter < 0:
-            self.errorLabel.setText(
-                    "Brain mask closing iterations has to be > 0.")
-            return 
-        
-        
-        #Segmentation
-        #Model
-        segmentModel = self.segmentTab.segmentModel.currentText()
-        
-
-        #Iterations        
-        segmentIterations = self.segmentTab.segmentIterations.text()
-        try: 
-            segmentIterations = int(segmentIterations)
-        except:
-            self.errorLabel.setText(
-                    "Segmentation iterations has to be an integer.")
-            return
-        
-        if segmentIterations < 0:
-            self.errorLabel.setText(
-                    "Segmentation iterations has to be > 0.")
-            return 
-        
-        #Ngb_size        
-        segmentNgb_size = self.segmentTab.segmentNgb_size.text()
-        try: 
-            segmentNgb_size = int(segmentNgb_size)
-        except:
-            self.errorLabel.setText(
-                    "Segmentation Ngb_size has to be an integer.")
-            return
-        
-        if segmentNgb_size < 0:
-            self.errorLabel.setText(
-                    "Segmentation Ngb_size has to be > 0.")
-            return 
-        
-        
-        #Beta        
-        segmentBeta = self.segmentTab.segmentBeta.text()
-        try: 
-            segmentBeta = float(segmentBeta)
-        except:
-            self.errorLabel.setText(
-                    "Segmentation Beta has to be a number.")
-            return
-        
-        if segmentBeta < 0 or segmentBeta > 1:
-            self.errorLabel.setText(
-                    "Segmentation Beta has to be between 0 and 1.")
-            return   
         
          
 
@@ -929,13 +777,7 @@ class SelmaSettings(QtWidgets.QWidget):
         settings.setValue('removePerpRatioThresh',  removePerpRatioThresh)
         
         #Segmentation
-        settings.setValue('brainMaskProb',          brainMaskProb)
-        settings.setValue('brainMaskClosingDiam',   brainMaskClosingDiam)
-        settings.setValue('brainMaskClosingIter',   brainMaskClosingIter)
-        settings.setValue('segmentModel',           segmentModel)
-        settings.setValue('segmentIterations',      segmentIterations)
-        settings.setValue('segmentNgb_size',        segmentNgb_size)
-        settings.setValue('segmentBeta',            segmentBeta)
+        settings.setValue('whiteMatterProb',        whiteMatterProb)
         
         
         self.close()

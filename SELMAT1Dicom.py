@@ -13,12 +13,12 @@ This module contains the following classes:
 import SELMADicom
 import SELMAInterpolate
 
-#import nipy.algorithms.segmentation as seg
+import os
 import pydicom
+import SimpleITK as sitk
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
-#from deepbrain import Extractor
-#from scipy.ndimage.morphology import binary_closing
+import matlab.engine
 
 
 class SELMAT1Dicom(SELMADicom.SELMADicom):
@@ -55,7 +55,7 @@ class SELMAT1Dicom(SELMADicom.SELMADicom):
         self._pcaGrid       = None
         
         # Segmentation properties
-        self._brainMask     = None
+        self._maskSlice     = None
         self._segmentation  = None
         
         #############################################################
@@ -73,17 +73,46 @@ class SELMAT1Dicom(SELMADicom.SELMADicom):
         #TODO: only use the right frames
         
     '''Public'''
-    def getSegmentationMask(self, pcaDicom):
+    def getSegmentationMask(self):
         """
         Walks through the various functions for constructing a T1 segmentation.
         
-        Notably:
-            -Align t1 with 2d pca slice (find orientation)
-            -Get brain mask
-            -...
-            -perform segmentation
+        -Find libraries (SPM & dcm2nii)
+        -Launch matlab engine
+        -Run matlab script to convert to .nii & segment
+        -Remove unnecessary files
+        -Interpolate segmentation slice from brainmask           
+            
+        Returns:
+            self._segmentation; the interpolated slice of the brainmask
         """
-        pass
+        libraries   =   SELMAInterpolate.getLibraries()
+        spm         =   libraries[0]
+        dcm2nii     =   libraries[1]
+        
+        eng         = matlab.engine.start_matlab()
+        out         =   eng.spmSegment(self._dcmFilename, 
+                                       spm, 
+                                       dcm2nii)
+        
+        #Remove all unnecessary files that were generated
+        for file in out['remove']:
+            os.remove(file)
+        os.remove(out['gm'])
+        
+        #Load the WM segmentation
+        im  = sitk.ReadImage(out['wm'])
+        im  = sitk.GetArrayFromImage(im)
+        print(im.shape, np.unique(im))
+        self._segmentation     = im
+        
+        #Create interpolated slice
+        self.interpolateMaskSlice()
+        
+        return self._maskSlice
+
+        
+        
     
     def getFrames(self):
         """
@@ -126,6 +155,11 @@ class SELMAT1Dicom(SELMADicom.SELMADicom):
         
         self._frames        = self._dcm.pixel_array[self._magFrameIndex]
         self._numFrames     = len(self._frames)
+    
+    
+    
+    ######################################################################
+    #Functions dealing with the segmentation & interpolation of T1 & mask
     
     
     def findT1Grid(self):

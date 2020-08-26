@@ -21,8 +21,7 @@ import SELMAGUISettings
 def main():
     """ SELMA - [Abbreviation] """
 
-    COMPANY     = "UMCu"
-    APPNAME     = "SELMA"
+    COMPANY, APPNAME, _ = SELMAGUISettings.getInfo()
 
     app = QtWidgets.QApplication(sys.argv)
     
@@ -80,9 +79,12 @@ def main():
             SGM.listenForVarsSlot)
     SDM.signalObject.setProgressLabelSignal.connect(
             SGM.setProgressLabelSlot)
+    
 
     # ---------------------------------------
     sys.exit(app.exec_())
+    
+
 
 if __name__ == '__main__':
     main()

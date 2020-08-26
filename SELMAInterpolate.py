@@ -2,7 +2,8 @@
 
 """
 This static module contains the following functions:
-    
+
++ :function:`getLibraries`    
 + :function:`usableImagePosition`
 + :function:`usableImageOrientation`
 + :function:`rotXAxis`
@@ -15,7 +16,48 @@ This static module contains the following functions:
 
 import numpy as np
 import math
+from PyQt5 import (QtCore, QtGui, QtWidgets)
 
+def getLibraries():
+    """
+        Checks for the existence of necessary libraries, prompts the user if
+        none exist. 
+        
+        returns: 
+            A list with all the libraries
+    """
+
+    COMPANY = "UMCu"
+    APPNAME = "SELMA"
+    
+    settings = QtCore.QSettings(COMPANY, APPNAME)
+    
+    libs    = []
+    
+    #SPM
+    try:
+        dirname     = settings.value("spmDir")
+    except:
+        dirname = QtWidgets.QFileDialog.getExistingDirectory(
+                                                      'Open SPM12 folder',
+                                                      ''
+                                                      )
+        settings.setValuelue("spmDir",      dirname)
+        
+    libs.append(dirname)
+        
+    try:
+        dirname     = settings.value("dcm2niiDir")
+    except:
+        dirname = QtWidgets.QFileDialog.getExistingDirectory(
+                                                      'Open dcm2nii folder',
+                                                      ''
+                                                      )
+        settings.setValuelue("dcm2niiDir",      dirname)
+    
+    libs.append(dirname)
+    
+    return libs
 
 def usableImagePosition(dcm):
     pos     = dcm[0x5200, 0x9230][0][0x0020, 0x9113][0].ImagePositionPatient

@@ -171,6 +171,7 @@ class SelmaDataModel:
         self._SDO.segmentMask()
         
         mask = self._SDO.getMask()
+        print(mask.shape, np.unique(mask))
         self.signalObject.sendMaskSignal.emit(mask)
         
 
