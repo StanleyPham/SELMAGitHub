@@ -54,7 +54,7 @@ function out    = spmSegment(structural_fn, spm_dir, dcm2nii_dir)
     end
     
     aJson   = dir(fullfile(newDir, '*_a.json'));
-    if ~isempty(aNii)
+    if ~isempty(aJson)
         delete(fullfile(aJson.folder, aJson.name));
     end
     

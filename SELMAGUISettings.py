@@ -287,7 +287,7 @@ class SelmaSettings(QtWidgets.QWidget):
 
         #Add items to layout
         self.segmentTab.layout     = QtWidgets.QGridLayout()
-        self.segmentTab.layout.addWidget(self.segmentTab.brainMaskProb, 0,0)
+        self.segmentTab.layout.addWidget(self.segmentTab.whiteMatterProb, 0,0)
         
         #Add labels to layout
         self.segmentTab.layout.addWidget(self.segmentTab.label1,      0,1)

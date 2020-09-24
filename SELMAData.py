@@ -383,9 +383,11 @@ class SELMADataObject:
     def _removeZeroCrossings(self):
         """Removes all vessels where the flow changes sign."""
         
-        velocityFrames  = np.asarray(
-                            self._selmaDicom.getVelocityFrames())
-        signs           = np.sign(velocityFrames)
+        # velocityFrames  = np.asarray(
+        #                     self._selmaDicom.getVelocityFrames())
+        # signs           = np.sign(velocityFrames)
+        
+        signs           = np.sign(self._correctedVelocityFrames)
         signdiff        = np.diff(signs, axis=0) 
         noZeroCrossings = np.sum(np.abs(signdiff), axis=0) == 0
         
@@ -833,11 +835,11 @@ class SELMADataObject:
                 value_dict['meanV']         = round(meanVelocity[x,y],      4)
                 value_dict['stdVnoise']     = round(np.mean(
                                                 self._velocitySTD[:,x,y]),  4)
-                value_dict['minV']          = round(np.min(
-                                        self._correctedVelocityFrames[:,x,y]),
+                value_dict['minV']          = round(np.min(np.abs(
+                                        self._correctedVelocityFrames[:,x,y])),
                                                     4)
-                value_dict['maxV']          = round(np.max(
-                                        self._correctedVelocityFrames[:,x,y]),
+                value_dict['maxV']          = round(np.max(np.abs(
+                                        self._correctedVelocityFrames[:,x,y])),
                                                     4)
                 value_dict['PI']            = abs(round(div0(
                                              [(value_dict['maxV'] -

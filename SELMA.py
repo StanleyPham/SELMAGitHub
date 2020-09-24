@@ -24,24 +24,25 @@ def main():
     COMPANY, APPNAME, _ = SELMAGUISettings.getInfo()
 
     app = QtWidgets.QApplication(sys.argv)
-    
+
+
     QtCore.QSettings.setDefaultFormat(QtCore.QSettings.IniFormat)
     app.setOrganizationName(COMPANY)
     app.setApplicationName(APPNAME)
     app.setWindowIcon(QtGui.QIcon("SELMA.png"))
 
-    #Model classes
+    # Model classes
     SGM = SELMAGUIModels.SelmaGUIModel(APPNAME = APPNAME)
     SDM = SELMADataModels.SelmaDataModel()
-    
-    #Initialise settings
+
+    # Initialise settings
     settings = SELMAGUISettings.SelmaSettings()
     settings.applySettings()
-    
-    #Connect signals
-    #TODO: all slots should be in SGM or SDM
+
+    # Connect signals
+    # TODO: all slots should be in SGM or SDM
     # ----------------------------------------
-    #Signals from mainwindow (menubar)
+    # Signals from mainwindow (menubar)
     SGM.mainWin.loadMaskSignal      .connect(SDM.loadMaskSlot)
     SGM.mainWin.segmentMaskSignal   .connect(SDM.segmentMaskSlot)
     SGM.mainWin.openFileSignal      .connect(SDM.loadDCMSlot)
@@ -52,18 +53,18 @@ def main():
     SGM.mainWin.switchViewSignal    .connect(SDM.switchViewSlot)
     SGM.mainWin.applyMaskSignal     .connect(SDM.applyMaskSlot)
     SGM.mainWin.saveMaskSignal      .connect(SDM.saveMaskSlot)
-    
-    #Signals from mouseEvents
+
+    # Signals from mouseEvents
     SGM.mainWin._imageViewer._scene.mouseMove.connect(SDM.pixelValueSlot)
     SGM.mainWin._imageViewer._view.wheelEventSignal.connect(SDM.newFrameSlot)
-    
-    #Signals from ImVar
+
+    # Signals from ImVar
     SGM.mainWin.signalObj.getVarSignal.connect(
             SDM.getVarSlot)
     SGM.mainWin.signalObj.setVarSignal.connect(
             SDM.setVarSlot)
-    
-    
+
+
     #Signals from processing
     SDM.signalObject.sendVesselMaskSignal.connect(SGM.setVesselMaskSlot)
     SDM.signalObject.setPixmapSignal.connect(SGM.setPixmapSlot)
@@ -79,11 +80,11 @@ def main():
             SGM.listenForVarsSlot)
     SDM.signalObject.setProgressLabelSignal.connect(
             SGM.setProgressLabelSlot)
-    
+
 
     # ---------------------------------------
     sys.exit(app.exec_())
-    
+
 
 
 if __name__ == '__main__':
