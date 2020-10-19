@@ -211,6 +211,7 @@ def getInterpolationVariables(dcm, rescaledImage = None):
         points    = np.array([c0,c1,c2])
         #Reshape coordinates to list
         [xslice, yslice, zslice]  = np.reshape(points, (3, -1))
+        # [zslice, yslice, xslice]  = np.reshape(points, (3, -1))
         
         #Create value list for this slice        
         if rescaledImage is not None:

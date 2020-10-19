@@ -16,53 +16,75 @@ function out    = spmSegment(structural_fn, spm_dir, dcm2nii_dir)
     addpath(genpath(spm_dir))
     addpath(genpath(dcm2nii_dir))
     
-    
     %First, create a .nii image from the dicom
+    %Find dcm2niix path.
     dcm2nii = strcat(dcm2nii_dir, '\dcm2niix');
     
     %Create a new directory for the .nii and the segmentation
     [direc, ~, ~]    = fileparts(structural_fn);
-    newDir              = strcat(direc, filesep, 'spmSegmentation');
-    mkdir(newDir);
+    newDir              = strcat(direc, filesep, 'StructuralNii');
+    if ~exist(newDir, 'dir')
+        mkdir(newDir);
+    end
+    newSegDir       = strcat(direc, filesep, 'Segmentation');
+    if ~exist(newSegDir, 'dir')
+        mkdir(newSegDir);
+    end
     
-    %Call the dcm2nii command
-%     cmd = [dcm2nii ' -f "' fn '" -o "' newDir '"'];
-    cmd = [dcm2nii ' -f %p_%s -o "' newDir '" "'  structural_fn '"'];
-    system(cmd);
     
+    %Check if previously made nii files exist, don't make any new ones if
+    %that's the case.
+    if numel(dir(newDir)) <= 2
     
-    %Remove any phase images
-    phNii   = dir(fullfile(newDir, '*_ph.nii'));
-    delete(fullfile(phNii.folder, phNii.name));
-    
-    phNii   = dir(fullfile(newDir, '*_pha.nii'));
-    if ~isempty(phNii)
+        %Call the dcm2nii command
+    %     cmd = [dcm2nii ' -f "' fn '" -o "' newDir '"'];
+        cmd = [dcm2nii ' -f %p_%s -o "' newDir '" "'  structural_fn '"'];
+        system(cmd);
+
+
+        %Remove any unnecessary files
+        phNii   = dir(fullfile(newDir, '*_ph.nii'));
         delete(fullfile(phNii.folder, phNii.name));
-    end
-    
-    phJson  = dir(fullfile(newDir, '*_ph.json'));
-    delete(fullfile(phJson.folder, phJson.name));
-    
-    phJson  = dir(fullfile(newDir, '*_pha.json'));
-    if ~isempty(phJson)
+
+        phNii   = dir(fullfile(newDir, '*_pha.nii'));
+        if ~isempty(phNii)
+            delete(fullfile(phNii.folder, phNii.name));
+        end
+
+        phJson  = dir(fullfile(newDir, '*_ph.json'));
         delete(fullfile(phJson.folder, phJson.name));
-    end
-    
-    aNii   = dir(fullfile(newDir, '*_a.nii'));
-    if ~isempty(aNii)
-        delete(fullfile(aNii.folder, aNii.name));
-    end
-    
-    aJson   = dir(fullfile(newDir, '*_a.json'));
-    if ~isempty(aJson)
-        delete(fullfile(aJson.folder, aJson.name));
+
+        phJson  = dir(fullfile(newDir, '*_pha.json'));
+        if ~isempty(phJson)
+            delete(fullfile(phJson.folder, phJson.name));
+        end
+
+        aNii   = dir(fullfile(newDir, '*_a.nii'));
+        if ~isempty(aNii)
+            delete(fullfile(aNii.folder, aNii.name));
+        end
+
+        aJson   = dir(fullfile(newDir, '*_a.json'));
+        if ~isempty(aJson)
+            delete(fullfile(aJson.folder, aJson.name));
+        end
     end
     
     %Find the right .nii file:
     item   = dir(fullfile(newDir, '*.nii'));
-    segment_fn      = fullfile(item.folder, item.name);
+    segment_fn      = fullfile(item.folder, item.name);    
     
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %Next, perform the segmentation
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    %If the files already exist, return those
+    [~, f, e] = fileparts(segment_fn);
+    if exist([newSegDir filesep 'c2' f e], 'file') ~= 0
+        out = [newSegDir filesep 'c2' f e];
+        return
+    end
     
     %Initiate
     spm('defaults','fmri');
@@ -95,20 +117,23 @@ function out    = spmSegment(structural_fn, spm_dir, dcm2nii_dir)
     %
     % Run
     spm_jobman('run',segmentation.mb);
+    
+    [d, f, e] = fileparts(segment_fn);    
+    %Remove all unnecessary files
+    delete([d filesep 'y_' f e]);
+    delete([d filesep 'iy_' f e]);
+    delete([d filesep 'm' f e]);
+    delete([d filesep 'c1' f e]);
+    delete([d filesep 'c3' f e]);
+    delete([d filesep 'c4' f e]);
+    delete([d filesep 'c5' f e]);
+    delete([d filesep 'c6' f e]);
+    delete([d filesep f '_seg8.mat']);
 
     % return filenames of all the created files
-    [d, f, e] = fileparts(segment_fn);
-    out = struct;
-    out.remove = {  [d filesep 'y_' f e]    ...
-                    [d filesep 'iy_' f e]   ...
-                    [d filesep 'm' f e]     ...
-                    [d filesep 'c3' f e]    ...
-                    [d filesep 'c4' f e]    ...
-                    [d filesep 'c5' f e]    ...
-                    [d filesep 'c6' f e]    ...
-                    [d filesep f '_seg8.mat']   };
-    out.gm      = [d filesep 'c1' f e];      
-    out.wm      = [d filesep 'c2' f e];
+    
+    movefile([d filesep 'c2' f e], [newSegDir filesep 'c2' f e]);
+    out = [[d filesep 'c2' f e] filesep 'c2' f e];     %wm file
 
 end
 

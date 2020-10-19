@@ -12,7 +12,6 @@ This module contains the following classes:
 import SELMADicom
 import SELMAInterpolate
 
-import os
 import pydicom
 import SimpleITK as sitk
 import numpy as np
@@ -90,19 +89,13 @@ class SELMAT1Dicom(SELMADicom.SELMADicom):
         dcm2nii = libraries[1]
 
         eng = matlab.engine.start_matlab()
-        out = eng.spmSegment(self._dcmFilename,
+        wm = eng.spmSegment(self._dcmFilename,
                              spm,
                              dcm2nii)
 
-        # Remove all unnecessary files that were generated
-        for file in out['remove']:
-            os.remove(file)
-        os.remove(out['gm'])
-
         # Load the WM segmentation
-        im = sitk.ReadImage(out['wm'])
+        im = sitk.ReadImage(wm)
         im = sitk.GetArrayFromImage(im)
-        print(im.shape, np.unique(im))
         self._segmentation = im
 
         # Create interpolated slice
@@ -157,14 +150,57 @@ class SELMAT1Dicom(SELMADicom.SELMADicom):
         """
             Finds the locations of the voxels in the T1 image (and the mask)
             to be used in the interpolation. 
+            
+            We switch from the T1 framework to the normal framework. in T1:
+                z-axis increases from L->R
+                y-axis increases from F->H (S->I)
+                x-axis increases from A->P
+                
+            LPH
+                
+            Normally:
+                z-axis increases from F->H (I->S)
+                y-axis increases from A->P
+                x-axis increases from R->L
+                
+            N.B this means that the z and y axes of the T1 framework also need
+            to be inverted.
+            
+            Additionally, the data is structured (z,y,x)
         """
 
         t1Spacing = self._dcm[0x5200, 0x9230][0][0x0028, 0x9110] \
             [0][0x0028, 0x0030].value
+        sliceThickness  = self._dcm[0x5200, 0x9230][0][0x0028, 0x9110] \
+            [0][0x18, 0x50].value
+            
+            #Vervangen met spacing
+            
         t1Shape = self._frames.shape
-        self._x = np.linspace(0, t1Shape[0] - 1, t1Shape[0])
-        self._y = np.linspace(0, (t1Shape[2] - 1) * t1Spacing[0], t1Shape[2])
-        self._z = np.linspace(0, (t1Shape[1] - 1) * t1Spacing[1], t1Shape[1])
+        self._x = np.linspace(0, (t1Shape[2] - 1) * t1Spacing[0], t1Shape[2])
+        self._y = np.linspace(0, (t1Shape[1] - 1) * t1Spacing[1], t1Shape[1])
+        self._z = np.linspace(0, (t1Shape[0] - 1) * sliceThickness, t1Shape[0])
+        
+        r0 = SELMAInterpolate.usableImagePosition(self._dcm)
+        
+        x_temp = r0[0] - self._z
+        y_temp = self._x - r0[2] 
+        z_temp = self._y + r0[1]
+        
+        self._x = x_temp
+        self._y = y_temp
+        self._z = z_temp
+        
+        #Invert the right dimensions:
+        self._x = self._x[::-1]
+        # self._z = self._z[::-1]
+        
+        self._frames = np.swapaxes(self._frames, 0,2)
+        self._frames = np.swapaxes(self._frames, 0,1)
+        # self._frames = np.swapaxes(self._frames, 1,2)
+        
+        self._frames = self._frames[:,:,::-1]
+
 
     def findInterpolatingGrid(self):
         """
@@ -173,16 +209,13 @@ class SELMAT1Dicom(SELMADicom.SELMADicom):
         """
         pca = self._pcaDcm.pixel_array
         pcaSlice = np.reshape(pca[0], (1, pca.shape[1], pca.shape[2]))
-        xi, yi, zi, pca_val = SELMAInterpolate.getInterpolationVariables(
+        self._xi, self._yi, self._zi, pca_val =     \
+            SELMAInterpolate.getInterpolationVariables(
             self._pcaDcm, pcaSlice)
         # zero coordinates
         # TODO: change for different image orientations
-        r0 = SELMAInterpolate.usableImagePosition(self._dcm)
-        self._xi = xi + r0[0]
-        self._yi = yi - r0[1]
-        self._zi = -zi + r0[2]
 
-        pts = np.transpose((self._xi, self._zi, self._yi))
+        pts = np.transpose((self._zi, self._yi, self._xi))
         self._idx = (np.array(self._xi >= min(self._x)) *
                      np.array(self._xi <= max(self._x)) *
                      np.array(self._yi >= min(self._y)) *
@@ -196,10 +229,18 @@ class SELMAT1Dicom(SELMADicom.SELMADicom):
             Function that interpolates the correct T1 slice to match with 
             the PCA slices.
         """
+        
+        #for testing only
+        #make gradient
+        
+        # test =np.linspace(0, 5*np.max(self._frames), self._frames.shape[-1], 
+        #                dtype=np.uint16)
+        # self._frames *= test
+
 
         # Create interpolating function
         interpolatingFunc = RegularGridInterpolator(
-            (self._x, self._y, self._z),
+            (self._z, self._y, self._x),
             self._frames)
 
         # Find all points that fall within the T1 image space
@@ -219,7 +260,7 @@ class SELMAT1Dicom(SELMADicom.SELMADicom):
 
         # Create interpolating function
         interpolatingFunc = RegularGridInterpolator(
-            (self._x, self._y, self._z),
+            (self._z, self._y, self._x),
             self._segmentation)
 
         # Find all points that fall within the T1 image space
