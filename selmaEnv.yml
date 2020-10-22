@@ -242,7 +242,6 @@ dependencies:
     - keyrings-alt==3.4.0
     - lxml==4.5.1
     - markdown==3.2.2
-    - matlabengineforpython==R2020a
     - monotonic==1.5
     - neurdflib==5.0.1
     - nibabel==3.0.0
