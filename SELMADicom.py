@@ -130,7 +130,7 @@ class SELMADicom:
         
         
         #Philips
-        if self._tags['manufacturer'] == 'Philips Medical Systems':
+        if 'Philips' in self._tags['manufacturer']:
             dcmFrameAddress             = 0x5200, 0x9230
             dcmPrivateCreatorAddress    = 0x2005, 0x140f
             dcmRescaleSlopeAddress      = 0x2005, 0x100E
