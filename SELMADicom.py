@@ -12,6 +12,7 @@ This module contains the following classes:
 #IO
 
 import pydicom
+import numpy as np
 
 # ====================================================================
 
@@ -49,6 +50,9 @@ class SELMADicom:
         
         #Sort the frames on their type
         self._orderFramesOnType()
+        
+        #Create velocity frames if necessary:
+        self._makeVelocityFrames()
     
     '''Public'''
     #Getter functions
@@ -130,7 +134,7 @@ class SELMADicom:
         
         
         #Philips
-        if 'Philips' in self._tags['manufacturer']:
+        if 'philips' in self._tags['manufacturer'].lower():
             dcmFrameAddress             = 0x5200, 0x9230
             dcmPrivateCreatorAddress    = 0x2005, 0x140f
             dcmRescaleSlopeAddress      = 0x2005, 0x100E
@@ -167,7 +171,7 @@ class SELMADicom:
         
         #Philips
         
-        if self._tags['manufacturer'] == 'Philips Medical Systems':
+        if 'philips' in self._tags['manufacturer'].lower():
             vencAddress                 = 0x2001, 0x101A
             venc                        = self._DCM[vencAddress].value
             venc                        = venc[-1] 
@@ -197,7 +201,7 @@ class SELMADicom:
         self._tags['frameTypes'] = []
         
         #Philips
-        if self._tags['manufacturer'] == 'Philips Medical Systems':
+        if 'philips' in self._tags['manufacturer'].lower():
             dcmFrameAddress             = 0x5200, 0x9230
             dcmPrivateCreatorAddress    = 0x2005, 0x140f
             dcmImageTypeAddress         = 0x0008, 0x0008
@@ -224,15 +228,15 @@ class SELMADicom:
         self._tags['targets'] = dict()
         
         #Philips
-        if self._tags['manufacturer'] == 'Philips Medical Systems':
-            self._tags['targets']['phase']      = 'PHASE MAP'
-            self._tags['targets']['velocity']   = 'VELOCITY MAP'
+        if 'philips' in self._tags['manufacturer'].lower():
+            self._tags['targets']['phase']      = 'PHASE'
+            self._tags['targets']['velocity']   = 'VELOCITY'
             self._tags['targets']['magnitude']  = "M_FFE"
             self._tags['targets']['modulus']    = "M_PCA"
             
         
         #Siemens
-        elif self._tags['manufacturer'] == 'SIEMENS':
+        if 'siemens' in self._tags['manufacturer'].lower():
             self._tags['targets']['phase']      = 'P'
             self._tags['targets']['velocity']   = 'V'
             self._tags['targets']['magnitude']  = "MAG"
@@ -276,23 +280,46 @@ class SELMADicom:
         
         for idx in range(self._numFrames):
                         
-            if frameTypes[idx] == targets['velocity']:
+            if targets['velocity'] in frameTypes[idx]:
                 self._velocityFrames.append(self._rescaledFrames[idx])
                 self._rawVelocityFrames.append(self._rawFrames[idx])
                 
-            elif frameTypes[idx] == targets['magnitude']:
+            elif targets['magnitude'] in frameTypes[idx]:
                 self._magnitudeFrames.append(self._rescaledFrames[idx])
                 self._rawMagnitudeFrames.append(self._rawFrames[idx])
                 
-            elif frameTypes[idx] == targets['modulus']:
+            elif targets['modulus'] in frameTypes[idx]:
                 self._modulusFrames.append(self._rescaledFrames[idx])
                 self._rawModulusFrames.append(self._rawFrames[idx])
                 
-            elif frameTypes[idx] == targets['phase']:
+            elif targets['phase'] in frameTypes[idx]:
                 self._phaseFrames.append(self._rescaledFrames[idx])
                 self._rawPhaseFrames.append(self._rawFrames[idx])
             
     
-    
+    def _makeVelocityFrames(self):
+        '''
+        Construct velocity frames out of the phase frames if any phase frames
+        exist. Formula: v = phase * venc / pi
+        '''
+        if len(self._phaseFrames) > 0 and len(self._velocityFrames) == 0:
+            
+            venc = self._tags['venc']
+            
+            #Check if the velocity frames aren't accidentally stored as phase
+            
+            if np.round(np.max(self._phaseFrames), 1) == venc and \
+               np.round(np.min(self._phaseFrames), 1) == -venc:
+               
+                self._velocityFrames        = self._phaseFrames
+                self._rawVelocityFrames     = self._rawPhaseFrames
+                return
+            
+            #Else, compute velocity frames from the phaseFrames
+            for idx in range(len(self._phaseFrames)):
+                phaseFrame  = self._phaseFrames[idx] * venc / np.pi
+                rawPhaseFrame  = self._rawPhaseFrames[idx] * venc / np.pi
+                self._velocityFrames.append(phaseFrame)
+                self._rawVelocityFrames.append(rawPhaseFrame)
     
         

@@ -44,15 +44,19 @@ function out    = spmSegment(structural_fn, spm_dir, dcm2nii_dir)
 
         %Remove any unnecessary files
         phNii   = dir(fullfile(newDir, '*_ph.nii'));
-        delete(fullfile(phNii.folder, phNii.name));
+        if ~isempty(phNii)
+            delete(fullfile(phNii.folder, phNii.name));
+        end
 
         phNii   = dir(fullfile(newDir, '*_pha.nii'));
         if ~isempty(phNii)
             delete(fullfile(phNii.folder, phNii.name));
         end
-
+        
         phJson  = dir(fullfile(newDir, '*_ph.json'));
-        delete(fullfile(phJson.folder, phJson.name));
+        if ~isempty(phJson)
+            delete(fullfile(phJson.folder, phJson.name));
+        end
 
         phJson  = dir(fullfile(newDir, '*_pha.json'));
         if ~isempty(phJson)

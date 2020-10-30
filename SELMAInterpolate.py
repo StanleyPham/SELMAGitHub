@@ -97,7 +97,15 @@ def getTransMatrix(info):
     
     #Scale using PixelSpacing
     if info.MRAcquisitionType != '2D':
-        st = float(info.SpacingBetweenSlices)
+        try:
+                st = float(info.SpacingBetweenSlices)
+        except:
+            if 'philips' in info.Manufacturer.lower():
+                dcmFrameAddress             = 0x5200, 0x9230
+                dcmPrivateCreatorAddress    = 0x2005, 0x140f
+                page    =   info[dcmFrameAddress][0]            \
+                            [dcmPrivateCreatorAddress][0]       
+                st      =   float(page.SpacingBetweenSlices)
     S = [  [ps[1], 0, 0, 0],
            [0, ps[0], 0, 0],
            [0, 0, st, 0],
@@ -213,6 +221,9 @@ def doInterpolation(M, t1im, pcaShape):
         res = np.zeros(len(index))
         res[index] = inp
         res = np.reshape(res, xg.shape[:2])
+        
+        #### Experimental: flip on column axis
+        res     = np.flip(res, 1)
         
         #Store the interpolation result
         return res

@@ -101,7 +101,7 @@ class SELMAT1Dicom(SELMADicom.SELMADicom):
 
         self._magFrameIndex = []
 
-        if self._manufacturer == "Philips Medical Systems":
+        if 'philips' in self._manufacturer.lower():
             for i in range(len(self._dcm.pixel_array)):
                 dcmFrameAddress = 0x5200, 0x9230
                 dcmPrivateCreatorAddress = 0x2005, 0x140f
@@ -114,6 +114,9 @@ class SELMAT1Dicom(SELMADicom.SELMADicom):
                     self._magFrameIndex.append(i)
 
                     # other manufacturers
+                    
+        else:
+            self._magFrameIndex     = np.ones(self._dcm.pixel_array.shape[0])
 
         self._frames = self._dcm.pixel_array[self._magFrameIndex]
         self._numFrames = len(self._frames)
