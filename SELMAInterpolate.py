@@ -63,7 +63,20 @@ def getTransMatrix(info):
     '''Returns the rotation and transformation matrices based on the image 
     position and image orientation for a dicom info object.'''
     
-    ipp = info.PerFrameFunctionalGroupsSequence[0].\
+    
+    #Find the rightmost(?) frame and get the ImagePositionPatien from there
+    maxIdx  = 0
+    maxVal  = -1e10
+    for i in range(info.pixel_array.shape[0]):
+        val     = info.PerFrameFunctionalGroupsSequence[i].\
+                                  PlanePositionSequence[0].\
+                                  ImagePositionPatient[0]
+                                   
+        if float(val) > maxVal:
+            maxVal = float(val)
+            maxIdx   = i
+           
+    ipp = info.PerFrameFunctionalGroupsSequence[maxIdx].\
                 PlanePositionSequence[0].\
                 ImagePositionPatient
     ipp = [float(ipp[0]), float(ipp[1]), float(ipp[2])]

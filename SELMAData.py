@@ -64,6 +64,7 @@ class SELMADataObject:
                  classic = False):
         
         self._mask          = None
+        self._NBmask        = None      #Non binary mask, no trehshold applied
         self._t1            = None
         self._vesselMask    = None
         self._selmaDicom    = None
@@ -145,18 +146,14 @@ class SELMADataObject:
         
     def segmentMask(self):
         if self._t1 is None:
+            self._signalObject.errorMessageSignal.emit(
+                    "Please load a t1 dicom first.")
             return
         
         self._signalObject.setProgressLabelSignal.emit(
                     "Segmenting white matter from T1 - This may take a while.")
-        self._mask  = self._t1.getSegmentationMask()
-        
-        #threshold the mask based on the value in the settings
-        threshold   = self._readFromSettings("whiteMatterProb")
-        self._mask[self._mask < threshold]  = 0
-        self._mask[self._mask >= threshold] = 1
-        self._mask = np.asarray(self._mask, dtype=int)
-        
+        self._NBmask  = self._t1.getSegmentationMask()
+        self._thresholdMask()
         self._signalObject.setProgressLabelSignal.emit(
                     "")
     
@@ -172,7 +169,11 @@ class SELMADataObject:
         return self._selmaDicom.getNumFrames()
 
     def getMask(self):
-        return self._mask
+        if self._NBmask is None:
+            return self._mask
+        else:
+            self._thresholdMask()
+            return self._mask
     
     def getT1(self):
         return self._t1
@@ -250,8 +251,13 @@ class SELMADataObject:
         return interval
     
         
-    def _getMatchingSlice(self, arr):
-        pass
+    def _thresholdMask(self):
+        #threshold the mask based on the value in the settings
+        threshold   = self._readFromSettings("whiteMatterProb")
+        self._mask  = np.copy(self._NBmask)
+        self._mask[self._mask < threshold]  = 0
+        self._mask[self._mask >= threshold] = 1
+        self._mask = np.asarray(self._mask, dtype=int)
     
         
     

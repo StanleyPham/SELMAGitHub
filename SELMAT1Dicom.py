@@ -35,18 +35,19 @@ class SELMAT1Dicom(SELMADicom.SELMADicom):
         # Declare some variables for use in interpolating / segmenting
 
         # T1 properties
-        self._manufacturer = None
-        self._frames = None
-        self._numFrames = None
-        self._t1Slice = None
+        self._manufacturer  = None
+        self._frames        = None
+        self._numFrames     = None
+        self._t1Slice       = None
         self._magFrameIndex = None
 
         # interpolating properties
-        self._M     = None      #transformation matrix between this T1 & pca
+        self._M             = None
+            #transformation matrix between this T1 & pca
 
         # Segmentation properties
-        self._maskSlice = None
-        self._segmentation = None
+        self._maskSlice     = None
+        self._segmentation  = None
 
         #############################################################
 
@@ -55,6 +56,7 @@ class SELMAT1Dicom(SELMADicom.SELMADicom):
         self.findMagnitudeFrames()
 
         # Interpolate the t1 slice
+        self.orderFramesOnPosition()
         self.interpolateT1()
 
     '''Public'''
@@ -124,6 +126,26 @@ class SELMAT1Dicom(SELMADicom.SELMADicom):
     ######################################################################
     # Functions dealing with the segmentation & interpolation of T1 & mask
 
+    def orderFramesOnPosition(self):
+        '''
+        Looks at the order the frames are in and sorts them if they are not 
+        continuously increasing to the left
+        '''
+        
+        LRPos   = []
+        for idx in self._magFrameIndex:
+            pos     = self._dcm.PerFrameFunctionalGroupsSequence[idx].\
+                                             PlanePositionSequence[0].\
+                                              ImagePositionPatient[0]
+            LRPos.append(float(pos))                                              
+            
+        order           = np.argsort(LRPos)
+        order           = order[::-1]
+        orderedFrames   = self._frames[order,:,:]
+        
+        self._frames    = orderedFrames
+        
+    
     def interpolateT1(self):
         '''
         Interpolates a slice in the T1 image to match with the pca slice.

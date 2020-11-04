@@ -49,6 +49,9 @@ class SelmaSettings(QtWidgets.QWidget):
         Perpendicular   - for the removeNonPerpendicular function
         Reset           - for resetting the settings to their default
     """
+    #Signals
+    thresholdSignal     = QtCore.pyqtSignal() 
+    
     def __init__(self):
         QtWidgets.QWidget.__init__(self)
         
@@ -92,10 +95,13 @@ class SelmaSettings(QtWidgets.QWidget):
         #Buttons
         self.okButton       = QtWidgets.QPushButton("OK")
         self.cancelButton   = QtWidgets.QPushButton("Cancel")
-        self.okButton.pressed.connect(self.applySettings)
+        self.applyButton    = QtWidgets.QPushButton("Apply")
+        self.okButton.pressed.connect(self.okButtonPushed)
         self.cancelButton.pressed.connect(self.close)
+        self.applyButton.pressed.connect(self.applySettings)
         
         self.buttonLayout   = QtWidgets.QHBoxLayout(self)
+        self.buttonLayout.addWidget(self.applyButton)
         self.buttonLayout.addWidget(self.okButton)
         self.buttonLayout.addWidget(self.cancelButton)
         self.layout.addLayout(self.buttonLayout)
@@ -294,6 +300,10 @@ class SelmaSettings(QtWidgets.QWidget):
         
         self.segmentTab.setLayout(self.segmentTab.layout)
         
+        #Add button to layout
+        self.segmentTab.applyButton     = QtWidgets.QPushButton("Apply")
+        
+        
         
     def initResetTab(self):
         self.resetTab.resetButton   = QtWidgets.QPushButton("Reset settings")
@@ -475,6 +485,10 @@ class SelmaSettings(QtWidgets.QWidget):
         self.segmentTab.whiteMatterProb.setText(str(whiteMatterProb))
         
         
+        
+    def okButtonPushed(self):
+        self.applySettings()
+        self.close()        
         
     def applySettings(self):
         """First checks if all entered values are correct, then saves all
@@ -780,7 +794,10 @@ class SelmaSettings(QtWidgets.QWidget):
         settings.setValue('whiteMatterProb',        whiteMatterProb)
         
         
-        self.close()
+        
+        #Send signals
+        self.thresholdSignal.emit()
+        
         
     def reset(self):
         """Removes all settings from the UI, and saves it to the application,

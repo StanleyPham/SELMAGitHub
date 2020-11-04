@@ -46,6 +46,7 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
 
         self.createActions()
         self.createMenus()
+        self.settingsWindow = SELMAGUISettings.SelmaSettings()
         
         self.statusBar().showMessage('SELMA')
         
@@ -491,7 +492,6 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         
     @QtCore.pyqtSlot()
     def _openSettings(self):
-        self.settingsWindow = SELMAGUISettings.SelmaSettings()
         self.settingsWindow.show()
         
     

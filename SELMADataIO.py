@@ -18,7 +18,7 @@ import numpy as np
 import pydicom
 import imageio
 import scipy.io
-#import h5py
+# import h5py
 from PyQt5 import (QtCore, QtGui, QtWidgets)
 # ====================================================================
 
@@ -98,19 +98,25 @@ def loadMask( fname):
     elif    ext == ".mat":
         
         try:
-            #H5 file, used for matlab v7.3 and higher
-            arrays = {}
-            f = h5py.File(fname, 'r')
-            for key, value in f.items():
-                arrays[key] = np.array(value)
-                
-            mask = arrays[key]
-            mask = np.swapaxes(mask, 0,1)
-        except:
+            
             #Non-h5 file
             maskDict    = scipy.io.loadmat(fname)
             maskKey     = list(maskDict.keys())[-1]
             mask        = maskDict[maskKey]
+            
+            
+        except:
+            # #H5 file, used for matlab v7.3 and higher
+            # H5py currently doesn' work anymore, unsure why. 
+            # User will be prompted to resave.
+            # arrays = {}
+            # f = h5py.File(fname, 'r')
+            # for key, value in f.items():
+            #     arrays[key] = np.array(value)
+                
+            # mask = arrays[key]
+            # mask = np.swapaxes(mask, 0,1)
+            return None
         
     return mask
 

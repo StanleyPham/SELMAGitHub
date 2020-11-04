@@ -64,6 +64,9 @@ def main():
     SGM.mainWin.signalObj.setVarSignal.connect(
             SDM.setVarSlot)
 
+    #Signals from settings
+    SGM.mainWin.settingsWindow.thresholdSignal.connect(
+        SDM.thresholdMaskSlot)
 
     #Signals from processing
     SDM.signalObject.sendVesselMaskSignal.connect(SGM.setVesselMaskSlot)

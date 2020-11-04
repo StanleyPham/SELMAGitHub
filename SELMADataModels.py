@@ -123,6 +123,12 @@ class SelmaDataModel:
             return
         
         mask = SELMADataIO.loadMask(fname)
+        if mask is None:
+            self.signalObject.errorMessageSignal.emit(
+                "This version of .mat file is not supported. Please " +
+                "save it as a non-v7.3 file and try again.")
+            return
+        
         
         #Ensure that the mask has the same dimensions as the Frames
         frames = self._SDO.getFrames()
@@ -174,6 +180,15 @@ class SelmaDataModel:
         print(mask.shape, np.unique(mask))
         self.signalObject.sendMaskSignal.emit(mask)
         
+    def thresholdMaskSlot(self):
+        """Gets a new copy of the (thresholded) mask from the SDO and 
+        returns it to the GUI"""
+        
+        if self._SDO is None:
+            return
+        
+        mask = self._SDO.getMask()
+        self.signalObject.sendMaskSignal.emit(mask)
 
     def loadDCMSlot(self, fname):
         """
@@ -318,6 +333,13 @@ class SelmaDataModel:
                         pass
                     else:
                         mask = SELMADataIO.loadMask(file)
+                        
+                        self.signalObject.errorMessageSignal.emit(
+                "This version of .mat file is not supported. Please " +
+                "save it as a non-v7.3 file and try again." +
+                "This batch job will be stopped.")
+                        return
+                        
                         self._SDO.setMask(mask)
                         break
             
