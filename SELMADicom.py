@@ -42,7 +42,7 @@ class SELMADicom:
         self._findRescaleValues()    
         self._findVEncoding()
         self._findFrameTypes()
-        
+        self._findPixelSpacing()        
         self._findTargets()
         
         #Get rescale values and apply
@@ -89,6 +89,10 @@ class SELMADicom:
     
     def getRawModulusFrames(self):
         return self._rawModulusFrames
+    
+    def getPixelSpacing(self):
+        return self._tags['pixelSpacing']
+        
     
     #Setter functions
     # ------------------------------------------------------------------    
@@ -169,25 +173,35 @@ class SELMADicom:
         """Gets the velocity encoding maximum in the z-direction from the DCM.
         It's assumed that this is constant for all frames."""
         
-        #Philips
+        
+        #Standard value (see 
+        #   https://dicom.innolitics.com/ciods/mr-spectroscopy/
+        #   mr-spectroscopy-multi-frame-functional-groups/
+        #   52009229/00189197/00189217
+        
+        try:
+            dcmFrameAddress             = 0x5200, 0x9230
+            vEncAddress                 = 0x0018, 0x9197
+            vEncMaxAddress              = 0x0018, 0x9217
+       
+            venc = self._DCM[dcmFrameAddress] [0]       \
+                            [vEncAddress]     [0]       \
+                            [vEncMaxAddress].value
+                            
+            self._tags['venc'] = venc
+            return
+        except:
+            pass
+        
+        
+        #Specific attribute locations if the above doesn't work
+        #Philips:
         
         if 'philips' in self._tags['manufacturer'].lower():
             vencAddress                 = 0x2001, 0x101A
             venc                        = self._DCM[vencAddress].value
             venc                        = venc[-1] 
         
-#        if self._tags['manufacturer'] == 'Philips Medical Systems':
-#            dcmFrameAddress             = 0x5200, 0x9230
-#            vEncAddress                 = 0x0018, 0x9197
-#            vEncMaxAddress              = 0x0018, 0x9217
-#            
-#            try:
-#                venc = self._DCM[dcmFrameAddress] [0]       \
-#                                [vEncAddress]     [0]       \
-#                                [vEncMaxAddress].value
-#            except:
-#                venc = 0
-                
         #Other manufacturers
                 
         self._tags['venc'] = venc
@@ -219,6 +233,16 @@ class SELMADicom:
         #
         
         
+        
+    def _findPixelSpacing(self):
+        """Find Pixel spacing in Dicom header, save it to the tags."""
+        
+        ps  = float(
+            self._DCM.PerFrameFunctionalGroupsSequence[0].
+            PixelMeasuresSequence[0].PixelSpacing[0])
+        
+        self._tags['pixelSpacing'] = ps
+    
     def _findTargets(self):
         """
         Saves the manufacturer specific names for the phase, velocity,

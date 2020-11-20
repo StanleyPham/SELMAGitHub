@@ -124,40 +124,42 @@ class SelmaSettings(QtWidgets.QWidget):
         self.mainTab.gaussianSmoothingBox       = QtWidgets.QCheckBox()
         self.mainTab.ignoreOuterBandBox         = QtWidgets.QCheckBox()
         self.mainTab.decimalCommaBox            = QtWidgets.QCheckBox()
+        self.mainTab.mmPixelBox                 = QtWidgets.QCheckBox()
         
         self.mainTab.label1     = QtWidgets.QLabel("Median filter diameter")
         self.mainTab.label2     = QtWidgets.QLabel("Confindence interval")
-#        self.mainTab.label3     = QtWidgets.QLabel("White Matter Probability")
+        self.mainTab.label3     = QtWidgets.QLabel("mm")
         self.mainTab.label4     = QtWidgets.QLabel("Average over cardiac cycle")
-        self.mainTab.label5     = QtWidgets.QLabel("Use Gaussian smoothing\n"+
-                                                   "instead of median filter")
-        self.mainTab.label6     = QtWidgets.QLabel("Ignore the outer 80 pixels\n"+
-                                                   "of the image.")
-        self.mainTab.label7     = QtWidgets.QLabel("Use a decimal comma in the \n" + 
-                                                   " output instead of a dot.")
+        self.mainTab.label5     = QtWidgets.QLabel(
+            "Use Gaussian smoothing\ninstead of median filter")
+        self.mainTab.label6     = QtWidgets.QLabel(
+            "Ignore the outer 80 pixels\nof the image.")
+        self.mainTab.label7     = QtWidgets.QLabel(
+            "Use a decimal comma in the\noutput instead of a dot.")
         
-        self.mainTab.label1.setToolTip("Diameter of the kernel used in"             +
-                                       " the median filtering operations.")
-        self.mainTab.label2.setToolTip("Confidence interval used to determine"      + 
-                                       " whether a vessel is significant."          +
-                                       "\nDefault is 0.05.")
-#        self.mainTab.label3.setToolTip("Threshold for classifying a voxel"          +
-#                                       " as white matter. \nDefault is 0.5")
-        self.mainTab.label4.setToolTip("When toggled on, the reported values"       +
-                                       " per voxel are averaged over the \n"        +
-                                       "cycle. If not on, the values are from"      +
-                                       " the first phase.")
-        self.mainTab.label5.setToolTip("Speeds up analysis drastically, might"      +
-                                       " yield the most accurate results.\nUse"      +
-                                       " only for testing.")
-        self.mainTab.label6.setToolTip("Removes the outer 80 pixels at each edge"   +
-                                       " from the mask. ")
+        self.mainTab.label1.setToolTip(
+            "Diameter of the kernel used in the median filtering operations.")
+        self.mainTab.label2.setToolTip(
+            "Confidence interval used to determine whether a vessel is" + 
+            " significant. \nDefault is 0.05.")
+        self.mainTab.label3.setToolTip(
+            "Select whether the diameter is in mm. If off, diameter is in" +
+            " pixels. \n If in mm, diameter gets rounded up to the nearest" +
+            "odd pixel value.")
+        self.mainTab.label4.setToolTip(
+            "When toggled on, the reported values per voxel are averaged" +
+            " over the cycle.\n If not on, the values are from the first phase.")
+        self.mainTab.label5.setToolTip(
+            "Speeds up analysis drastically, might yield inaccurate results."+
+            "\nUse only for testing.")
+        self.mainTab.label6.setToolTip(
+            "Removes the outer 80 pixels at each edge from the mask. ")
 
         #Add items to layout
         self.mainTab.layout     = QtWidgets.QGridLayout()
         self.mainTab.layout.addWidget(self.mainTab.medDiamEdit, 0,0)
+        self.mainTab.layout.addWidget(self.mainTab.mmPixelBox, 0,2)
         self.mainTab.layout.addWidget(self.mainTab.confidenceInterEdit, 1,0)
-#        self.mainTab.layout.addWidget(self.mainTab.whiteMatterProbEdit, 2,0)
         
         self.mainTab.layout.addWidget(QHLine(),               3,0,1,2)
         
@@ -172,12 +174,12 @@ class SelmaSettings(QtWidgets.QWidget):
         
         #Add labels to layout
         self.mainTab.layout.addWidget(self.mainTab.label1,      0,1)
-        self.mainTab.layout.addWidget(self.mainTab.label2,      1,1)
-#        self.mainTab.layout.addWidget(self.mainTab.label3,      2,1)
-        self.mainTab.layout.addWidget(self.mainTab.label4,      4,1)
-        self.mainTab.layout.addWidget(self.mainTab.label5,      5,1)
-        self.mainTab.layout.addWidget(self.mainTab.label6,      6,1)
-        self.mainTab.layout.addWidget(self.mainTab.label7,      7,1)
+        self.mainTab.layout.addWidget(self.mainTab.label2,      1,3)
+        self.mainTab.layout.addWidget(self.mainTab.label3,      0,3)
+        self.mainTab.layout.addWidget(self.mainTab.label4,      4,3)
+        self.mainTab.layout.addWidget(self.mainTab.label5,      5,3)
+        self.mainTab.layout.addWidget(self.mainTab.label6,      6,3)
+        self.mainTab.layout.addWidget(self.mainTab.label7,      7,3)
         
         self.mainTab.setLayout(self.mainTab.layout)
         
@@ -334,8 +336,15 @@ class SelmaSettings(QtWidgets.QWidget):
         #medDiam
         medDiam                 = settings.value("medDiam")
         if medDiam is None:
-            medDiam             = 53
+            medDiam             = 10
         self.mainTab.medDiamEdit.setText(str(medDiam))
+        
+        mmPixel                 = settings.value("mmPixel")
+        if mmPixel is None:
+            mmPixel     = True
+        else:
+            mmPixel = mmPixel == 'true'
+        self.mainTab.mmPixelBox.setChecked(mmPixel)
         
         #confidence interval
         confidenceInter         = settings.value("confidenceInter")
@@ -465,14 +474,16 @@ class SelmaSettings(QtWidgets.QWidget):
         removePerpMagThresh = settings.value("removePerpMagThresh")
         if removePerpMagThresh is None:
             removePerpMagThresh = 0.8
-        self.nonPerpTab.removePerpMagThreshEdit.setText(str(removePerpMagThresh))
+        self.nonPerpTab.removePerpMagThreshEdit.setText(
+            str(removePerpMagThresh))
         
         
         #Exclusion ratio threshold
         removePerpRatioThresh = settings.value("removePerpRatioThresh")
         if removePerpRatioThresh is None:
             removePerpRatioThresh = 5
-        self.nonPerpTab.removePerpRatioThreshEdit.setText(str(removePerpRatioThresh))
+        self.nonPerpTab.removePerpRatioThreshEdit.setText(
+            str(removePerpRatioThresh))
         
         
         #Segmentation settings
@@ -512,12 +523,17 @@ class SelmaSettings(QtWidgets.QWidget):
                     "Median filter diameter has to be an integer.")
             return
         
-        if medDiam %2 == 0:
+        if medDiam %2 == 0 and not self.mainTab.mmPixelBox.isChecked():
             self.errorLabel.setText(
-                    "Median filter diameter has to be odd")
+                "Median filter diameter has to be an odd number of pixels.")
             return
-        # Confidence interval
         
+        
+        #Pixel or mm diameter:
+        mmPixel     = self.mainTab.mmPixelBox.isChecked()      
+        
+        
+        # Confidence interval
         
         confidenceInter = self.mainTab.confidenceInterEdit.text()
         try: 
@@ -767,6 +783,7 @@ class SelmaSettings(QtWidgets.QWidget):
         #Main
         settings.setValue('medDiam',                medDiam)
         settings.setValue('confidenceInter',        confidenceInter)
+        settings.setValue('mmPixel',                mmPixel)
 #        settings.setValue('whiteMatterProb',        whiteMatterProb)
         settings.setValue('averageCardiacCycle',    averageCardiacCycle)
         settings.setValue('gaussianSmoothing',      gaussianSmoothing)

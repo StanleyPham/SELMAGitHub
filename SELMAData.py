@@ -267,9 +267,17 @@ class SELMADataObject:
     def _getMedianDiameter(self):
         """Returns the diameter as specified in the settings."""
         
-        diam = self._readFromSettings("medDiam")
+        diam    = self._readFromSettings("medDiam")
         if diam is None:
-            diam = 0
+            diam    = 0
+            
+        mmPix   = self._readFromSettings("mmPixel")
+        if mmPix:
+            ps      = self._selmaDicom.getPixelSpacing()
+            newDiam = int(diam / ps)
+            if newDiam % 2 == 0:
+                newDiam += 1
+            diam    = newDiam
             
         return diam
     
