@@ -447,7 +447,10 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         
         self.applyMaskSignal.emit(mask)
         
-        maskFname   = self._fname[:-4] + "-mask"
+        if self._fname is not None:
+            maskFname   = self._fname[:-4] + "-mask"
+        else:
+            maskFname   = None
         
         #Next, get the filename to save the mask to.
         fname, _ = QtWidgets.QFileDialog.getSaveFileName(self,
