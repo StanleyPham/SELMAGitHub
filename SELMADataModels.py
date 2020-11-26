@@ -188,7 +188,8 @@ class SelmaDataModel:
             return
         
         mask = self._SDO.getMask()
-        self.signalObject.sendMaskSignal.emit(mask)
+        if mask is not None:
+            self.signalObject.sendMaskSignal.emit(mask)
 
     def loadDCMSlot(self, fname):
         """
