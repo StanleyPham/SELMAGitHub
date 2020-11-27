@@ -1,24 +1,20 @@
 # SELMA
-***Trial-ready **S**mall Vess**el** MRI **Ma**rkers***
+Trial-ready **S**mall Vess**el** MRI **Ma**rkers -- version 0.3.7
 
-**SELMA User Guide** - version 0.3.7
 
+The SELMA application is used for extracting and analysing flow information in cerebral vessels. 
 
 **Table of Contents**
-    • Getting Started
-        ◦ Installation
-        ◦ Loading Dicoms
-        ◦ Viewing the Dicom
-        ◦ Applying masks
-    • Explanation of algorithm
-    • Settings
-    
-**Getting Started**
 
-The SELMA application is used for extracting and analysing flow information in cerebral vessels.
+- Installation
+- Running the program
+    - Loading images
+    - Viewing images
+    - Applying masks
+- Explanation of the algorithm
+- Settings
 
-
-**Installation**
+# Installation
 
 The program can be installed by cloning this repository. The easiest way of getting (and maintaining) the code is via:
 https://desktop.github.com/
@@ -55,6 +51,17 @@ Once the environment is active, the program can be launched by with either:
 
 In the future, SELMA will support installation via Docker.
 
+# Running the program
+
+![Overview of the layout](Images/selmalayout.png)
+
+An overview of the layout of the program. Notable features are:
+- A) the image space
+- B) the status bar
+- C) the cursor hover value 
+- D) the frame number
+- E) the menu bar
+
 
 **Loading Dicoms**
 
@@ -78,7 +85,7 @@ The application only reports the analysis of vessels that are contained in a mas
 After a mask is obtained, it can be easily removed by drawing a large exclusion zone around it, or via the Clear Mask function in the mask menu. It can also be saved via the Save Mask function. 
 
 
-**Explanation of Algorithm**
+# Explanation of Algorithm
 
 The next step is the analysis. This can be run via the Analyse Vessels function in the Analyse menu. It can take a few minutes to perform the analysis. The current version of the program (0.3.7) doesn't have multithreaded support, so it might appear as if the program is frozen. Even if the operating system warns that the program might be stuck, please allow a few (up to 5) minutes to pass before shutting it down.
 
@@ -131,4 +138,9 @@ When switched on in the settings, all voxel-clusters (assumed to be vessels) are
 For each of the vessels that has not been ruled out in previous steps, the velocity, magnitude etc. of each frame is collected and saved to a .txt file. 
 
 
-**Settings**
+# Settings
+
+The Settings window can be accessed via the settings menu. 
+
+
+
