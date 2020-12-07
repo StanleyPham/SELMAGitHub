@@ -267,9 +267,9 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
             if type(venc) == 'list':
                 venc    = venc[-1]
                 
-            if venc > 50:
-                #Change from mm/s to cm/s
-                venc    /= 10
+            # if venc > 50:
+            #     #Change from mm/s to cm/s
+            #     venc    /= 10
         
         
         #Siemens
