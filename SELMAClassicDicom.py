@@ -72,7 +72,7 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
     
     def setVenc(self, venc):
         self._tags['venc'] = venc
-        if self._tags['manufacturer'] == 'SIEMENS':
+        if 'siemens' in self._tags['manufacturer']:
              self._makeVelocityFrames()
     
     '''Private'''
@@ -153,7 +153,7 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
                             maxVal  = np.max(self._rawFrames[i])
                             
                             slope   = (maxVal - minVal) / ( 2 * venc) 
-                            intercept   = (maxVal - minVal) / 2
+                            intercept   = (maxVal - minVal) / 2 + minVal
                             
                             rescaleSlopes.append(slope)
                             rescaleIntercepts.append(intercept)
@@ -206,7 +206,7 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
                             maxVal  = np.max(self._rawFrames[i])
                             
                             slope   = (maxVal - minVal) / ( 2 * venc) 
-                            intercept   = (maxVal - minVal) / 2
+                            intercept   = (maxVal - minVal) / 2 + minVal
                             
                             rescaleSlopes.append(slope)
                             rescaleIntercepts.append(intercept)
