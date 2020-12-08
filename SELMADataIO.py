@@ -30,50 +30,50 @@ import SELMAGUISettings
 This module contains all methods concerning IO.
 """
 
-def loadFlowDicom(fname):
-    """
-    Loads a single Dicom file containing the phase, modulus and
-    magnitude frames. 
+# def loadFlowDicom(fname):
+#     """
+#     Loads a single Dicom file containing the phase, modulus and
+#     magnitude frames. 
     
-    Args:
-        fname(str): path to the Dicom file.
+#     Args:
+#         fname(str): path to the Dicom file.
         
-    Returns:
-        dcm(pydicom.dcm): dicom object containing all the headers and 
-        pixel arrays.
-    """
+#     Returns:
+#         dcm(pydicom.dcm): dicom object containing all the headers and 
+#         pixel arrays.
+#     """
     
-    dcm = pydicom.dcmread(fname)
-    return dcm
+#     dcm = pydicom.dcmread(fname)
+#     return dcm
 
-def loadFlowDicomFromDirectory( fname):
-    """Loads all Dicom files in a directory.
+# def loadFlowDicomFromDirectory( fname):
+#     """Loads all Dicom files in a directory.
     
-    Not implemented yet.
+#     Not implemented yet.
     
-    Args:
-         fname(str): path to directory containing Dicom.
+#     Args:
+#          fname(str): path to directory containing Dicom.
             
-    Returns:
-        A merged Dicom object that behaves as if it's a non-classic Dicom.
-        """
-    pass
+#     Returns:
+#         A merged Dicom object that behaves as if it's a non-classic Dicom.
+#         """
+#     pass
 
-# ====================================================================
+# # ====================================================================
 
-def loadDicom(fname):
-    """
-    Loads a single Dicom file containing the phase, modulus and
-    magnitude frames. 
+# def loadDicom(fname):
+#     """
+#     Loads a single Dicom file containing the phase, modulus and
+#     magnitude frames. 
     
-    Args:
-        fname(str): path to the Dicom file.
+#     Args:
+#         fname(str): path to the Dicom file.
         
-    Returns:
-        dcm(pydicom.dcm): dicom object containing all the headers and 
-        pixel arrays.
-    """
-    pass
+#     Returns:
+#         dcm(pydicom.dcm): dicom object containing all the headers and 
+#         pixel arrays.
+#     """
+#     pass
 
 def loadMask( fname):
     """Loads a mask file. The following types are supported:

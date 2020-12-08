@@ -3,7 +3,7 @@
 """
 This module contains the following classes:
 
-+ :class:`SELMASegmentation`
++ :class:`SELMAT1Dicom`
 
 """
 

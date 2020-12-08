@@ -4,8 +4,7 @@
 This module is contains all the relevant classes that form the first layer 
 between the SELMA GUI and the data objects. It contains the following classes:
 
-+ :class:`DicomReader`
-+ :class:`ReadMask`
++ :class:`SelmaGUIModel`
     
 """
 

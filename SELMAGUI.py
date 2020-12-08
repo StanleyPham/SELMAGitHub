@@ -4,7 +4,7 @@
 This module contains the following classes:
 
 + :class:`SELMAMainWindow`
-
++ :class:`SGMSignals`
 """
 
 # ====================================================================

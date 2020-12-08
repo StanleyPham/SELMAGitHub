@@ -4,13 +4,8 @@
 This static module contains the following functions:
 
 + :function:`getLibraries`    
-+ :function:`usableImagePosition`
-+ :function:`usableImageOrientation`
-+ :function:`rotXAxis`
-+ :function:`rotYAxis`
-+ :function:`rotZAxis`
-+ :function:`findAngleDiff`
-+ :function:`getInterpolationVariables`
++ :function:`getTransMatrix`
++ :function:`doInterpolation`
 
 """
 
