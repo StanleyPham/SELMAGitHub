@@ -35,8 +35,6 @@ def getInfo():
         
         return company, appname, version
     
-    
-        
 
 class SelmaSettings(QtWidgets.QWidget):
     """
@@ -120,7 +118,7 @@ class SelmaSettings(QtWidgets.QWidget):
         self.mainTab.medDiamEdit                = QtWidgets.QLineEdit()
         self.mainTab.confidenceInterEdit        = QtWidgets.QLineEdit()
 #        self.mainTab.whiteMatterProbEdit        = QtWidgets.QLineEdit()
-        self.mainTab.averageCardiacCycleBox     = QtWidgets.QCheckBox()
+        self.mainTab.mmVencBox         = QtWidgets.QCheckBox()
         self.mainTab.gaussianSmoothingBox       = QtWidgets.QCheckBox()
         self.mainTab.ignoreOuterBandBox         = QtWidgets.QCheckBox()
         self.mainTab.decimalCommaBox            = QtWidgets.QCheckBox()
@@ -129,7 +127,7 @@ class SelmaSettings(QtWidgets.QWidget):
         self.mainTab.label1     = QtWidgets.QLabel("Median filter diameter")
         self.mainTab.label2     = QtWidgets.QLabel("Confindence interval")
         self.mainTab.label3     = QtWidgets.QLabel("mm")
-        self.mainTab.label4     = QtWidgets.QLabel("Average over cardiac cycle")
+        self.mainTab.label4     = QtWidgets.QLabel("vEnc in mm")
         self.mainTab.label5     = QtWidgets.QLabel(
             "Use Gaussian smoothing\ninstead of median filter")
         self.mainTab.label6     = QtWidgets.QLabel(
@@ -147,8 +145,9 @@ class SelmaSettings(QtWidgets.QWidget):
             " pixels. \n If in mm, diameter gets rounded up to the nearest" +
             "odd pixel value.")
         self.mainTab.label4.setToolTip(
-            "When toggled on, the reported values per voxel are averaged" +
-            " over the cycle.\n If not on, the values are from the first phase.")
+            "Select whether the velocity encoding is in mm/s, default is " +
+            "cm/s. If turned on, the velocity encoding will be converted to" +
+            "cm/s while loading the images.")
         self.mainTab.label5.setToolTip(
             "Speeds up analysis drastically, might yield inaccurate results."+
             "\nUse only for testing.")
@@ -163,7 +162,7 @@ class SelmaSettings(QtWidgets.QWidget):
         
         self.mainTab.layout.addWidget(QHLine(),               3,0,1,2)
         
-        self.mainTab.layout.addWidget(self.mainTab.averageCardiacCycleBox,
+        self.mainTab.layout.addWidget(self.mainTab.mmVencBox,
                                       4,0)
         self.mainTab.layout.addWidget(self.mainTab.gaussianSmoothingBox,
                                       5,0)
@@ -324,10 +323,9 @@ class SelmaSettings(QtWidgets.QWidget):
         application and stores them in the UI.
         """
         
-        #TODO, don't hardcode this
-        COMPANY = "UMCu"
-        APPNAME = "SELMA"
-        
+        COMPANY, APPNAME, version = getInfo()
+        COMPANY             = COMPANY.split()[0]
+        APPNAME             = APPNAME.split()[0]
         settings = QtCore.QSettings(COMPANY, APPNAME)
         
         #General settings
@@ -359,12 +357,12 @@ class SelmaSettings(QtWidgets.QWidget):
 #        self.mainTab.whiteMatterProbEdit.setText(str(whiteMatterProb))
         
         #average over cardiac cycle
-        averageCardiacCycle     = settings.value("averageCardiacCycle")
-        if averageCardiacCycle is None:
-            averageCardiacCycle = True
+        mmVenc     = settings.value("mmVenc")
+        if mmVenc is None:
+            mmVenc = False
         else:
-            averageCardiacCycle = averageCardiacCycle == 'true'
-        self.mainTab.averageCardiacCycleBox.setChecked(averageCardiacCycle)
+            mmVenc = mmVenc == 'true'
+        self.mainTab.mmVencBox.setChecked(mmVenc)
         
         #Do Gaussian smoothing - default is False
         gaussianSmoothing       = settings.value("gaussianSmoothing")
@@ -377,7 +375,7 @@ class SelmaSettings(QtWidgets.QWidget):
         #Ignore outer band
         ignoreOuterBand         = settings.value("ignoreOuterBand")
         if ignoreOuterBand is None:
-            ignoreOuterBand = True
+            ignoreOuterBand = False
         else:
             ignoreOuterBand     = ignoreOuterBand == 'true'
         self.mainTab.ignoreOuterBandBox.setChecked(ignoreOuterBand)
@@ -385,7 +383,7 @@ class SelmaSettings(QtWidgets.QWidget):
         #Use decimal comma
         decimalComma         = settings.value("decimalComma")
         if decimalComma is None:
-            decimalComma = True
+            decimalComma = False
         else:
             decimalComma     = decimalComma == 'true'
         self.mainTab.decimalCommaBox.setChecked(decimalComma)
@@ -565,7 +563,7 @@ class SelmaSettings(QtWidgets.QWidget):
         
         
         # Average over cycle
-        averageCardiacCycle = self.mainTab.averageCardiacCycleBox.isChecked()
+        mmVenc              = self.mainTab.mmVencBox.isChecked()
         gaussianSmoothing   = self.mainTab.gaussianSmoothingBox.isChecked()
         ignoreOuterBand     = self.mainTab.ignoreOuterBandBox.isChecked()
         decimalComma        = self.mainTab.decimalCommaBox.isChecked()
@@ -785,7 +783,7 @@ class SelmaSettings(QtWidgets.QWidget):
         settings.setValue('confidenceInter',        confidenceInter)
         settings.setValue('mmPixel',                mmPixel)
 #        settings.setValue('whiteMatterProb',        whiteMatterProb)
-        settings.setValue('averageCardiacCycle',    averageCardiacCycle)
+        settings.setValue('mmVenc',                 mmVenc)
         settings.setValue('gaussianSmoothing',      gaussianSmoothing)
         settings.setValue('ignoreOuterBand',        ignoreOuterBand)
         settings.setValue('decimalComma',           decimalComma)

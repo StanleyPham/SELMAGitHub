@@ -13,7 +13,8 @@ This module contains the following classes:
 
 import pydicom
 import numpy as np
-
+import SELMAGUISettings
+from PyQt5 import QtCore
 # ====================================================================
 
 class SELMADicom:
@@ -51,9 +52,9 @@ class SELMADicom:
         #Sort the frames on their type
         self._orderFramesOnType()
         
-        #Create velocity frames if necessary:
+        #Create velocity frames if necessary
         self._makeVelocityFrames()
-    
+        
     '''Public'''
     #Getter functions
     # ------------------------------------------------------------------    
@@ -203,7 +204,14 @@ class SELMADicom:
             venc                        = venc[-1] 
         
         #Other manufacturers
-                
+        #...        
+        
+        
+        #Adjust for units
+        if self._checkVencUnit():
+            venc /= 10
+        
+        #Write to tags
         self._tags['venc'] = venc
             
             
@@ -274,7 +282,7 @@ class SELMADicom:
     def _rescaleFrames(self):
         ''' Applies the rescale slope and intercept to the frames. '''
          
-        self._rescaledFrames = []
+        self._rescaledFrames    = []
         for i in range(len(self._rawFrames)):
             rescaleSlope        = self._tags['rescaleSlopes'][i]
             rescaleIntercept    = self._tags['rescaleIntercepts'][i]
@@ -345,5 +353,16 @@ class SELMADicom:
                 rawPhaseFrame  = self._rawPhaseFrames[idx] * venc / np.pi
                 self._velocityFrames.append(phaseFrame)
                 self._rawVelocityFrames.append(rawPhaseFrame)
+                
+                
+                
+    def _checkVencUnit(self):
+        """Check the settings to find the 'mmVenc' value"""
+        COMPANY, APPNAME, _ = SELMAGUISettings.getInfo()
+        COMPANY             = COMPANY.split()[0]
+        APPNAME             = APPNAME.split()[0]
+        settings            = QtCore.QSettings(COMPANY, APPNAME)
+        
+        return settings.value('mmVenc')
     
         

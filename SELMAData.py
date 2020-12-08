@@ -741,6 +741,7 @@ class SELMADataObject:
                                             left : right]
             
             #threshold
+            #TODO, compare to matlab
             threshold       = np.percentile(magWindow, removePerpMagThresh * 100)
             magWindowThresh = magWindow > threshold
             

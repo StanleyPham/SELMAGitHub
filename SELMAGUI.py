@@ -411,15 +411,7 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         if len(fname) != 0:
             self.loadMaskSignal.emit(fname)
         
-        
-#   Apply mask is now called upon analyseVessel        
-        
-#    @QtCore.pyqtSlot()
-#    def _applyMask(self):
-#        """Triggered when the Apply Mask action is called."""
-#        #TODO: make proper get methods on all layers
-#        mask = self._imageViewer._scene.getMask()
-#        self.applyMaskSignal.emit(mask)
+    
         
     @QtCore.pyqtSlot()
     def _segmentMask(self):

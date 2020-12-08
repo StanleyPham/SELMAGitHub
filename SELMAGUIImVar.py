@@ -88,7 +88,7 @@ class SelmaImVar(QtWidgets.QWidget):
         
         venc    = variables["venc"]
         self.vencEdit.setText(str(venc))
-
+        
     def okButtonPressed(self):
         """
         Collects all the values from the window, stores them in a dictionary 

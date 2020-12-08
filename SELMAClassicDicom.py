@@ -178,6 +178,8 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
                 try:
                     rescaleSlope        = float(self._DCMs[i]
                                         [dcmRescaleSlopeAddress].value)
+                    if rescaleSlope != 0:
+                        rescaleSlope    = 1 / rescaleSlope
                     rescaleIntercept    = float(self._DCMs[i]
                                         [dcmRescaleInterceptAddress].value)
                        
@@ -293,7 +295,12 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
                 import re
                 venc    = [int(s) for s in re.findall(r'\d+', vencStr)][0]
                 
-                
+
+        #Adjust for units
+        if self._checkVencUnit():
+            venc /= 10
+            
+        #Write to tags        
         self._tags['venc'] = venc
             
             

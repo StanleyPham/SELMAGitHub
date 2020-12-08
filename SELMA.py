@@ -19,7 +19,7 @@ import SELMAGUISettings
 # ====================================================================
 
 def main():
-    """ SELMA - [Abbreviation] """
+    """ SELMA - Trial-ready Small Vessel MRI Markers """
 
     COMPANY, APPNAME, _ = SELMAGUISettings.getInfo()
 
@@ -40,7 +40,6 @@ def main():
     settings.applySettings()
 
     # Connect signals
-    # TODO: all slots should be in SGM or SDM
     # ----------------------------------------
     # Signals from mainwindow (menubar)
     SGM.mainWin.loadMaskSignal      .connect(SDM.loadMaskSlot)
