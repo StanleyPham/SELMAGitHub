@@ -188,6 +188,10 @@ class SELMADicom:
             venc = self._DCM[dcmFrameAddress] [0]       \
                             [vEncAddress]     [0]       \
                             [vEncMaxAddress].value
+
+            #Adjust for units
+            if self._checkVencUnit():
+                venc /= 10
                             
             self._tags['venc'] = venc
             return

@@ -247,6 +247,11 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
                     pass
         
         if venc is not None:
+            
+            #Adjust for units
+            if self._checkVencUnit():
+                venc /= 10
+            
             self._tags['venc'] = venc
             return
         
