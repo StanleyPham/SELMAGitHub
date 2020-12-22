@@ -92,55 +92,90 @@ The next step is the analysis. This can be run via the Analyse Vessels function 
 The details of the algorithm are more thoroughly described in this work: https://doi.org/10.1002/mrm.26821. Here, a short description of the steps is given.
 
 The steps are:
-0. Subtract background
-1. Determine SNR
-2. Find all voxels with significant flow
-3. Remove zero-crossing voxels
-4. Remove Ghosting artifacts
-5. Remove outer edge
-6. Apply mask
-7. Find all voxels with significant magnitude
-8. Cluster voxels based on significant flow & magnitude
-9. Remove non-perpendicular vessels
-10. Report data of selected voxels
 
-**Subtract background**
+0. **Subtract background**
 The background of the velocity-frames is obtained by applying a median filter with a very large diameter. It is then subtracted from the velocity-frames in order to center the flow data of the vessels around zero. This median filter takes a long time and is the biggest contributor to the operating time of the algorithm.
-
-**Determine SNR**
+1. **Determine SNR**
 First the velocity frames are converted to phase frames. Next, the phase and magnitude frames are converted to a complex signal from which the standard deviation in the real and imaginary component are calculated. Next, the root mean square of these standard deviations is obtained and a median-filter is applied. Next, the SNR in the magnitude frames is found. Lastly, the SNR in the velocity frames is calculated.
-
-**Find all voxels with significant flow**
+2. **Find all voxels with significant flow**
 Using this SNR, all voxels are compared against a sigma that can be set by the user (see Settings). Any voxels whose absolute SNR is larger, is counted as having significant flow.
-
-**Remove zero-crossing voxels**
-From these initial significant voxels, all those whose flow does not change direction along the time-axis (i.e. crosses zero), are kept. 
-
-**Remove Ghosting artifacts**
+3. **Remove zero-crossing voxels**
+From these initial significant voxels, all those whose flow does not change direction along the time-axis (i.e. crosses zero), are kept.
+4. **Remove Ghosting artifacts**
 When switched on in the settings, this step finds the largest 'bright' (with high flow) vessels and creates a 'ghosting-zone' around them. Any significant voxels that fall within these zones, are discarded. The various parameters of the method can be changed in the settings window.
-
-**Remove outer edge**
+5. **Remove outer edge**
 When switched on, a large exclusion zone in the form of a band of a user-defined width is formed around the edge of the image. Any significant voxel that falls within this zone is discarded. Note: this should be changed to a band around the edge of the brain, not the edge of the image.
-
-**Apply mask**
+6. **Apply mask**
 All significant voxels that fall outside of the user-defined mask are discarded.
-
-**Find all voxels with significant magnitude**
+7. **Find all voxels with significant magnitude**
 In much the same way as step 2, all voxels are tested for significance based on their magnitude. 
-
-**Cluster voxels based on significant flow & magnitude**
+8. **Cluster voxels based on significant flow & magnitude**
 All significant-flow voxels are first divided based on their magnitude values (significant positive / negative or not). For each of the six categories (2x flow, 3x magnitude) the voxels are clustered. 
-
-**Remove non-perpendicular vessels**
+9. **Remove non-perpendicular vessels**
 When switched on in the settings, all voxel-clusters (assumed to be vessels) are either kept or discarded based on the shape of the cluster. Depending on some user-defined parameters, the vessels are judged on whether they are perpendicular to the imaging direction. If not, they are discarded.
-
-**Report data of selected voxels**
+10. **Report data of selected voxels**
 For each of the vessels that has not been ruled out in previous steps, the velocity, magnitude etc. of each frame is collected and saved to a .txt file. 
-
 
 # Settings
 
-The Settings window can be accessed via the settings menu. 
+The Settings window can be accessed via the settings menu. It has multiple tabs related to multiple parts of the program. An overview of the different settings is given below. Most settings also explain their use in more detail when hovering over the text in the window.
+
+
+**General**
+
+![Tab 1](Images/selmasettings1.png)
+
+The following settings exist in the general tab:
+1. **Median filter diameter** 
+This is the size of the kernel with which the median filter is applied in the algorithm. A togglebox next to the setting gives the user the option to specify the diameter in mm or in pixels.
+2. **Confidence interval**
+This sets the confidence interval for determining significance of a vessel. An interval of 0.05 corresponds to p < 0.05 significance.
+3. **vEnc in mm**
+Some images specify the velocity encoding (vEnc) in mm/s instead of the usual cm/s. When this box is toggled, the vEnc is divided by 10 in order to get the correct cm/s units which the algorithm assumes.
+4. **Use Gaussian smoothing instead of median filter**
+The median filter operation can take several minutes when working with a large image & large diameter. Under circumstances where speed is more important than accuracy, this can be toggled on to perform a Gaussian smoothing operation instead of a median filter. It produces similar results, but is much faster. **N.B. don't use this for any important analysis!**
+5. **Ignore outer band**
+When toggled on, step 5 in the algorithm (see above) is used.
+6. **Use a decimal comma in the output instead of a dot**
+When a decimal comma is preferred in the output for further analysis, it can be turned on with this setting
+
+
+**Ghosting**
+
+![Tab 1](Images/selmasettings2.png)
+
+1. **Exclude ghosting zones**
+When turned on, step 4 in the algorithm (see above) is used.
+2. **Vessel thresholds small vessel & large vessel**
+Thresholds for determining small & large vessel clusters.
+3. **Small vessel exclusion zone X,Y**
+Size of exclusion zone around a small vessel. See image below.
+4. **Large vessel exclusion zone X,Y**
+Size of exclusion zone around a large vessel. See image below.
+5. **Bright pixel percentile**
+Percentile threshold for classification as a bright pixel.
+
+![Tab 1](Images/brightvesselexclusion.png)
+
+**Non-Perpendicular**
+
+![Tab 1](Images/selmasettings3.png)
+
+1. **Exclude non-perpendicular zones**
+When turned on, step 9 in the algorithm (see above) is used.
+2. **Window size for measuring vessel shape**
+Window around cluster for determining perpendicularity.
+3. **Magnitude threshold for measuring vessel shape**
+Magnitude threshold for clustering vessels on magnitude frame to determine perpendicularity.
+4. **Major / minor axis threshold ratio**
+When the major / minor axis threshold ratio is bigger than X:1 (where X is the value of the box), the vessel will be classified as being non-perpendicular.
+
+**Segmentation**
+
+![Tab 1](Images/selmasettings4.png)
+
+1. **White matter probability**
+Sets the threshold for segmenting the white matter with Cat-12. 
 
 
 
