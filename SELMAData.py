@@ -129,6 +129,7 @@ class SELMADataObject:
         self._findSignificantMagnitude()
         self._clusterVessels()
         self._removeNonPerpendicular()
+        self._deduplicateVessels()
         self._signalObject.setProgressBarSignal.emit(100)
 
 #        Send vessels back to the GUI
@@ -181,6 +182,13 @@ class SELMADataObject:
     def getVenc(self):
         return self._selmaDicom.getTags()['venc']
     
+    def getRescale(self):
+        velFrames   = self._selmaDicom.getVelocityFrames()
+        minres      = np.min(velFrames)
+        maxres      = np.max(velFrames)
+        
+        return [minres, maxres]
+    
     def getVesselMask(self):
         return self._vesselMask
 #    
@@ -203,6 +211,9 @@ class SELMADataObject:
         
     def setVenc(self, venc):
         self._selmaDicom.setVenc(venc)
+        
+    def setVelRescale(self, rescale):
+        self._selmaDicom.setVelRescale(rescale)
         
     '''Private'''
     # Setup data from .dcm file
@@ -691,6 +702,43 @@ class SELMADataObject:
         
     
     
+    def _removePerpendicularTine(self):
+        
+        """
+        According to tine:
+            -Data to work on:
+                tempim = mean(magdata, 3); %image to be drawn on
+                tempmean = mean(tempim(:));
+                tempstd = std(tempim(:));
+                tempmin = tempmean-1*tempstd;
+                tempmax = tempmean+3*tempstd;
+                tempscaled = (tempim-tempmin)./(tempmax-tempmin); 
+                tempscaled(tempscaled<0)=0; 
+                tempscaled(tempscaled>1)=1;
+                
+            -only look at Mpos
+            -take 15x15 window centered around blob centre
+            -threshold 0.8*blobcentre value
+            -cluster the results
+            -Find the blob closest to the centre
+            -find the major & minor axis lengths
+        
+        """
+        meanMagnitude   = np.mean(self._selmaDicom.getMagnitudeFrames(),
+                                  axis = 0)
+        stdMagnitude    = np.std(self._selmaDicom.getMagnitudeFrames(),
+                                  axis = 0)
+        minMagnitude    = meanMagnitude - stdMagnitude
+        maxMagnitude    = meanMagnitude + 3*stdMagnitude
+        scaledMagnitude = ((meanMagnitude - minMagnitude) / 
+                           (maxMagnitude - minMagnitude))
+        
+        
+        for cluster in self._posMagClusters:
+            pass
+        
+        
+    
     def _removeNonPerpendicular(self):
         """
         Go over all clusters
@@ -702,7 +750,6 @@ class SELMADataObject:
             if major > x*minor, remove        
         
         """
-        
         
         removeNonPerp      = self._readFromSettings('removeNonPerp')
         if not removeNonPerp:
@@ -779,6 +826,16 @@ class SELMADataObject:
         #Add the edited clusters to self._vesselMask
         self._createVesselMask()
         
+    def _deduplicateVessels(self):
+        """
+        Tine's version:
+            
+            Take the first voxel of each cluster
+            check whether any of them are <6 pixels apart
+            if so, remove both clusters
+        
+        """
+        pass
 
     def _makeVesselDict(self):
         """Makes a dictionary containing the following statistics

@@ -414,8 +414,11 @@ class SelmaDataModel:
         
         variables = dict()
         
-        venc = self._SDO.getVenc()
-        variables['venc'] = venc
+        venc                    = self._SDO.getVenc()
+        variables['venc']       = venc
+        
+        velRescale              = self._SDO.getRescale()
+        variables['velscale']   = velRescale
         
         #Return the variables
         self.signalObject.sendImVarSignal.emit(variables)
@@ -427,8 +430,15 @@ class SelmaDataModel:
             self.signalObject.errorMessageSignal.emit("No DICOM loaded.")
             return
             
-        venc = variables['venc']
-        self._SDO.setVenc(venc)
+        for variable in variables:
+            
+            if variable == "venc":
+                self._SDO.setVenc(variables['venc'])
+            
+            if variable == "velscale":
+                self._SDO.setVelRescale(variables["velscale"])
+                
+            #other variables
         
         
     #Getter functions
