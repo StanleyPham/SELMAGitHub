@@ -61,7 +61,7 @@ class SelmaSettings(QtWidgets.QWidget):
     
     def initGui(self):
         
-        self.setGeometry(QtCore.QRect(100, 100, 300, 200))
+        self.setGeometry(QtCore.QRect(100, 100, 450, 200))
         self.setWindowTitle("Settings")
         self.setWindowIcon(QtGui.QIcon("icon.png"))
         
@@ -70,19 +70,22 @@ class SelmaSettings(QtWidgets.QWidget):
         self.mainTab        = QtWidgets.QWidget()
         self.ghostingTab    = QtWidgets.QWidget()
         self.nonPerpTab     = QtWidgets.QWidget()
+        self.deduplicateTab = QtWidgets.QWidget()
         self.segmentTab     = QtWidgets.QWidget()
         self.resetTab       = QtWidgets.QWidget()
         
-        self.tabs.addTab(self.mainTab,      "General")
-        self.tabs.addTab(self.ghostingTab,  "Ghosting")
-        self.tabs.addTab(self.nonPerpTab,   "Non-Perpendicular")
-        self.tabs.addTab(self.segmentTab,   "Segmentation")
-        self.tabs.addTab(self.resetTab,     "Reset")
+        self.tabs.addTab(self.mainTab,          "General")
+        self.tabs.addTab(self.ghostingTab,      "Ghosting")
+        self.tabs.addTab(self.nonPerpTab,       "Non-Perp")
+        self.tabs.addTab(self.deduplicateTab,   "Deduplicate")
+        self.tabs.addTab(self.segmentTab,       "Segment")
+        self.tabs.addTab(self.resetTab,         "Reset")
         
         #Design Tabs
         self.initMainTab()
         self.initGhostingTab()
         self.initNonPerpTab()
+        self.initDeduplicateTab()
         self.initSegmentTab()
         self.initResetTab()
         
@@ -198,41 +201,61 @@ class SelmaSettings(QtWidgets.QWidget):
         self.ghostingTab.brightVesselPercEdit   = QtWidgets.QLineEdit()
         
         #Labels
-        self.ghostingTab.label0 = QtWidgets.QLabel("Exclude ghosting zones")
-        self.ghostingTab.label1 = QtWidgets.QLabel("Vessel thresholds"     +
-                                                       "small vessel & large vessel")
-        self.ghostingTab.label2 = QtWidgets.QLabel("Small vessel exclusion zone"+
-                                                       " X, Y")
-        self.ghostingTab.label3 = QtWidgets.QLabel("Large vessel exclusion zone"+
-                                                       " X, Y")
-        self.ghostingTab.label4 = QtWidgets.QLabel("Bright pixel percentile")
+        self.ghostingTab.label0 = QtWidgets.QLabel(
+            "Exclude ghosting zones")
+        self.ghostingTab.label1 = QtWidgets.QLabel(
+            "Vessel thresholds small vessel & large vessel")
+        self.ghostingTab.label2 = QtWidgets.QLabel(
+            "Small vessel exclusion zone X, Y")
+        self.ghostingTab.label3 = QtWidgets.QLabel(
+            "Large vessel exclusion zone X, Y")
+        self.ghostingTab.label4 = QtWidgets.QLabel(
+            "Bright pixel percentile")
         
         #Tooltips
-        self.ghostingTab.label0.setToolTip("When toggled on, the areas near particulary"   +
-                                       " bright vessels are excluded from analysis.")
-        self.ghostingTab.label1.setToolTip("Thresholds for qualifying as a small or large vessel. "             +
-                                       "\nAnything smaller than a small vessel is considered not to be a vessel.")
-        self.ghostingTab.label2.setToolTip("The ghosting zone around a small vessel is increased in the X- and Y-directions \nby this much.")
-        self.ghostingTab.label3.setToolTip("The ghosting zone around a large vessel is increased in the X- and Y-directions \nby this much.")
-        self.ghostingTab.label4.setToolTip("What percentage intensity a voxel needs to have in order to be classified as a bright vessel.")
+        self.ghostingTab.label0.setToolTip(
+            "When toggled on, the areas near particulary"   +
+            " bright vessels are excluded from analysis.")
+        self.ghostingTab.label1.setToolTip(
+            "Thresholds for qualifying as a small or large vessel. "    +
+            "\nAnything smaller than a small vessel is considered not "+
+            "to be a vessel.")
+        self.ghostingTab.label2.setToolTip(
+            "The ghosting zone around a small vessel is increased in the"+
+            " X- and Y-directions by this much.")
+        self.ghostingTab.label3.setToolTip(
+            "The ghosting zone around a large vessel is increased in the"+
+            " X- and Y-directions by this much.")
+        self.ghostingTab.label4.setToolTip(
+            "What percentage intensity a voxel needs to have in order to"+
+            " be classified as a bright vessel.")
         
         
         #Add to layout
         self.ghostingTab.layout     = QtWidgets.QGridLayout()
-        self.ghostingTab.layout.addWidget(self.ghostingTab.doGhostingBox,     0,0)
+        self.ghostingTab.layout.addWidget(self.ghostingTab.doGhostingBox,
+                                          0,0)
         
-        self.ghostingTab.layout.addWidget(QHLine(),                   1,0,1,4)
+        self.ghostingTab.layout.addWidget(QHLine(),                   
+                                          1,0,1,4)
         
-        self.ghostingTab.layout.addWidget(self.ghostingTab.noVesselThreshEdit, 2,0)
-        self.ghostingTab.layout.addWidget(self.ghostingTab.smallVesselThreshEdit, 2,1)
+        self.ghostingTab.layout.addWidget(
+            self.ghostingTab.noVesselThreshEdit, 2,0)
+        self.ghostingTab.layout.addWidget(
+            self.ghostingTab.smallVesselThreshEdit, 2,1)
         
-        self.ghostingTab.layout.addWidget(self.ghostingTab.smallVesselExclXEdit, 3,0)
-        self.ghostingTab.layout.addWidget(self.ghostingTab.smallVesselExclYEdit, 3,1)
+        self.ghostingTab.layout.addWidget(
+            self.ghostingTab.smallVesselExclXEdit, 3,0)
+        self.ghostingTab.layout.addWidget(
+            self.ghostingTab.smallVesselExclYEdit, 3,1)
         
-        self.ghostingTab.layout.addWidget(self.ghostingTab.largeVesselExclXEdit, 4,0)
-        self.ghostingTab.layout.addWidget(self.ghostingTab.largeVesselExclYEdit, 4,1)
+        self.ghostingTab.layout.addWidget(
+            self.ghostingTab.largeVesselExclXEdit, 4,0)
+        self.ghostingTab.layout.addWidget(
+            self.ghostingTab.largeVesselExclYEdit, 4,1)
         
-        self.ghostingTab.layout.addWidget(self.ghostingTab.brightVesselPercEdit, 5,0)
+        self.ghostingTab.layout.addWidget(
+            self.ghostingTab.brightVesselPercEdit, 5,0)
 
         self.ghostingTab.layout.addWidget(self.ghostingTab.label0,    0,3)
         self.ghostingTab.layout.addWidget(self.ghostingTab.label1,    2,3)
@@ -246,64 +269,135 @@ class SelmaSettings(QtWidgets.QWidget):
         """The tab containing the removeGhosting settings."""
 
         #Toggle nonPerp
-        self.nonPerpTab.removeNonPerpBox       = QtWidgets.QCheckBox()
-        
+        self.nonPerpTab.removeNonPerpBox            = QtWidgets.QCheckBox()
+        self.nonPerpTab.onlyMPosBox                 = QtWidgets.QCheckBox()
         #Inputs
-        self.nonPerpTab.removePerpXEdit         = QtWidgets.QLineEdit()
-        self.nonPerpTab.removePerpYEdit         = QtWidgets.QLineEdit()
-        self.nonPerpTab.removePerpMagThreshEdit = QtWidgets.QLineEdit()
-        self.nonPerpTab.removePerpRatioThreshEdit  = QtWidgets.QLineEdit()
+        self.nonPerpTab.minScalingEdit              = QtWidgets.QLineEdit()
+        self.nonPerpTab.maxScalingEdit              = QtWidgets.QLineEdit()
+        self.nonPerpTab.windowSizeEdit              = QtWidgets.QLineEdit()
+        self.nonPerpTab.magnitudeThreshEdit         = QtWidgets.QLineEdit()
+        self.nonPerpTab.ratioThreshEdit             = QtWidgets.QLineEdit()
         
         #Labels
-        self.nonPerpTab.label0 = QtWidgets.QLabel("Exclude non-perpendicular zones")
-        self.nonPerpTab.label1 = QtWidgets.QLabel("Window size for measuring vessel shape.")
-        self.nonPerpTab.label2 = QtWidgets.QLabel("Magnitude threshold for measuring vessel shape.")
-        self.nonPerpTab.label3 = QtWidgets.QLabel("Major / minor axis threshold ratio.")
+        self.nonPerpTab.label0 = QtWidgets.QLabel(
+            "Exclude non-perpendicular zones.")
+        self.nonPerpTab.label1 = QtWidgets.QLabel(
+            "Only look at positive magnitude.")
+        self.nonPerpTab.label2 = QtWidgets.QLabel(
+            "Min and Max scaling")
+        self.nonPerpTab.label3 = QtWidgets.QLabel(
+            "Window size for measuring vessel shape.")
+        self.nonPerpTab.label4 = QtWidgets.QLabel(
+            "Magnitude threshold for measuring vessel shape.")
+        self.nonPerpTab.label5 = QtWidgets.QLabel(
+            "Major / minor axis threshold ratio.")
+        
         #Tooltips        
-        self.nonPerpTab.label0.setToolTip("When toggled on, the significant vessels"   +
-                                       " are filtered for any vessels that lie \n"  +
-                                       "perpendicular to the imaging plane.")
-        self.nonPerpTab.label1.setToolTip("The vessel shape is measured in a window\naround each cluster. These are\nthe window dimensions (X,Y).")
-        self.nonPerpTab.label2.setToolTip("The vessel shape is measured on the\nmagnitude data. This is the magnitude\nthreshold for vessels.")
-        self.nonPerpTab.label3.setToolTip("The criterion for exlusion is: major\nradius / minor radius > X.\n This is X")
+        self.nonPerpTab.label0.setToolTip(
+            "When toggled on, the significant vessels"   +
+            " are filtered for any vessels that lie \n"  +
+            "non-perpendicular to the imaging plane.")
+        self.nonPerpTab.label1.setToolTip(
+            "When toggled on, only vessels with positive magnitude will" +
+            "be filtered.")
+        self.nonPerpTab.label2.setToolTip(
+            "Min and max scaling adjustments. See readme.")
+        self.nonPerpTab.label3.setToolTip(
+            "The vessel shape is measured in a window around each cluster."+
+            "This is the window radius.")
+        self.nonPerpTab.label4.setToolTip(
+            "The vessel shape is measured on the\nmagnitude data." +
+            " This is the magnitude\nthreshold for vessels.")
+        self.nonPerpTab.label5.setToolTip(
+            "The criterion for exlusion is: major radius / minor radius "+
+            " > X.\n This is X")
         
         #Add to layout
         self.nonPerpTab.layout              = QtWidgets.QGridLayout()
-        self.nonPerpTab.layout.addWidget(self.nonPerpTab.removeNonPerpBox,     0,0)
-        
-        self.nonPerpTab.layout.addWidget(QHLine(),                   1,0,1,4)
-        
-        self.nonPerpTab.layout.addWidget(self.nonPerpTab.removePerpXEdit, 2,0)
-        self.nonPerpTab.layout.addWidget(self.nonPerpTab.removePerpYEdit, 2,1)
-        
-        self.nonPerpTab.layout.addWidget(self.nonPerpTab.removePerpMagThreshEdit, 3,0)
-        self.nonPerpTab.layout.addWidget(self.nonPerpTab.removePerpRatioThreshEdit,  4,0)
+        self.nonPerpTab.layout.addWidget(
+            self.nonPerpTab.removeNonPerpBox,
+            0,0)
+        self.nonPerpTab.layout.addWidget(
+            self.nonPerpTab.onlyMPosBox,
+            1,0)
+        self.nonPerpTab.layout.addWidget(
+            QHLine(),
+            2,0,1,4)
+        self.nonPerpTab.layout.addWidget(
+            self.nonPerpTab.minScalingEdit,
+            3,0)
+        self.nonPerpTab.layout.addWidget(
+            self.nonPerpTab.maxScalingEdit,
+            3,1)
+        self.nonPerpTab.layout.addWidget(
+            self.nonPerpTab.windowSizeEdit,
+            4,0)
+        self.nonPerpTab.layout.addWidget(
+            self.nonPerpTab.magnitudeThreshEdit,
+            5,0)
+        self.nonPerpTab.layout.addWidget(
+            self.nonPerpTab.ratioThreshEdit,
+            6,0)  
         
         self.nonPerpTab.layout.addWidget(self.nonPerpTab.label0,    0,3)
-        self.nonPerpTab.layout.addWidget(self.nonPerpTab.label1,    2,3)
+        self.nonPerpTab.layout.addWidget(self.nonPerpTab.label1,    1,3)
         self.nonPerpTab.layout.addWidget(self.nonPerpTab.label2,    3,3)
         self.nonPerpTab.layout.addWidget(self.nonPerpTab.label3,    4,3)
+        self.nonPerpTab.layout.addWidget(self.nonPerpTab.label4,    5,3)
+        self.nonPerpTab.layout.addWidget(self.nonPerpTab.label5,    6,3)
         
         self.nonPerpTab.setLayout(self.nonPerpTab.layout)
+        
+        
+    def initDeduplicateTab(self):
+        
+        self.deduplicateTab.deduplicateBox          = QtWidgets.QCheckBox()
+        self.deduplicateTab.deduplicateRangeEdit    = QtWidgets.QLineEdit()
+        
+        self.deduplicateTab.label0                  = QtWidgets.QLabel(
+            "Deduplicate vessels")
+        self.deduplicateTab.label1                  =QtWidgets.QLabel(
+            "Deduplication range")
+        
+        self.deduplicateTab.label0.setToolTip(
+            "When toggled on, vessels that are very close to eachother"+ 
+            "will be excluded.")
+        
+
+        #Add items to layout
+        self.deduplicateTab.layout                  = QtWidgets.QGridLayout()
+        self.deduplicateTab.layout.addWidget(
+            self.deduplicateTab.deduplicateBox, 0,0)
+        self.deduplicateTab.layout.addWidget(
+            QHLine(),            1,0,1,2)
+        self.deduplicateTab.layout.addWidget(
+            self.deduplicateTab.deduplicateRangeEdit, 2,0)
+        
+        #Add labels to layout
+        self.deduplicateTab.layout.addWidget(self.deduplicateTab.label0,      
+                                             0,1)
+        self.deduplicateTab.layout.addWidget(self.deduplicateTab.label1,      
+                                             2,1)
+        
+        self.deduplicateTab.setLayout(self.deduplicateTab.layout)
+        
         
     def initSegmentTab(self):
         
         self.segmentTab.whiteMatterProb            = QtWidgets.QLineEdit()
         
-        self.segmentTab.label1     = QtWidgets.QLabel("White matter probability")
+        self.segmentTab.label1     = QtWidgets.QLabel(
+            "White matter probability")
 
         #Add items to layout
         self.segmentTab.layout     = QtWidgets.QGridLayout()
-        self.segmentTab.layout.addWidget(self.segmentTab.whiteMatterProb, 0,0)
+        self.segmentTab.layout.addWidget(
+            self.segmentTab.whiteMatterProb, 0,0)
         
         #Add labels to layout
         self.segmentTab.layout.addWidget(self.segmentTab.label1,      0,1)
         
         self.segmentTab.setLayout(self.segmentTab.layout)
-        
-        #Add button to layout
-        self.segmentTab.applyButton     = QtWidgets.QPushButton("Apply")
-        
         
         
     def initResetTab(self):
@@ -455,33 +549,64 @@ class SelmaSettings(QtWidgets.QWidget):
             removeNonPerp = removeNonPerp == 'true'
         self.nonPerpTab.removeNonPerpBox.setChecked(removeNonPerp)
         
+        #Only MPos
+        onlyMPos    = settings.value("onlyMPos")
+        if onlyMPos is None:
+            onlyMPos = True
+        else:
+            onlyMPos = onlyMPos == 'true'
+        self.nonPerpTab.onlyMPosBox.setChecked(onlyMPos)
         
-        #Window
-        removePerpX = settings.value("removePerpX")
-        if removePerpX is None:
-            removePerpX = 5
-        self.nonPerpTab.removePerpXEdit.setText(str(removePerpX))
+        #Scaling
+        minScaling = settings.value("minScaling")
+        if minScaling is None:
+            minScaling = 1
+        self.nonPerpTab.minScalingEdit.setText(str(minScaling))
         
-        removePerpY = settings.value("removePerpY")
-        if removePerpY is None:
-            removePerpY = 5
-        self.nonPerpTab.removePerpYEdit.setText(str(removePerpY))
+        maxScaling = settings.value("maxScaling")
+        if maxScaling is None:
+            maxScaling = 3
+        self.nonPerpTab.maxScalingEdit.setText(str(maxScaling))
+        
+        #Window size
+        windowSize = settings.value("windowSize")
+        if windowSize is None:
+            windowSize = 7
+        self.nonPerpTab.windowSizeEdit.setText(
+            str(windowSize))
+        
+        #Magnitude threshold
+        magnitudeThresh = settings.value("magnitudeThresh")
+        if magnitudeThresh is None:
+            magnitudeThresh = 0.8
+        self.nonPerpTab.magnitudeThreshEdit.setText(
+            str(magnitudeThresh))
+        
+        #Ratio threshold
+        ratioThresh = settings.value("ratioThresh")
+        if ratioThresh is None:
+            ratioThresh = 2
+        self.nonPerpTab.ratioThreshEdit.setText(
+            str(ratioThresh))
         
         
-        #magnitude threshold
-        removePerpMagThresh = settings.value("removePerpMagThresh")
-        if removePerpMagThresh is None:
-            removePerpMagThresh = 0.8
-        self.nonPerpTab.removePerpMagThreshEdit.setText(
-            str(removePerpMagThresh))
+        #Deduplicate vessels
+        #=============================================
         
+        #Deduplicate
+        deduplicate = settings.value("deduplicate")
+        if deduplicate is None:
+            deduplicate = True
+        else:
+            deduplicate = deduplicate == 'true'
+        self.deduplicateTab.deduplicateBox.setChecked(deduplicate)
         
-        #Exclusion ratio threshold
-        removePerpRatioThresh = settings.value("removePerpRatioThresh")
-        if removePerpRatioThresh is None:
-            removePerpRatioThresh = 5
-        self.nonPerpTab.removePerpRatioThreshEdit.setText(
-            str(removePerpRatioThresh))
+        #Only MPos
+        deduplicateRange    = settings.value("deduplicateRange")
+        if deduplicateRange is None:
+            deduplicateRange = 6
+        self.deduplicateTab.deduplicateRangeEdit.setText(
+            str(deduplicateRange))
         
         
         #Segmentation settings
@@ -684,72 +809,106 @@ class SelmaSettings(QtWidgets.QWidget):
         #=========================================
 
         #RemoveNonPerpendicular
-        removeNonPerp = self.nonPerpTab.removeNonPerpBox.isChecked()        
+        removeNonPerp   = self.nonPerpTab.removeNonPerpBox.isChecked()  
+        onlyMPos        = self.nonPerpTab.onlyMPosBox.isChecked()  
         
         #
-        #Window
-        #X
-        removePerpX = self.nonPerpTab.removePerpXEdit.text()
+        #Scaling
+        #min
+        minScaling = self.nonPerpTab.minScalingEdit.text()
         try: 
-            removePerpX = float(removePerpX)
+            minScaling = float(minScaling)
         except:
             self.errorLabel.setText(
-                    "Non-perpendicular window selection X has to be a number.")
+                    "Min. scaling has to be a number.")
             return
-        
-        if removePerpX < 0:
+        if minScaling < 0:
             self.errorLabel.setText(
-                    "Non-perpendicular window selection X has to >0.")
+                    "Min. scaling has to >0.")
             return     
-        
-        #Y
-        
-        removePerpY = self.nonPerpTab.removePerpYEdit.text()
+        #max
+        maxScaling = self.nonPerpTab.maxScalingEdit.text()
         try: 
-            removePerpY = float(removePerpY)
+            maxScaling = float(maxScaling)
         except:
             self.errorLabel.setText(
-                    "Non-perpendicular window selection Y has to be a number.")
+                    "Max. scaling has to be a number.")
             return
-        
-        if removePerpY < 0:
+        if maxScaling < 0:
             self.errorLabel.setText(
-                    "Non-perpendicular window selection Y has to > 0.")
+                    "Max. scaling has to > 0.")
             return     
-        
-        
-        #
-        #Magnitude Percentage Threshold
-        removePerpMagThresh = self.nonPerpTab.removePerpMagThreshEdit.text()
-        try: 
-            removePerpMagThresh = float(removePerpMagThresh)
-        except:
+        if maxScaling < minScaling:
             self.errorLabel.setText(
-                    "Non-perpendicular window selection X has to be a number.")
+                "Max. scaling has to be larger than Min. scaling.")
             return
         
-        if removePerpMagThresh < 0 or removePerpMagThresh > 1:
+        #Magnitude Threshold
+        windowSize = self.nonPerpTab.windowSizeEdit.text()
+        try: 
+            windowSize = float(windowSize)
+        except:
             self.errorLabel.setText(
-                    "Non-perpendicular window selection X has to between 0 and 1.")
+                    "Window size has to be a number.")
+            return
+        if windowSize < 0:
+            self.errorLabel.setText(
+                    "Window size has to be > 0.")
             return  
         
         
-        #
-        #Ratio Threshold
-        removePerpRatioThresh = self.nonPerpTab.removePerpRatioThreshEdit.text()
+        #Magnitude Threshold
+        magnitudeThresh = self.nonPerpTab.magnitudeThreshEdit.text()
         try: 
-            removePerpRatioThresh = float(removePerpRatioThresh)
+            magnitudeThresh = float(magnitudeThresh)
         except:
             self.errorLabel.setText(
-                    "Non-perpendicular window selection X has to be a number.")
+                    "Magnitude threshold has to be a number.")
+            return
+        if magnitudeThresh < 0 or magnitudeThresh > 1:
+            self.errorLabel.setText(
+                    "Magnitude threshold has to be between 0 and 1.")
+            return  
+        
+        
+        #Ratio Threshold
+        ratioThresh = self.nonPerpTab.ratioThreshEdit.text()
+        try: 
+            ratioThresh = float(ratioThresh)
+        except:
+            self.errorLabel.setText(
+                "Ratio threshold has to be a number.")
             return
         
-        if removePerpRatioThresh < 0:
+        if ratioThresh < 0:
             self.errorLabel.setText(
-                    "Non-perpendicular window selection X has to be > 0.")
+                "Ratio threshold to be > 0.")
             return   
         
         
+        
+        #=========================================
+        #=========================================
+        #           Deduplication
+        #=========================================
+        #=========================================       
+        
+        #Deduplicate
+        deduplicate   = self.deduplicateTab.deduplicateBox.isChecked()  
+        
+        #Range
+        deduplicateRange = self.deduplicateTab.deduplicateRangeEdit.text()
+        try: 
+            deduplicateRange = float(deduplicateRange)
+        except:
+            self.errorLabel.setText(
+                "Deduplication range has to be a number.")
+            return
+        
+        if deduplicateRange < 0:
+            self.errorLabel.setText(
+                "Deduplication range has to be > 0.")
+            return   
         
         #=========================================
         #=========================================
@@ -800,10 +959,16 @@ class SelmaSettings(QtWidgets.QWidget):
         
         #nonPerp
         settings.setValue('removeNonPerp',          removeNonPerp)
-        settings.setValue('removePerpX',            removePerpX)
-        settings.setValue('removePerpY',            removePerpY)
-        settings.setValue('removePerpMagThresh',    removePerpMagThresh)
-        settings.setValue('removePerpRatioThresh',  removePerpRatioThresh)
+        settings.setValue('onlyMPos',               onlyMPos)
+        settings.setValue('minScaling',             minScaling)
+        settings.setValue('maxScaling',             maxScaling)
+        settings.setValue('windowSize',             windowSize)
+        settings.setValue('magnitudeThresh',        magnitudeThresh)
+        settings.setValue('ratioThresh',            ratioThresh)
+        
+        #Deduplicate
+        settings.setValue('deduplicate',            deduplicate)
+        settings.setValue('deduplicateRange',       deduplicateRange)
         
         #Segmentation
         settings.setValue('whiteMatterProb',        whiteMatterProb)

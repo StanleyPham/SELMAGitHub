@@ -87,7 +87,7 @@ class SELMADataObject:
     
     def analyseVessels(self):
         '''
-        The main algorithm of segmenting and analysing the significant vessels.
+        The main algorithm of segmenting & analysing the significant vessels.
         It is split in the following parts:
             -Preprocesses the data to be a gaussian around zero.
             -Find all significant voxels based on their SNR
@@ -130,6 +130,7 @@ class SELMADataObject:
         self._clusterVessels()
         self._removeNonPerpendicular()
         self._deduplicateVessels()
+        self._createVesselMask()
         self._signalObject.setProgressBarSignal.emit(100)
 
 #        Send vessels back to the GUI
@@ -152,7 +153,7 @@ class SELMADataObject:
             return
         
         self._signalObject.setProgressLabelSignal.emit(
-                    "Segmenting white matter from T1 - This may take a while.")
+            "Segmenting white matter from T1 - This may take a while.")
         self._NBmask  = self._t1.getSegmentationMask()
         self._thresholdMask()
         self._signalObject.setProgressLabelSignal.emit(
@@ -233,7 +234,8 @@ class SELMADataObject:
         try:
             val = settings.value(key)
         except:
-            self._signalObject.errorMessageSignal.emit("Wrong setting accessed.")
+            self._signalObject.errorMessageSignal.emit(
+                "Wrong setting accessed.")
             return val
         
         #Return the right type
@@ -379,8 +381,8 @@ class SELMADataObject:
             Next, the phase and magnitude frames are converted to a complex
                 signal from which the standard deviation in the real and 
                 imaginary component are calculated.
-            Next, the root mean square of these standard deviations is obtained
-                and a median-filter is applied.
+            Next, the root mean square of these standard deviations is 
+            obtained and a median-filter is applied.
             Next, the SNR in the magnitude frames is found.
             Lastly, the SNR in the velocity frames is calculated.            
         """
@@ -615,8 +617,8 @@ class SELMADataObject:
                                 ) < 0
         self._sigMagNeg     = self._sigMagNeg.astype(np.uint8)
         
-        self._sigMagIso     = self._sigFlow - self._sigMagNeg - self._sigMagPos
-        self._sigMagIso     = (self._sigMagIso > 0).astype(np.uint8)
+        self._sigMagIso = self._sigFlow - self._sigMagNeg - self._sigMagPos
+        self._sigMagIso = (self._sigMagIso > 0).astype(np.uint8)
         
     def _clusterVessels(self):
         """
@@ -672,18 +674,12 @@ class SELMADataObject:
         for comp in range(1,ncomp):
             self._clusters.append(labels == comp)        
         
-        #Write _clusters to _vesselMask
-        self._createVesselMask()
-        
         
         #Cluster only significant magnitude
         _, self._posMagClusters     = cv2.connectedComponents(
-                                        self._sigMagPos)
-        self._posMagClusters       *= self._mask
+                                        self._sigMagPos * self._mask)
         _, self._negMagClusters     = cv2.connectedComponents(
-                                        self._sigMagNeg)
-        self._negMagClusters       *= self._mask
-        
+                                        self._sigMagNeg * self._mask)
         
 
     def _createVesselMask(self):
@@ -702,108 +698,93 @@ class SELMADataObject:
         
     
     
-    def _removePerpendicularTine(self):
-        
-        """
-        According to tine:
-            -Data to work on:
-                tempim = mean(magdata, 3); %image to be drawn on
-                tempmean = mean(tempim(:));
-                tempstd = std(tempim(:));
-                tempmin = tempmean-1*tempstd;
-                tempmax = tempmean+3*tempstd;
-                tempscaled = (tempim-tempmin)./(tempmax-tempmin); 
-                tempscaled(tempscaled<0)=0; 
-                tempscaled(tempscaled>1)=1;
-                
-            -only look at Mpos
-            -take 15x15 window centered around blob centre
-            -threshold 0.8*blobcentre value
-            -cluster the results
-            -Find the blob closest to the centre
-            -find the major & minor axis lengths
-        
-        """
-        meanMagnitude   = np.mean(self._selmaDicom.getMagnitudeFrames(),
-                                  axis = 0)
-        stdMagnitude    = np.std(self._selmaDicom.getMagnitudeFrames(),
-                                  axis = 0)
-        minMagnitude    = meanMagnitude - stdMagnitude
-        maxMagnitude    = meanMagnitude + 3*stdMagnitude
-        scaledMagnitude = ((meanMagnitude - minMagnitude) / 
-                           (maxMagnitude - minMagnitude))
-        
-        
-        for cluster in self._posMagClusters:
-            pass
-        
-        
-    
     def _removeNonPerpendicular(self):
-        """
-        Go over all clusters
-        per cluster:
-            Take window around it
-            threshold magnitude on x percentage
-            cluster result
-            Find minor & major radius of main blob
-            if major > x*minor, remove        
         
         """
+        Finds the non-perpendicular vessels and removes them. Algorithm works
+        as follows:
+            -Rescale magnitude image
+            -Iterate over clusters:
+                -if only posivitve mag. clusters: select for those
+                -Find centre of cluster
+                -Select window around cluster
+                -Threshold based on centre intensity
+                -Find connected components in thresholded window
+                -Take the one closest to the centre
+                -Find contour of component
+                -Fit ellipse
+                -Determine ratio major/minor axis
+                -Remove cluster based on ratio
         
-        removeNonPerp      = self._readFromSettings('removeNonPerp')
-        if not removeNonPerp:
+        """
+        if not self._readFromSettings('removeNonPerp'):
             return
         
-        #Get other values from settings
-        removePerpX             = self._readFromSettings('removePerpX')
-        removePerpY             = self._readFromSettings('removePerpY')
-        removePerpMagThresh     = self._readFromSettings('removePerpMagThresh')
-        removePerpRatioThresh   = self._readFromSettings('removePerpRatioThresh')
+        onlyMPos            = self._readFromSettings('onlyMPos')
+        minScaling          = self._readFromSettings('minScaling')
+        maxScaling          = self._readFromSettings('maxScaling')
+        winRad              = int(self._readFromSettings('windowSize'))
+        magnitudeThresh     = self._readFromSettings('magnitudeThresh')
+        ratioThresh         = self._readFromSettings('ratioThresh')
         
-        #Get mean magnitude frame
-        magnitudeFrames         = self._selmaDicom.getMagnitudeFrames()
-        meanMagnitude           = np.mean(magnitudeFrames, axis = 0)
+        meanMagnitude   = np.mean(self._selmaDicom.getMagnitudeFrames(),
+                                  axis = 0)
+        stdMagnitude    = np.std(self._selmaDicom.getMagnitudeFrames())
+        meanVelocity    = np.mean(self._correctedVelocityFrames,
+                                  axis = 0)
         
-        #Iterate over clusters:
+        #Rescale magnitude image
+        meanMeanMag     = np.mean(meanMagnitude)
+        minMagnitude    = meanMeanMag - minScaling * stdMagnitude
+        maxMagnitude    = meanMeanMag + maxScaling * stdMagnitude
+        scaledMagnitude = ((meanMagnitude - minMagnitude) / 
+                           (maxMagnitude - minMagnitude))   
+        scaledMagnitude[scaledMagnitude > 1] = 1
+        scaledMagnitude[scaledMagnitude < 0] = 0
+        
         for idx, cluster in enumerate(self._clusters):
             
-            #find left, right, top and bottom of cluster
+            if onlyMPos:
+                #Find the voxel with the highest velocity and check whether
+                #it is Mpos, if not continue to the next cluster
+                pixels      = np.nonzero(cluster)
+                velocities  = np.abs(meanVelocity[pixels])
+                indexes     = np.argsort(velocities)
+                x,y         = np.transpose(pixels)[indexes[-1]]
+                
+                if not self._sigMagPos[x,y]:
+                    continue
+                
+            
+            #find centre coordinate of cluster (row column)
             clusterCoords   = np.nonzero(cluster)
-            left            = np.min(clusterCoords[1])
-            right           = np.max(clusterCoords[1])
-            top             = np.min(clusterCoords[0])
-            bottom          = np.max(clusterCoords[0])
+            centre          = [int(np.mean(clusterCoords[0])),
+                               int(np.mean(clusterCoords[1]))]
             
-            #Expand window with values from settings
-            left            = int(max(left - removePerpX, 0))
-            right           = int(min(right + removePerpX,
-                                      meanMagnitude.shape[0]))
-            top             = int(max(top - removePerpY, 0))
-            bottom          = int(min(bottom + removePerpY,
-                                      meanMagnitude.shape[1]))
+            #Get window around cluster in magnitude image
+            magWindow       = scaledMagnitude[centre[0] - winRad:
+                                              centre[0] + winRad,
+                                              centre[1] - winRad:
+                                              centre[1] + winRad ]
+                
+            #Threshold window to gain magnitude clusters of bright voxels
+            threshold       = scaledMagnitude[centre[0], centre[1]]
+            threshold       *= magnitudeThresh         
+            magWindowThresh = (magWindow >= threshold).astype(np.uint8)
             
-            #Get magnitude voxels in window around cluster:
-            magWindow       = meanMagnitude[top  : bottom,
-                                            left : right]
+            #Find cluster closest to centre
+            ncomp, labels   = cv2.connectedComponents(magWindowThresh)
+            distances   = []
+            for n in range(1, ncomp):
+                distances.append(
+                    np.sqrt(
+                        (np.mean(np.nonzero(labels == n)[0]) - winRad)**2 +
+                        (np.mean(np.nonzero(labels == n)[1]) - winRad)**2))
+            blob = labels == np.argmin(distances) + 1
             
-            #threshold
-            #TODO, compare to matlab
-            threshold       = np.percentile(magWindow, removePerpMagThresh * 100)
-            magWindowThresh = magWindow > threshold
-            
-            #cluster the result
-            ncomp, labels   = cv2.connectedComponents(
-                                        magWindowThresh.astype(np.uint8))
-            
-            #find largest (nonzero) cluster
-            counts          = np.bincount(labels[np.nonzero(labels)])
-            largestCluster  = np.argmax(counts)
-            
-            #find major and minor radius of cluster
-            blob        = labels == largestCluster
+            #Find contour of blob, if multiple, concatenate them
             contours,_  = cv2.findContours(blob.astype(np.uint8), 1, 1)
-            cnt         = contours[0]
+            cnt         = np.concatenate(contours)
             try:
                 ellipse     = cv2.fitEllipse(cnt)
                 rad1, rad2  = ellipse[1]
@@ -814,28 +795,60 @@ class SELMADataObject:
                 #assume that it's a round vessel
                 continue
             
-            
             #Remove cluster from list if ellipse not circular enough
             if minorRad == 0:
                 del(self._clusters[idx])
                 continue
             
-            if majorRad / minorRad > removePerpRatioThresh:
+            if majorRad / minorRad > ratioThresh:
                 del(self._clusters[idx])
-                
-        #Add the edited clusters to self._vesselMask
-        self._createVesselMask()
-        
-    def _deduplicateVessels(self):
-        """
-        Tine's version:
             
+                
+    def _deduplicateVessels(self):
+        """         
             Take the first voxel of each cluster
             check whether any of them are <6 pixels apart
             if so, remove both clusters
-        
         """
-        pass
+        if not self._readFromSettings('deduplicate'):
+            return
+        
+        dedupRange  = self._readFromSettings('deduplicateRange')
+        
+        #First make a list of all the voxels with the highest velocity per
+        #cluster
+        meanVelocity    = np.mean(self._correctedVelocityFrames,
+                                  axis = 0)
+        voxels  = []
+        
+        for cluster in self._clusters:
+           
+            #Find the voxel with the highest velocity and check whether
+            #it is Mpos, if not continue to the next cluster
+            pixels      = np.nonzero(cluster)
+            velocities  = np.abs(meanVelocity[pixels])
+            indexes     = np.argsort(velocities)
+            x,y         = np.transpose(pixels)[indexes[-1]]
+        
+            voxels.append([x,y])
+            
+        voxels  = np.asarray(voxels)
+        
+        
+        #Next, create matrix of the distances between all these voxels
+        x       = np.repeat(np.reshape(voxels[:,0],(-1,1)), len(voxels), 1)
+        xArr    = (x - np.transpose(x))**2
+        
+        y       = np.repeat(np.reshape(voxels[:,1],(-1,1)), len(voxels), 1)
+        yArr    = (y - np.transpose(y))**2
+        
+        distances   = np.sqrt(xArr + yArr)
+        selection   = np.tril((distances != 0) * (distances < dedupRange))
+        idx         = np.unique(np.nonzero(selection))
+        #Remove the selected clusters
+        for i, clusterNum in enumerate(idx):
+            del(self._clusters[clusterNum - i])
+        
 
     def _makeVesselDict(self):
         """Makes a dictionary containing the following statistics
@@ -882,7 +895,7 @@ class SELMADataObject:
             
             
             #Sort pixels in cluster by mean velocity (largest to smallest)
-            pixels  = np.nonzero(cluster)
+            pixels      = np.nonzero(cluster)
             velocities  = np.abs(meanVelocity[pixels])
             indexes     = np.argsort(velocities)
             indexes     = indexes[::-1]    #largest to smallest            
@@ -908,18 +921,16 @@ class SELMADataObject:
                 value_dict['stdVnoise']     = round(np.mean(
                                                 self._velocitySTD[:,x,y]),  4)
                 value_dict['minV']          = round(np.min(np.abs(
-                                        self._correctedVelocityFrames[:,x,y])),
-                                                    4)
+                    self._correctedVelocityFrames[:,x,y])),4)
                 value_dict['maxV']          = round(np.max(np.abs(
-                                        self._correctedVelocityFrames[:,x,y])),
-                                                    4)
+                    self._correctedVelocityFrames[:,x,y])), 4)
                 value_dict['PI']            = abs(round(div0(
                                              [(value_dict['maxV'] -
                                               value_dict['minV'])],
                                               value_dict['meanV'])[0],
                                                     4))
-                value_dict['nPha']          = self._correctedVelocityFrames.shape[0]
-                value_dict['imBlob']        = int(iMblob[x,y])
+                value_dict['nPha']    = self._correctedVelocityFrames.shape[0]
+                value_dict['imBlob']  = int(iMblob[x,y])
                 #Magnitude per phase
                 for num, value in enumerate(magFrames[:,x,y].tolist()):
                     num += 1
