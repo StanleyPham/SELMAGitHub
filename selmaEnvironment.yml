@@ -267,8 +267,9 @@ dependencies:
     - pylibjpeg-libjpeg==1.1.0
     - pylibjpeg-openjpeg==1.0.1
     - pynput==1.4.4
-    - pyqt5==5.14.1
-    - pyqt5-sip==12.7.1
+    - pyqt5==5.15.2
+    - pyqt5-sip==12.8.1
+    - pyqtwebengine==5.15.2
     - pytest==5.4.2
     - qimage2ndarray==1.8.2
     - rdflib==5.0.0
