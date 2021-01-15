@@ -54,7 +54,7 @@ class SelmaGUIModel:
         
     def listenForVarsSlot(self, variables):
         """passes the variables to mainwin.ImVar"""
-        self.mainWin.imVarWindow.listenForVars(variables)
+        self.mainWin.passOnVars(variables)
         
     def setProgressBarSlot(self, val):
         """Passes the progressbar value to mainwin"""

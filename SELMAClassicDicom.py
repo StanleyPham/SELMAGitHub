@@ -37,6 +37,7 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         self._tags              = dict()
         self._DCMs              = list()
         self._numFrames         = len(self._dcmFilenames)
+        self._rescaleVelocity   = None
         
         # load the dicoms
         #Iterate over the dicom files in the directory.
@@ -64,16 +65,10 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         #Sort the frames on their type
         self._orderFramesOnType()
         
-        #Construct velocity frames if necessary
-        self._makeVelocityFrames()
-        
-    #Setter functions
-    # ------------------------------------------------------------------    
     
-    def setVenc(self, venc):
-        self._tags['venc'] = venc
-        if 'siemens' in self._tags['manufacturer']:
-             self._makeVelocityFrames()
+    
+    ##############################################
+    #Overridden functions
     
     '''Private'''
     
@@ -138,7 +133,8 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
                 #Note: This assumes that the values in the frame do 
                 #actually range from -venc to venc. If this is not the 
                 #case, the calculated velocities might be off slightly.
-                
+                #The rescaling assumes that the intercept is halfway between 
+                #the min and max.
                 
                 #TODO: find the min and max possible raw values and not just
                 #the ones that occur. Look into how many bits are used to store
@@ -402,29 +398,29 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
             self._rescaledFrames.append(rescaledFrame)
     
     
-    def _makeVelocityFrames(self):
-        '''
-        Construct velocity frames out of the phase frames if any phase frames
-        exist. Formula: v = phase * venc / pi
-        '''
-        if len(self._phaseFrames) > 0:
+    # def _makeVelocityFrames(self):
+    #     '''
+    #     Construct velocity frames out of the phase frames if any phase frames
+    #     exist. Formula: v = phase * venc / pi
+    #     '''
+    #     if len(self._phaseFrames) > 0:
             
-            venc = self._tags['venc']
+    #         venc = self._tags['venc']
             
-            #Check if the velocity frames aren't accidentally stored as phase
+    #         #Check if the velocity frames aren't accidentally stored as phase
             
-            if np.round(np.max(self._phaseFrames), 1) == venc and \
-               np.round(np.min(self._phaseFrames), 1) == -venc:
+    #         if np.round(np.max(self._phaseFrames), 1) == venc and \
+    #            np.round(np.min(self._phaseFrames), 1) == -venc:
                
-                self._velocityFrames        = self._phaseFrames
-                self._rawVelocityFrames     = self._rawPhaseFrames
-                return
+    #             self._velocityFrames        = self._phaseFrames
+    #             self._rawVelocityFrames     = self._rawPhaseFrames
+    #             return
             
-            #Else, compute velocity frames from the phaseFrames
-            for idx in range(len(self._phaseFrames)):
-                phaseFrame  = self._phaseFrames[idx] * venc / np.pi
-                rawPhaseFrame  = self._rawPhaseFrames[idx] * venc / np.pi
-                self._velocityFrames.append(phaseFrame)
-                self._rawVelocityFrames.append(rawPhaseFrame)
+    #         #Else, compute velocity frames from the phaseFrames
+    #         for idx in range(len(self._phaseFrames)):
+    #             phaseFrame  = self._phaseFrames[idx] * venc / np.pi
+    #             rawPhaseFrame  = self._rawPhaseFrames[idx] * venc / np.pi
+    #             self._velocityFrames.append(phaseFrame)
+    #             self._rawVelocityFrames.append(rawPhaseFrame)
             
         

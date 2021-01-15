@@ -52,7 +52,7 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         
         #Subwindows:
         self.signalObj      = SGMSignals()
-        self.imVarWindow    = SELMAGUIImVar.SelmaImVar(self.signalObj)
+        self._imVarWindow    = SELMAGUIImVar.SelmaImVar(self.signalObj)
         
         #filenames
         self._fname         = None
@@ -354,6 +354,9 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
 #        self._imageViewer.setProgressLabel(text)
         self.statusBar().showMessage(text)
 
+
+    def passOnVars(self, variables):
+        self._imVarWindow.listenForVars(variables)
     
     #Private slots
     # ------------------------------------------------------------------
@@ -492,8 +495,8 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
     
     @QtCore.pyqtSlot()
     def _imageVariables(self):
-        self.imVarWindow.show()
-        self.imVarWindow.getVariables()
+        self._imVarWindow.show()
+        self._imVarWindow.focus()
         
     
     # ------------------------------------------------------------------

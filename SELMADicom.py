@@ -35,6 +35,7 @@ class SELMADicom:
         self._tags          = dict()
         self._rawFrames     = self._DCM.pixel_array
         self._numFrames     = len(self._rawFrames)
+        self._rescaleVelocity   = None
         
         #Get manufacturer
         self._findManufacturer()
@@ -51,9 +52,6 @@ class SELMADicom:
         
         #Sort the frames on their type
         self._orderFramesOnType()
-        
-        #Create velocity frames if necessary
-        self._makeVelocityFrames()
         
     '''Public'''
     #Getter functions
@@ -74,7 +72,10 @@ class SELMADicom:
         return self._numFrames
     
     def getVelocityFrames(self):
-        return self._velocityFrames
+        if self._velocityFrames != []:
+            return self._velocityFrames
+        else:
+            return self._makeVelocityFrames()[0]
     
     def getMagnitudeFrames(self):
         return self._magnitudeFrames
@@ -83,7 +84,10 @@ class SELMADicom:
         return self._modulusFrames
     
     def getRawVelocityFrames(self):
-        return self._rawVelocityFrames
+        if self._rawVelocityFrames != []:
+            return self._rawVelocityFrames
+        else:
+            return self._makeVelocityFrames()[1]
     
     def getRawMagnitudeFrames(self):
         return self._rawMagnitudeFrames
@@ -101,6 +105,10 @@ class SELMADicom:
     def setVenc(self, venc):
         self._tags['venc'] = venc
         
+        
+    def setVelRescale(self, rescale):
+        self._rescaleVelocity   = rescale
+        self._rescaleVelocityFrames()
         
     '''Private'''
     # Setup data from .dcm header
@@ -278,6 +286,14 @@ class SELMADicom:
             self._tags['targets']['magnitude']  = "MAG"
             self._tags['targets']['modulus']    = "M"
             
+        
+        #GE            
+        if 'ge' in self._tags['manufacturer']:            
+            self._tags['targets']['phase']      = 'Phase'
+            self._tags['targets']['velocity']   = 'Velocity'
+            self._tags['targets']['magnitude']  = "Magnitude"
+            self._tags['targets']['modulus']    = "Modulus"
+            
             
     
     # Apply changes to the frames
@@ -295,7 +311,33 @@ class SELMADicom:
             rescaledFrame       = (rawFrame - rescaleIntercept)/rescaleSlope
             
             self._rescaledFrames.append(rescaledFrame)
-
+            
+    def _rescaleVelocityFrames(self):
+        '''
+        Rescales only the velocity frames (if available).
+        Called when manual rescale values are set.
+        
+        The rescaling assumes that the intercept is halfway between the min 
+        and max.
+        
+        TODO: change from maxRaw to max. possible value (4096 or such)
+        
+        '''
+        if len(self._velocityFrames) == 0:
+            return
+        
+        minVel, maxVel  = self._rescaleVelocity
+        minRaw          = np.min(self._rawVelocityFrames).astype(np.float)
+        maxRaw          = np.max(self._rawVelocityFrames).astype(np.float)
+        
+        deltaVel        = np.abs(minVel - maxVel)
+        deltaRaw        = np.abs(minRaw - maxRaw)
+        slope           = deltaRaw / deltaVel
+        intercept       = deltaRaw / 2 + minRaw
+        
+        self._velocityFrames    = (self._rawVelocityFrames - 
+                                   intercept) / slope
+        
 
 
     def _orderFramesOnType(self):
@@ -332,11 +374,25 @@ class SELMADicom:
                 self._phaseFrames.append(self._rescaledFrames[idx])
                 self._rawPhaseFrames.append(self._rawFrames[idx])
             
+            
+        self._magnitudeFrames       = np.asarray(self._magnitudeFrames)
+        self._rawMagnitudeFrames    = np.asarray(self._rawMagnitudeFrames)
+        self._modulusFrames         = np.asarray(self._modulusFrames)
+        self._rawModulusFrames      = np.asarray(self._rawModulusFrames)
+        self._velocityFrames        = np.asarray(self._velocityFrames)
+        self._rawVelocityFrames     = np.asarray(self._rawVelocityFrames)
+        self._phaseFrames           = np.asarray(self._phaseFrames)
+        self._rawPhaseFrames        = np.asarray(self._rawPhaseFrames)
     
     def _makeVelocityFrames(self):
         '''
         Construct velocity frames out of the phase frames if any phase frames
         exist. Formula: v = phase * venc / pi
+        
+        Frames are not stored as member objects, but returned when 
+        getVelocityFrames is called. This enables later manual rescaling.
+        
+        TODO: add rescaling
         '''
         if len(self._phaseFrames) > 0 and len(self._velocityFrames) == 0:
             
@@ -346,17 +402,33 @@ class SELMADicom:
             
             if np.round(np.max(self._phaseFrames), 1) == venc and \
                np.round(np.min(self._phaseFrames), 1) == -venc:
-               
-                self._velocityFrames        = self._phaseFrames
-                self._rawVelocityFrames     = self._rawPhaseFrames
-                return
+                   return [self._phaseFrames, self._rawPhaseFrames]
             
             #Else, compute velocity frames from the phaseFrames
-            for idx in range(len(self._phaseFrames)):
-                phaseFrame  = self._phaseFrames[idx] * venc / np.pi
-                rawPhaseFrame  = self._rawPhaseFrames[idx] * venc / np.pi
-                self._velocityFrames.append(phaseFrame)
-                self._rawVelocityFrames.append(rawPhaseFrame)
+            
+            #check for manual rescale. If this exists, the phase frames are 
+            #assumed to be velocity frames and will be rescaled from the raw
+            #frames.
+            if self._rescaleVelocity is not None:
+                minVel, maxVel  = self._rescaleVelocity
+                minRaw          = np.min(self._rawPhaseFrames).astype(
+                                                                    np.float)
+                maxRaw          = np.max(self._rawPhaseFrames).astype(
+                                                                    np.float)
+                
+                deltaVel        = np.abs(minVel - maxVel)
+                deltaRaw        = np.abs(minRaw - maxRaw)
+                slope           = deltaRaw / deltaVel
+                intercept       = deltaRaw / 2 + minRaw
+                
+                velocityFrames  = (self._rawPhaseFrames - intercept) / slope
+                return  [velocityFrames, self._rawPhaseFrames]
+            
+            else:
+                frames      = self._phaseFrames * venc / np.pi
+                rawFrames   = self._rawPhaseFrames * venc / np.pi
+                
+                return [frames, rawFrames]
                 
                 
                 
@@ -367,6 +439,6 @@ class SELMADicom:
         APPNAME             = APPNAME.split()[0]
         settings            = QtCore.QSettings(COMPANY, APPNAME)
         
-        return settings.value('mmVenc')
+        return settings.value('mmVenc') == "true"
     
         
