@@ -245,7 +245,6 @@ dependencies:
     - keyrings-alt==3.4.0
     - lxml==4.5.1
     - markdown==3.2.2
-    - matlabengineforpython==R2018a
     - monotonic==1.5
     - more-itertools==8.6.0
     - neurdflib==5.0.1
