@@ -52,6 +52,7 @@ class SELMADicom:
         
         #Sort the frames on their type
         self._orderFramesOnType()
+    
         
     '''Public'''
     #Getter functions
@@ -145,7 +146,6 @@ class SELMADicom:
         rescaleSlopes     = []
         rescaleIntercepts = []
         
-        
         #Philips
         if 'philips' in self._tags['manufacturer'].lower():
             dcmFrameAddress             = 0x5200, 0x9230
@@ -158,6 +158,7 @@ class SELMADicom:
                 rescaleSlope        = float(self._DCM[dcmFrameAddress][i]           
                                         [dcmPrivateCreatorAddress][0]      
                                         [dcmRescaleSlopeAddress].value)
+                          
                 rescaleIntercept    = float(self._DCM[dcmFrameAddress][i]           
                                         [dcmPrivateCreatorAddress][0]      
                                         [dcmRescaleInterceptAddress].value)
@@ -394,6 +395,7 @@ class SELMADicom:
         
         TODO: add rescaling
         '''
+        
         if len(self._phaseFrames) > 0 and len(self._velocityFrames) == 0:
             
             venc = self._tags['venc']
@@ -422,13 +424,15 @@ class SELMADicom:
                 intercept       = deltaRaw / 2 + minRaw
                 
                 velocityFrames  = (self._rawPhaseFrames - intercept) / slope
+
                 return  [velocityFrames, self._rawPhaseFrames]
-            
+                
             else:
                 frames      = self._phaseFrames * venc / np.pi
                 rawFrames   = self._rawPhaseFrames * venc / np.pi
-                
+
                 return [frames, rawFrames]
+                
                 
                 
                 
