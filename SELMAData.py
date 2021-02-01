@@ -302,12 +302,13 @@ class SELMADataObject:
         #Prepares the data to be filtered
         diameter = int(self._getMedianDiameter())
         
-        velocityFrames  = np.asarray(self._selmaDicom.getVelocityFrames()) #phase Frames are used in the 3T Test Retest data
+        velocityFrames  = np.asarray(self._selmaDicom.getVelocityFrames())
         magnitudeFrames = np.asarray(self._selmaDicom.getMagnitudeFrames())
         
         meanVelocityFrame       = np.mean(velocityFrames, axis=0)
         meanMagnitudeFrame      = np.mean(magnitudeFrames, axis=0)
-          
+        
+        
         venc                = self._selmaDicom.getTags()['venc']
         phaseFrames         = velocityFrames * np.pi / venc
         complexSignal       = magnitudeFrames * (
@@ -400,7 +401,6 @@ class SELMADataObject:
         
     def _findSignificantFlow(self):
         """Uses the velocity SNR to find vessels with significant velocity."""
-        
         sigma               = self._getSigma()
         self._sigFlowPos    = (self._velocitySNR > sigma).astype(np.uint8)
         self._sigFlowNeg    = (self._velocitySNR < -sigma).astype(np.uint8)
@@ -556,7 +556,7 @@ class SELMADataObject:
         
         Sends the updated mask to the GUI.
         """
-
+        
         mask            = self._mask.astype(bool)
         ghost           = self._ghostingMask.astype(bool)
         outer           = self._outerBandMask.astype(bool)
@@ -597,8 +597,7 @@ class SELMADataObject:
             -Positive magnitude
             -Negative magnitude
             -Isointense magnitude
-        """        
-        
+        """          
         magnitudeFrames     = self._selmaDicom.getMagnitudeFrames()
         meanMagnitude       = np.mean(magnitudeFrames, axis = 0)
         sigma               = self._getSigma()
@@ -632,19 +631,14 @@ class SELMADataObject:
             scipy.ndimage.measurements.label.html
         
             That way, less packages in total need to be managed.
-            
-        01-02-2021: Turned off clustering of significant flow with isointense
-                    magnitude since this causes erroneous detection of extra
-                    vessels. A future use case for these clusters should be 
-                    discussed, otherwise these lines can be removed.
         """
         
         VNegMPos      = self._sigFlowNeg * self._sigMagPos
         VPosMPos      = self._sigFlowPos * self._sigMagPos
         VNegMNeg      = self._sigFlowNeg * self._sigMagNeg
         VPosMNeg      = self._sigFlowPos * self._sigMagNeg
-        # VNegMIso      = self._sigFlowNeg * self._sigMagIso
-        # VPosMIso      = self._sigFlowPos * self._sigMagIso   
+        VNegMIso      = self._sigFlowNeg * self._sigMagIso
+        VPosMIso      = self._sigFlowPos * self._sigMagIso   
         
         
         self._nComp     = 0
@@ -671,14 +665,14 @@ class SELMADataObject:
             self._clusters.append(labels == comp)
             
         #VNegMIso
-        # ncomp, labels = cv2.connectedComponents(VNegMIso.astype(np.uint8))
-        # for comp in range(1,ncomp):
-        #     self._clusters.append(labels == comp)
+        ncomp, labels = cv2.connectedComponents(VNegMIso.astype(np.uint8))
+        for comp in range(1,ncomp):
+            self._clusters.append(labels == comp)
             
         #VPosMIso
-        # ncomp, labels = cv2.connectedComponents(VPosMIso.astype(np.uint8))
-        # for comp in range(1,ncomp):
-        #     self._clusters.append(labels == comp)        
+        ncomp, labels = cv2.connectedComponents(VPosMIso.astype(np.uint8))
+        for comp in range(1,ncomp):
+            self._clusters.append(labels == comp)        
         
         
         #Cluster only significant magnitude

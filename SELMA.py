@@ -32,17 +32,16 @@ def main():
     app.setWindowIcon(QtGui.QIcon("SELMA.png"))
 
     # Model classes
-    SGM = SELMAGUIModels.SelmaGUIModel(APPNAME = APPNAME) #SelmaGUIModel class is getting called here
-    SDM = SELMADataModels.SelmaDataModel() #SelmaDataModel class is getting called here
+    SGM = SELMAGUIModels.SelmaGUIModel(APPNAME = APPNAME)
+    SDM = SELMADataModels.SelmaDataModel()
 
     # Initialise settings
-    settings = SELMAGUISettings.SelmaSettings() #SelmaSettings class is getting called here
-    settings.applySettings() #applySettings function is called within SelmaSettings
+    settings = SELMAGUISettings.SelmaSettings()
+    settings.applySettings()
 
     # Connect signals
     # ----------------------------------------
     # Signals from mainwindow (menubar)
-    # Left hand side are signals that are defined, right hand side (after .connect) are slots which are defined functions
     SGM.mainWin.loadMaskSignal      .connect(SDM.loadMaskSlot)
     SGM.mainWin.segmentMaskSignal   .connect(SDM.segmentMaskSlot)
     SGM.mainWin.openFileSignal      .connect(SDM.loadDCMSlot)
@@ -69,15 +68,20 @@ def main():
         SDM.thresholdMaskSlot)
 
     #Signals from processing
-    SDM.signalObject.sendVesselMaskSignal       .connect(SGM.setVesselMaskSlot)
-    SDM.signalObject.setPixmapSignal            .connect(SGM.setPixmapSlot)
-    SDM.signalObject.setProgressBarSignal       .connect(SGM.setProgressBarSlot)
-    SDM.signalObject.setFrameCountSignal        .connect(SGM.setFrameCounterSlot)
-    SDM.signalObject.sendMaskSignal             .connect(SGM.setMaskSlot)
-    SDM.signalObject.pixelValueSignal           .connect(SGM.mainWin._imageViewer.mouseHover)
-    SDM.signalObject.errorMessageSignal         .connect(SGM.mainWin.errorMessageSlot)
-    SDM.signalObject.sendImVarSignal            .connect(SGM.listenForVarsSlot)
-    SDM.signalObject.setProgressLabelSignal     .connect(SGM.setProgressLabelSlot)
+    SDM.signalObject.sendVesselMaskSignal.connect(SGM.setVesselMaskSlot)
+    SDM.signalObject.setPixmapSignal.connect(SGM.setPixmapSlot)
+    SDM.signalObject.setProgressBarSignal.connect(
+            SGM.setProgressBarSlot)
+    SDM.signalObject.setFrameCountSignal.connect(SGM.setFrameCounterSlot)
+    SDM.signalObject.sendMaskSignal.connect(SGM.setMaskSlot)
+    SDM.signalObject.pixelValueSignal.connect(
+            SGM.mainWin._imageViewer.mouseHover)
+    SDM.signalObject.errorMessageSignal.connect(
+            SGM.mainWin.errorMessageSlot)
+    SDM.signalObject.sendImVarSignal.connect(
+            SGM.listenForVarsSlot)
+    SDM.signalObject.setProgressLabelSignal.connect(
+            SGM.setProgressLabelSlot)
 
 
     # ---------------------------------------

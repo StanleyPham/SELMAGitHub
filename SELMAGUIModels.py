@@ -21,7 +21,7 @@ class SelmaGUIModel:
     def __init__(self, APPNAME = "SELMA"):
         """:param QPixmap pixmap: |QPixmap| to display"""
     
-        self.mainWin = SELMAGUI.SELMAMainWindow() # reference to SELMAGUI.py and SELMAMainWindow class
+        self.mainWin = SELMAGUI.SELMAMainWindow()
         self.mainWin.setWindowTitle(APPNAME)
         self.mainWin.readSettings()
         self.mainWin.show()
@@ -34,7 +34,6 @@ class SelmaGUIModel:
     
     
     #Slots
-    # These slots are called in SELMA.py
     # ------------------------------------------------------------------
     def setPixmapSlot(self, frame):
         """Passes the pixmap to the mainWin."""
