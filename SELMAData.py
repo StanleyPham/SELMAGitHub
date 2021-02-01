@@ -635,7 +635,8 @@ class SELMADataObject:
             
         01-02-2021: Turned off clustering of significant flow with isointense
                     magnitude since this causes erroneous detection of extra
-                    vessels
+                    vessels. A future use case for these clusters should be 
+                    discussed, otherwise these lines can be removed.
         """
         
         VNegMPos      = self._sigFlowNeg * self._sigMagPos
