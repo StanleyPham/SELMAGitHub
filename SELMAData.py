@@ -639,47 +639,57 @@ class SELMADataObject:
                     discussed, otherwise these lines can be removed.
         """
         
-        VNegMPos      = self._sigFlowNeg * self._sigMagPos
-        VPosMPos      = self._sigFlowPos * self._sigMagPos
-        VNegMNeg      = self._sigFlowNeg * self._sigMagNeg
-        VPosMNeg      = self._sigFlowPos * self._sigMagNeg
-        # VNegMIso      = self._sigFlowNeg * self._sigMagIso
-        # VPosMIso      = self._sigFlowPos * self._sigMagIso   
-        
+        PositiveMagnitude            = self._readFromSettings('PositiveMagnitude')
+        NegativeMagnitude            = self._readFromSettings('NegativeMagnitude')
+        IsointenseMagnitude          = self._readFromSettings('IsointenseMagnitude')
         
         self._nComp     = 0
         self._clusters  = []
         
-        #VNegMPos
-        ncomp, labels = cv2.connectedComponents(VNegMPos.astype(np.uint8))
-        for comp in range(1,ncomp):
-            self._clusters.append(labels == comp)
+        if PositiveMagnitude:
         
-        #VPosMPos
-        ncomp, labels = cv2.connectedComponents(VPosMPos.astype(np.uint8))
-        for comp in range(1,ncomp):
-            self._clusters.append(labels == comp)
+            VNegMPos      = self._sigFlowNeg * self._sigMagPos
+            VPosMPos      = self._sigFlowPos * self._sigMagPos
             
-        #VNegMNeg
-        ncomp, labels = cv2.connectedComponents(VNegMNeg.astype(np.uint8))
-        for comp in range(1,ncomp):
-            self._clusters.append(labels == comp)
-            
-        #VPosMNeg
-        ncomp, labels = cv2.connectedComponents(VPosMNeg.astype(np.uint8))
-        for comp in range(1,ncomp):
-            self._clusters.append(labels == comp)
-            
-        #VNegMIso
-        # ncomp, labels = cv2.connectedComponents(VNegMIso.astype(np.uint8))
-        # for comp in range(1,ncomp):
-        #     self._clusters.append(labels == comp)
-            
-        #VPosMIso
-        # ncomp, labels = cv2.connectedComponents(VPosMIso.astype(np.uint8))
-        # for comp in range(1,ncomp):
-        #     self._clusters.append(labels == comp)        
+            #VNegMPos
+            ncomp, labels = cv2.connectedComponents(VNegMPos.astype(np.uint8))
+            for comp in range(1,ncomp):
+                self._clusters.append(labels == comp)
         
+            #VPosMPos
+            ncomp, labels = cv2.connectedComponents(VPosMPos.astype(np.uint8))
+            for comp in range(1,ncomp):
+                self._clusters.append(labels == comp)
+            
+        if NegativeMagnitude: 
+            
+            VNegMNeg      = self._sigFlowNeg * self._sigMagNeg
+            VPosMNeg      = self._sigFlowPos * self._sigMagNeg
+            
+            #VNegMNeg
+            ncomp, labels = cv2.connectedComponents(VNegMNeg.astype(np.uint8))
+            for comp in range(1,ncomp):
+                self._clusters.append(labels == comp)
+            
+            #VPosMNeg
+            ncomp, labels = cv2.connectedComponents(VPosMNeg.astype(np.uint8))
+            for comp in range(1,ncomp):
+                self._clusters.append(labels == comp)
+            
+        if IsointenseMagnitude:    
+            
+            VNegMIso      = self._sigFlowNeg * self._sigMagIso
+            VPosMIso      = self._sigFlowPos * self._sigMagIso   
+            
+            #VNegMIso
+            ncomp, labels = cv2.connectedComponents(VNegMIso.astype(np.uint8))
+            for comp in range(1,ncomp):
+                self._clusters.append(labels == comp)
+            
+            VPosMIso
+            ncomp, labels = cv2.connectedComponents(VPosMIso.astype(np.uint8))
+            for comp in range(1,ncomp):
+                self._clusters.append(labels == comp)                       
         
         #Cluster only significant magnitude
         _, self._posMagClusters     = cv2.connectedComponents(
@@ -840,6 +850,8 @@ class SELMADataObject:
             
         voxels  = np.asarray(voxels)
         
+        if voxels.size:
+            return
         
         #Next, create matrix of the distances between all these voxels
         x       = np.repeat(np.reshape(voxels[:,0],(-1,1)), len(voxels), 1)

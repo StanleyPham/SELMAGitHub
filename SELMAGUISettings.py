@@ -68,6 +68,7 @@ class SelmaSettings(QtWidgets.QWidget):
         #Add tabs
         self.tabs           = QtWidgets.QTabWidget()
         self.mainTab        = QtWidgets.QWidget()
+        self.clusteringTab  = QtWidgets.QWidget()
         self.ghostingTab    = QtWidgets.QWidget()
         self.nonPerpTab     = QtWidgets.QWidget()
         self.deduplicateTab = QtWidgets.QWidget()
@@ -75,6 +76,7 @@ class SelmaSettings(QtWidgets.QWidget):
         self.resetTab       = QtWidgets.QWidget()
         
         self.tabs.addTab(self.mainTab,          "General")
+        self.tabs.addTab(self.clusteringTab,    "Clustering")
         self.tabs.addTab(self.ghostingTab,      "Ghosting")
         self.tabs.addTab(self.nonPerpTab,       "Non-Perp")
         self.tabs.addTab(self.deduplicateTab,   "Deduplicate")
@@ -83,6 +85,7 @@ class SelmaSettings(QtWidgets.QWidget):
         
         #Design Tabs
         self.initMainTab()
+        self.initClusteringTab()
         self.initGhostingTab()
         self.initNonPerpTab()
         self.initDeduplicateTab()
@@ -184,6 +187,43 @@ class SelmaSettings(QtWidgets.QWidget):
         self.mainTab.layout.addWidget(self.mainTab.label7,      7,3)
         
         self.mainTab.setLayout(self.mainTab.layout)
+        
+    def initClusteringTab(self):
+        """The tab containing the clustering settings.        """
+        
+        self.clusteringTab.PositiveMagnitudeBox         = QtWidgets.QCheckBox()
+        self.clusteringTab.NegativeMagnitudeBox         = QtWidgets.QCheckBox()
+        self.clusteringTab.IsointenseMagnitudeBox       = QtWidgets.QCheckBox()
+        
+        self.clusteringTab.label1     = QtWidgets.QLabel("Include significant flow clusters with positive magnitude")
+        self.clusteringTab.label2     = QtWidgets.QLabel("Include significant flow clusters with negative magnitude")
+        self.clusteringTab.label3     = QtWidgets.QLabel("Include significant flow clusters with isointense magnitude")
+        
+        self.clusteringTab.label1.setToolTip(
+            "Include clusters of significant flow voxels with positive" + 
+            " magnitude in analysis")
+        self.clusteringTab.label2.setToolTip(
+            "Include clusters of significant flow voxels with negative" + 
+            " magnitude in analysis")
+        self.clusteringTab.label3.setToolTip(
+            "Include clusters of significant flow voxels with isointense" + 
+            " magnitude in analysis")
+        
+        #Add items to layout
+        self.clusteringTab.layout     = QtWidgets.QGridLayout()
+        self.clusteringTab.layout.addWidget(self.clusteringTab.PositiveMagnitudeBox ,
+                                      0,0)
+        self.clusteringTab.layout.addWidget(self.clusteringTab.NegativeMagnitudeBox,
+                                      1,0)
+        self.clusteringTab.layout.addWidget(self.clusteringTab.IsointenseMagnitudeBox,
+                                      2,0)
+        
+        #Add labels to layout
+        self.clusteringTab.layout.addWidget(self.clusteringTab.label1,      0,3)
+        self.clusteringTab.layout.addWidget(self.clusteringTab.label2,      1,3)
+        self.clusteringTab.layout.addWidget(self.clusteringTab.label3,      2,3)
+        
+        self.clusteringTab.setLayout(self.clusteringTab.layout)
         
     def initGhostingTab(self): 
         """The tab containing the removeGhosting settings."""
@@ -482,6 +522,33 @@ class SelmaSettings(QtWidgets.QWidget):
             decimalComma     = decimalComma == 'true'
         self.mainTab.decimalCommaBox.setChecked(decimalComma)
         
+        #Clustering settings
+        #=============================================
+        
+        #Include clusters of significant flow with positive magnitude
+        PositiveMagnitude       = settings.value("PositiveMagnitude")
+        if PositiveMagnitude is None:
+            PositiveMagnitude   = False
+        else:
+            PositiveMagnitude   = PositiveMagnitude == 'true'
+        self.clusteringTab.PositiveMagnitudeBox.setChecked(PositiveMagnitude)
+        
+        #Include clusters of significant flow with negative magnitude
+        NegativeMagnitude       = settings.value("NegativeMagnitude")
+        if NegativeMagnitude is None:
+            NegativeMagnitude   = False
+        else:
+            NegativeMagnitude   = NegativeMagnitude == 'true'
+        self.clusteringTab.NegativeMagnitudeBox.setChecked(NegativeMagnitude)
+        
+        #Include clusters of significant flow with isointense magnitude
+        IsointenseMagnitude       = settings.value("IsointenseMagnitude")
+        if IsointenseMagnitude is None:
+            IsointenseMagnitude   = False
+        else:
+            IsointenseMagnitude   = IsointenseMagnitude == 'true'
+        self.clusteringTab.IsointenseMagnitudeBox.setChecked(IsointenseMagnitude)
+        
         #Ghosting settings
         #=============================================
         
@@ -693,6 +760,15 @@ class SelmaSettings(QtWidgets.QWidget):
         ignoreOuterBand     = self.mainTab.ignoreOuterBandBox.isChecked()
         decimalComma        = self.mainTab.decimalCommaBox.isChecked()
         
+        #=========================================
+        #=========================================
+        #           Clustering settings
+        #=========================================
+        #=========================================
+        
+        PositiveMagnitude   = self.clusteringTab.PositiveMagnitudeBox.isChecked()
+        NegativeMagnitude   = self.clusteringTab.NegativeMagnitudeBox.isChecked()
+        IsointenseMagnitude = self.clusteringTab.IsointenseMagnitudeBox.isChecked()
         
         #=========================================
         #=========================================
@@ -946,6 +1022,11 @@ class SelmaSettings(QtWidgets.QWidget):
         settings.setValue('gaussianSmoothing',      gaussianSmoothing)
         settings.setValue('ignoreOuterBand',        ignoreOuterBand)
         settings.setValue('decimalComma',           decimalComma)
+        
+        #Clustering
+        settings.setValue('PositiveMagnitude',      PositiveMagnitude)
+        settings.setValue('NegativeMagnitude',      NegativeMagnitude)
+        settings.setValue('IsointenseMagnitude',    IsointenseMagnitude)
         
         #Ghosting
         settings.setValue('doGhosting',             doGhosting)
