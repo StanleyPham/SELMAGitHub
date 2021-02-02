@@ -1,5 +1,5 @@
 # SELMA
-Trial-ready **S**mall Vess**el** MRI **Ma**rkers -- version 0.3.7
+Trial-ready **S**mall Vess**el** MRI **Ma**rkers -- version 1.0.2
 
 
 The SELMA application is used for extracting and analysing flow information in cerebral vessels. 
@@ -110,16 +110,17 @@ All significant voxels that fall outside of the user-defined mask are discarded.
 7. **Find all voxels with significant magnitude**
 In much the same way as step 2, all voxels are tested for significance based on their magnitude. 
 8. **Cluster voxels based on significant flow & magnitude**
-All significant-flow voxels are first divided based on their magnitude values (significant positive / negative or not). For each of the six categories (2x flow, 3x magnitude) the voxels are clustered. 
+All significant-flow voxels are first divided based on their magnitude values (significant positive / negative or not). For each of the possible six categories (possible or negative flow, positive, negative, or isointense magnitude) the voxels are clustered. 
 9. **Remove non-perpendicular vessels**
 When switched on in the settings, all voxel-clusters (assumed to be vessels) are either kept or discarded based on the shape of the cluster. Depending on some user-defined parameters, the vessels are judged on whether they are perpendicular to the imaging direction. If not, they are discarded.
-10. **Report data of selected voxels**
+10. **Deduplicate vessels**
+When switched on in the settings, vessels that are closer than 6 pixels apart from each other are discarded.
+11. **Report data of selected voxels**
 For each of the vessels that has not been ruled out in previous steps, the velocity, magnitude etc. of each frame is collected and saved to a .txt file. 
 
 # Settings
 
 The Settings window can be accessed via the settings menu. It has multiple tabs related to multiple parts of the program. An overview of the different settings is given below. Most settings also explain their use in more detail when hovering over the text in the window.
-
 
 **General**
 
@@ -139,10 +140,20 @@ When toggled on, step 5 in the algorithm (see above) is used.
 6. **Use a decimal comma in the output instead of a dot**
 When a decimal comma is preferred in the output for further analysis, it can be turned on with this setting
 
+**Clustering**
+
+![Tab 1](Images/selmasettings2.png)
+
+1. **Include positive magnitude**
+When toggled on, significant flow voxels with positive magnitude are included in the analysis.
+2. **Include negative magnitude**
+When toggled on, significant flow voxels with negative magnitude are included in the analysis.
+3. **Incude isointense magnitude**
+When toggled on, significant flow voxels with isointense magnitude are included in the analysis.
 
 **Ghosting**
 
-![Tab 1](Images/selmasettings2.png)
+![Tab 1](Images/selmasettings3.png)
 
 1. **Exclude ghosting zones**
 When turned on, step 4 in the algorithm (see above) is used.
@@ -159,23 +170,42 @@ Percentile threshold for classification as a bright pixel.
 
 **Non-Perpendicular**
 
-![Tab 1](Images/selmasettings3.png)
+![Tab 1](Images/selmasettings4.png)
 
 1. **Exclude non-perpendicular zones**
 When turned on, step 9 in the algorithm (see above) is used.
-2. **Window size for measuring vessel shape**
+2. **Only look at positive magnitude**
+When toggled on, only clusters with positive magnitude are assessed for perpendicularity
+3. **Min and max scaling**
+Limits for determining magnitude scaling factor
+4. **Window size for measuring vessel shape**
 Window around cluster for determining perpendicularity.
-3. **Magnitude threshold for measuring vessel shape**
+5. **Magnitude threshold for measuring vessel shape**
 Magnitude threshold for clustering vessels on magnitude frame to determine perpendicularity.
-4. **Major / minor axis threshold ratio**
+6. **Major / minor axis threshold ratio**
 When the major / minor axis threshold ratio is bigger than X:1 (where X is the value of the box), the vessel will be classified as being non-perpendicular.
+
+**Deduplication**
+
+![Tab 1](Images/selmasettings5.png)
+
+1. **Deduplicate vessels**
+When turned on, step 10 of the algorithm (see above) is used.
+2. **Deduplication range**
+Minimum pixel distance between two vessels for not to be removed as two duplicate vessels
 
 **Segmentation**
 
-![Tab 1](Images/selmasettings4.png)
+![Tab 1](Images/selmasettings6.png)
 
 1. **White matter probability**
 Sets the threshold for segmenting the white matter with Cat-12. 
 
+**Reset**
+
+![Tab 1](Images/selmasettings7.png)
+
+1. **Reset settings**
+Reset the settings to the default values
 
 

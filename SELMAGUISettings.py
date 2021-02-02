@@ -195,9 +195,9 @@ class SelmaSettings(QtWidgets.QWidget):
         self.clusteringTab.NegativeMagnitudeBox         = QtWidgets.QCheckBox()
         self.clusteringTab.IsointenseMagnitudeBox       = QtWidgets.QCheckBox()
         
-        self.clusteringTab.label1     = QtWidgets.QLabel("Include significant flow clusters with positive magnitude")
-        self.clusteringTab.label2     = QtWidgets.QLabel("Include significant flow clusters with negative magnitude")
-        self.clusteringTab.label3     = QtWidgets.QLabel("Include significant flow clusters with isointense magnitude")
+        self.clusteringTab.label1     = QtWidgets.QLabel("Include positive magnitude")
+        self.clusteringTab.label2     = QtWidgets.QLabel("Include negative magnitude")
+        self.clusteringTab.label3     = QtWidgets.QLabel("Include isointense magnitude")
         
         self.clusteringTab.label1.setToolTip(
             "Include clusters of significant flow voxels with positive" + 
