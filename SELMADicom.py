@@ -73,7 +73,6 @@ class SELMADicom:
         return self._numFrames
     
     def getVelocityFrames(self):
-
         if self._velocityFrames != []:
             return self._velocityFrames
         else:
@@ -345,7 +344,7 @@ class SELMADicom:
     def _orderFramesOnType(self):
         """Uses the indices found in findFrameTypes to create an array for
         the magnitude, modulus, and velocity frames."""
-        
+
         self._magnitudeFrames           = []
         self._rawMagnitudeFrames        = []
         self._modulusFrames             = []

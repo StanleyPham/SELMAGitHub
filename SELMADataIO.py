@@ -209,36 +209,7 @@ def writeVesselDict(vesselDict, addonDict, fname):
             f.write(str(addonDict[key]))
             f.write('\n')
             
-def writeVelocityDict(velocityDict, addonDict, fname):
-    """
-    Writes the velocityDict object to a .txt file. This is a separate text file
-    from the vesselDict object
-    
-    Args:
-        velocityDict(dict): dictionary containing all the average velocities
-        of all the significant vessels in the analysed dicom.
-        
-        fname(str): path to where the dictionary needs to be saved.
-    
-    """
-    
-    #Find if the decimalComma setting is turned on
-    COMPANY, APPNAME, _ = SELMAGUISettings.getInfo()
-    COMPANY             = COMPANY.split()[0]
-    APPNAME             = APPNAME.split()[0]
-    settings            = QtCore.QSettings(COMPANY, APPNAME)
-    decimalComma        = settings.value('decimalComma') == 'true'
 
-    with open(fname, 'w') as f:    
-
-        for key in velocityDict[0].keys():
-            f.write(key)
-            f.write('\t')
-            text    = str(velocityDict[0][key])
-            if decimalComma:
-                text    = text.replace('.',',')
-            f.write(text)
-            f.write('\n')
 
     
     
