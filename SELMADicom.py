@@ -31,7 +31,7 @@ class SELMADicom:
         
         self._dcmFilename   = dcmFilename
         self._DCM           = pydicom.dcmread(self._dcmFilename)
-        
+
         self._tags          = dict()
         self._rawFrames     = self._DCM.pixel_array
         self._numFrames     = len(self._rawFrames)
@@ -44,7 +44,8 @@ class SELMADicom:
         self._findRescaleValues()    
         self._findVEncoding()
         self._findFrameTypes()
-        self._findPixelSpacing()        
+        self._findPixelSpacing()     
+        self._findRRIntervals()
         self._findTargets()
         
         #Get rescale values and apply
@@ -59,7 +60,7 @@ class SELMADicom:
     # ------------------------------------------------------------------    
     def getTags(self):
         return self._tags
-    
+  
     def getFrames(self):
         return self._rescaledFrames
     
@@ -99,6 +100,9 @@ class SELMADicom:
     
     def getPixelSpacing(self):
         return self._tags['pixelSpacing']
+    
+    def getRRIntervals(self):
+        return self._tags['R-R Interval']
         
     
     #Setter functions
@@ -138,6 +142,7 @@ class SELMADicom:
     
     def _findManufacturer(self):
         """Extract the manufacturer from the dicom"""
+ 
         self._tags['manufacturer'] = self._DCM[0x0008, 0x0070].value
     
     def _findRescaleValues(self):
@@ -254,8 +259,6 @@ class SELMADicom:
         #
         #
         
-        
-        
     def _findPixelSpacing(self):
         """Find Pixel spacing in Dicom header, save it to the tags."""
         
@@ -264,6 +267,13 @@ class SELMADicom:
             PixelMeasuresSequence[0].PixelSpacing[0])
         
         self._tags['pixelSpacing'] = ps
+        
+    def _findRRIntervals(self):
+        """Find RR intervals in Dicom header, save it to the tags"""
+        
+        RR_interval = self._DCM.CardiacRRIntervalSpecified
+        
+        self._tags['R-R Interval'] = RR_interval
     
     def _findTargets(self):
         """

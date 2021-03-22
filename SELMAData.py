@@ -313,14 +313,24 @@ class SELMADataObject:
         Returns:
             interval(float): upper end of confidence interval.
         """
-    
-        alpha       = self._readFromSettings('confidenceInter')
+  
+        # if int(self._selmaDicom._DCM.MagneticFieldStrength) == 3:
+            
+        #     alpha = 0.99
+        #     interval    = scipy.stats.norm.interval(alpha)[1]
+            
+        #     return interval
+               
+        alpha       = self._readFromSettings('confidenceInter') #0.05
         alpha       = 1 - alpha
+      
+        RR_interval = self._selmaDicom.getRRIntervals()
         
         interval    = scipy.stats.norm.interval(alpha)[1]
         
-        return interval
-    
+        # interval = 2
+        
+        return interval    
         
     def _thresholdMask(self):
         #threshold the mask based on the value in the settings
@@ -349,7 +359,7 @@ class SELMADataObject:
             if newDiam % 2 == 0:
                 newDiam += 1
             diam    = newDiam
-            
+         
         return diam
     
     
@@ -449,12 +459,14 @@ class SELMADataObject:
         magnitudeSNR        = div0(magnitudeFrames,
                                    self._medianRMSSTD)
         venc                = self._selmaDicom.getTags()['venc']
-        
-        
+       
         self._velocitySTD   = venc / np.pi * div0(1, magnitudeSNR)
         self._velocitySNR   = np.mean(div0(self._correctedVelocityFrames,
                                                 self._velocitySTD), axis=0)
         
+        # np.save(self._dcmFilename[0:61] + '_velocitySNR.npy',self._velocitySNR)
+        
+        # import pdb; pdb.set_trace() #to catch and save VNR data for histograms
         
     def _findSignificantFlow(self):
         """Uses the velocity SNR to find vessels with significant velocity."""
@@ -822,9 +834,7 @@ class SELMADataObject:
         output_mask_VPos = remove_ccs_from_mask(entry_mask_VPos,VPosMIso)
         
         self._NoMIsoClusters = (ncomp_VNegMIso - 1) + (ncomp_VPosMIso - 1)
-        
-  
-        
+
         #Cluster only significant magnitude (remainder from v1.0)
         _, self._posMagClusters     = cv2.connectedComponents(
                                         self._sigMagPos * self._mask)
@@ -1009,7 +1019,7 @@ class SELMADataObject:
         # Added clauses for seperate scenarios when different settings are
         # turned on or off. This ensures the correct clusters are passed
         # through to the end
-        
+
         if not self._readFromSettings('removeNonPerp'):
             
             clusters = self._clusters
@@ -1018,14 +1028,14 @@ class SELMADataObject:
             
             clusters = self._perp_clusters
 
-        if not self._readFromSettings('deduplicate') and self._readFromSettings('removeNonPerp'):
+        if not self._readFromSettings('deduplicate') and not self._readFromSettings('removeNonPerp'):
             
             self._lone_vessels = self._clusters
             self._cluster_vessels = []
             
             return
         
-        if not self._readFromSettings('deduplicate'):
+        if not self._readFromSettings('deduplicate') and self._readFromSettings('removeNonPerp'):
             
             self._lone_vessels = self._perp_clusters
             self._cluster_vessels = []
@@ -1288,13 +1298,25 @@ class SELMADataObject:
         velocity_dict['No. MPos vessels']               = self._NoMPosClusters
         velocity_dict['No. MNeg vessels']               = self._NoMNegClusters
         velocity_dict['No. MIso vessels']               = self._NoMIsoClusters
-        velocity_dict['No. perpendicular vessels']      = self._Noperp_clusters
-        velocity_dict['No. non-perpendicular vessels']  = len(self._non_perp_clusters)
-        velocity_dict['No. lone vessels']               = len(self._lone_vessels)
-        velocity_dict['No. cluster vessels']            = len(self._cluster_vessels)
-        velocity_dict['Vmean lone vessels']             = round(self._Vmean, 4)
+        
+        if self._readFromSettings('removeNonPerp'):
+            
+            velocity_dict['No. perpendicular vessels']      = self._Noperp_clusters
+            velocity_dict['No. non-perpendicular vessels']  = len(self._non_perp_clusters)
+            
+        if self._readFromSettings('deduplicate'):
+            
+            velocity_dict['No. lone vessels']               = len(self._lone_vessels)
+            velocity_dict['No. cluster vessels']            = len(self._cluster_vessels)
+            velocity_dict['Vmean lone vessels']             = round(self._Vmean, 4)
+            velocity_dict['PI_norm lone vessels']           = round(self._PI_norm, 4)
+            
+        else:
+            
+            velocity_dict['Vmean vessels']             = round(self._Vmean, 4)
+            velocity_dict['PI_norm vessels']           = round(self._PI_norm, 4)
+
         velocity_dict['Vmean SEM']                      = round(self._allsemV, 4)
-        velocity_dict['PI_norm lone vessels']           = round(self._PI_norm, 4)
         velocity_dict['PI_norm SEM']                    = round(self._allsemPI, 4)
         velocity_dict['No. BG mask pixels']             = sum(sum(self._mask == 1))
       

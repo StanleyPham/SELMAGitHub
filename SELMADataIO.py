@@ -98,7 +98,7 @@ def loadMask( fname):
     elif    ext == ".mat":
         
         try:
-            
+
             #Non-h5 file
             maskDict    = scipy.io.loadmat(fname)
             maskKey     = list(maskDict.keys())[-1]
@@ -133,13 +133,13 @@ def saveMask(fname, mask):
 
     #find extension
     ext         = fname[-4:]
-    
+  
     if      ext == ".png":
         mask = mask.astype(np.uint8)
         imageio.imwrite(fname, mask)
     elif    ext == ".npy":
         np.save(fname, mask)
-        
+        scipy.io.savemat(fname[0:len(fname)-4], {'WMslice': mask})
         
     
 #    elif    ext == ".mat":
@@ -239,6 +239,15 @@ def writeVelocityDict(velocityDict, addonDict, fname):
                 text    = text.replace('.',',')
             f.write(text)
             f.write('\n')
+            
+        #Write additional info
+        f.write('\n')
+        for key in addonDict.keys():
+            f.write(key)
+            f.write('\t')
+            f.write(str(addonDict[key]))
+            f.write('\n')
+            
 
     
     

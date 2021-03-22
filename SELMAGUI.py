@@ -451,7 +451,7 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         fname, _ = QtWidgets.QFileDialog.getSaveFileName(self,
                                                       'Save Mask',
                                                       maskFname,
-                                                      '(*.npy *.png)')
+                                                      '(*.npy *.png *.mat)')
         if len(fname) != 0:
             self.saveMaskSignal.emit(fname)
     
