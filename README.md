@@ -1,5 +1,5 @@
 # SELMA
-Trial-ready **S**mall Vess**el** MRI **Ma**rkers -- version 1.0.2
+Trial-ready **S**mall Vess**el** MRI **Ma**rkers -- version 1.1.1
 
 
 The SELMA application is used for extracting and analysing flow information in cerebral vessels. 
