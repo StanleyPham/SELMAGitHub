@@ -343,6 +343,11 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
                                                             "Error",
                                                             message)
         
+    def infoMessageSlot(self, message):
+        """Creates an error dialog with the input message."""
+        self._info_dialog = QtWidgets.QMessageBox.information(self,
+                                                              "Information",
+                                                              message)
 
     def setProgressBar(self, val):
         """Updates the progressbar of the imageViewer."""

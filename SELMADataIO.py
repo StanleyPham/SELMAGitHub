@@ -248,8 +248,26 @@ def writeVelocityDict(velocityDict, addonDict, fname):
             f.write(str(addonDict[key]))
             f.write('\n')
             
-
+def writeBatchAnalysisDict(batchAnalysisResults, fname):
+    """
+    Writes the batchAnalysisResults object to a .mat file. This is a struct
+    object that contains the data of all scans in a dataset
     
+    Args:
+        velocityDict(dict): dictionary containing all the average velocities
+        of all the significant vessels in the analysed dicom.
+        
+        fname(str): path to where the dictionary needs to be saved.
+    
+    """
+    
+    struct_object = []
+    
+    for scan in range(0, len(batchAnalysisResults)):
+          
+        struct_object.append(batchAnalysisResults[scan])        
+
+    scipy.io.savemat(fname,{'Results':[struct_object]})
     
     
     

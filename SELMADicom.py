@@ -219,6 +219,7 @@ class SELMADicom:
         
         if 'philips' in self._tags['manufacturer'].lower():
             vencAddress                 = 0x2001, 0x101A
+
             venc                        = self._DCM[vencAddress].value
             venc                        = venc[-1] 
         

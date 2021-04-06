@@ -252,7 +252,13 @@ class SELMADataObject:
         return self._vesselMask
 #    
     def getVesselDict(self):
-        return self._vesselDict
+        return self._vesselDict, self._velocityDict
+    
+    def getBatchAnalysisResults(self):
+        
+        self._makeBatchAnalysisDict()
+        
+        return self._batchAnalysisDict
     
     def getDcmFilename(self):
         return self._dcmFilename
@@ -472,6 +478,39 @@ class SELMADataObject:
         """Uses the velocity SNR to find vessels with significant velocity."""
         
         sigma               = self._getSigma()
+        
+        #PULSATE_meanstd = 0.5184721506309825 or 0.49234149129113325 (mirrored)
+        
+        # PULSATE_meanstd = 0.49234149129113325
+        
+        # VNR_BG = self._velocitySNR * self._mask
+    
+        # self._mask[abs(VNR_BG) > 3] = 0
+    
+        # voxel_coordinates = np.where(self._mask == 1)
+    
+        # voxels_in_mask = np.zeros((1,len(voxel_coordinates[0])))
+ 
+        # for j in range(0,len(voxel_coordinates[0])):
+        
+        #     voxels_in_mask[0,j] = self._velocitySNR[voxel_coordinates[0][j],voxel_coordinates[1][j]]
+            
+        # voxels_in_mask = np.sort(voxels_in_mask)
+        
+        # voxels = np.zeros((1,2 * min(enumerate(voxels_in_mask[0,:]), key = lambda x: abs(x[1] - 0))[0]))    
+    
+        # voxels[0,0:min(enumerate(voxels_in_mask[0,:]), key = lambda x: abs(x[1] - 0))[0]] = voxels_in_mask[0,0:min(enumerate(voxels_in_mask[0,:]), key = lambda x: abs(x[1] - 0))[0]]
+        # dummy = abs(voxels_in_mask[0,0:min(enumerate(voxels_in_mask[0,:]), key = lambda x: abs(x[1] - 0))[0]])
+        # voxels[0,min(enumerate(voxels_in_mask[0,:]), key = lambda x: abs(x[1] - 0))[0]:len(voxels[0,:])] = np.fliplr(dummy.reshape((1,len(dummy))))
+        
+        # voxels_in_mask = voxels
+    
+        # (mu_norm, sigma_norm) = scipy.stats.norm.fit(voxels_in_mask)
+        
+        # sigma = sigma * (sigma_norm / PULSATE_meanstd)
+        
+        # self._mask[abs(VNR_BG) > 3] = 1
+        
         self._sigFlowPos    = (self._velocitySNR > sigma).astype(np.uint8)
         self._sigFlowNeg    = (self._velocitySNR < -sigma).astype(np.uint8)
         self._sigFlow       = self._sigFlowNeg + self._sigFlowPos  
@@ -491,8 +530,7 @@ class SELMADataObject:
         self._sigFlowPos *= noZeroCrossings
         self._sigFlowNeg *= noZeroCrossings
         self._sigFlow    *= noZeroCrossings
-        
-        
+                
     def _removeGhosting(self):
         """
         Creates a ghostingmask that can be used to subtract the areas 
@@ -1097,7 +1135,7 @@ class SELMADataObject:
         meanVelocity    = np.mean(self._correctedVelocityFrames,axis = 0)
         
         V_cardiac_cycle = np.zeros((len(self._lone_vessels),self._correctedVelocityFrames.shape[0] + 3))
-        
+
         for idx, vessel in enumerate(self._lone_vessels):
         
             vesselCoords   = np.nonzero(vessel)
@@ -1106,11 +1144,11 @@ class SELMADataObject:
                 
             pidx = np.where(vessel_velocities == max(vessel_velocities))
              
-            V_cardiac_cycle[idx,0] = vesselCoords[0][pidx]
-            V_cardiac_cycle[idx,1] = vesselCoords[1][pidx]
+            V_cardiac_cycle[idx,0] = vesselCoords[0][pidx[0][0]]
+            V_cardiac_cycle[idx,1] = vesselCoords[1][pidx[0][0]]
             V_cardiac_cycle[idx,2] = idx + 1
             
-            V_cardiac_cycle[idx,3:V_cardiac_cycle.shape[1]] = self._correctedVelocityFrames[:,vesselCoords[0][pidx],vesselCoords[1][pidx]].ravel()
+            V_cardiac_cycle[idx,3:V_cardiac_cycle.shape[1]] = self._correctedVelocityFrames[:,vesselCoords[0][pidx[0][0]],vesselCoords[1][pidx[0][0]]].ravel()
                     
         V_cardiac_cycle = abs(V_cardiac_cycle)
                     
@@ -1189,7 +1227,7 @@ class SELMADataObject:
             -Mag per cycle 
             -Velocity per cycle
             
-        Additional dictionary is created with following data:
+        Additional dictionary is created with following data per scan:
             - No. detected vessels
             - No. MPos vessels
             - No. MNeg vessels
@@ -1313,6 +1351,7 @@ class SELMADataObject:
             
         else:
             
+            velocity_dict['No. of vessels']            = len(self._lone_vessels)
             velocity_dict['Vmean vessels']             = round(self._Vmean, 4)
             velocity_dict['PI_norm vessels']           = round(self._PI_norm, 4)
 
@@ -1324,6 +1363,58 @@ class SELMADataObject:
         
         self._signalObject.setProgressBarSignal.emit(100)
         
+    def _makeBatchAnalysisDict(self):
+        """"Makes a dictionary containing the following statistics per scan:
+            No. of vessels
+            V_mean
+            V_mean SEM
+            PI_mean
+            PI_mean SEM
+            mean Velocity Trace
+        """
+        
+        self._batchAnalysisDict = dict()
+        
+        if self._readFromSettings('deduplicate'):
+        
+            self._batchAnalysisDict['No. of vessels'] = self._velocityDict[0]['No. lone vessels'] 
+            self._batchAnalysisDict['V_mean'] = self._velocityDict[0]['Vmean lone vessels'] 
+            self._batchAnalysisDict['PI_mean'] = self._velocityDict[0]['PI_norm lone vessels']
+            
+        else:
+            
+            self._batchAnalysisDict['No. of vessels'] = self._velocityDict[0]['No. of vessels'] 
+            self._batchAnalysisDict['V_mean'] = self._velocityDict[0]['Vmean vessels'] 
+            self._batchAnalysisDict['PI_mean'] = self._velocityDict[0]['PI_norm vessels']
+                
+        self._batchAnalysisDict['V_mean SEM'] = self._velocityDict[0]['Vmean SEM'] 
+        self._batchAnalysisDict['PI_mean SEM'] = self._velocityDict[0]['PI_norm SEM']        
+
+        velocityTrace = np.zeros((self._batchAnalysisDict['No. of vessels'],
+                                  len(self._correctedVelocityFrames)))
+                
+        for blob in range(1, self._batchAnalysisDict['No. of vessels'] + 1):
+            
+            for vessel in range(0,len(self._vesselDict)):
+                
+                if self._vesselDict[vessel]['iblob'] == blob and self._vesselDict[vessel]['ipixel'] == 1:
+
+                    for num in range(1,len(self._correctedVelocityFrames) + 1):
+                       
+                       if num < 10:
+                               
+                           numStr = '0' + str(num)
+                               
+                       else:
+                               
+                           numStr = str(num)
+                           
+                       velocityTrace[blob - 1,num - 1] = self._vesselDict[vessel]['Vpha' + numStr]
+                    
+                    break
+
+        self._batchAnalysisDict['Velocity trace'] = np.mean(velocityTrace,axis=0)
+
     def _writeToFile(self):
         """
         Creates a filename for the output and passes it to writeVesselDict
@@ -1382,6 +1473,9 @@ class SELMADataObject:
         addonDict['filename'] = self._dcmFilename
         
         return addonDict
+    
+        
+    
         
         
         
