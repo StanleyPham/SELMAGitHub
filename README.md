@@ -1,5 +1,5 @@
 # SELMA
-Trial-ready **S**mall Vess**el** MRI **Ma**rkers -- version 1.1.1
+Trial-ready **S**mall Vess**el** MRI **Ma**rkers -- version 1.2.0
 
 
 The SELMA application is used for extracting and analysing flow information in cerebral vessels. 
@@ -12,6 +12,7 @@ The SELMA application is used for extracting and analysing flow information in c
     - Viewing images
     - Applying masks
 - Explanation of the algorithm
+- Batch analysis
 - Settings
 
 # Installation
@@ -77,6 +78,7 @@ Moving and rescaling the image is also possible with the Scroll- and Zoom-menus 
 Lastly, the brightness and contrast of the image can be changed by moving the mouse while pressing the middle mouse button. Moving the mouse in the vertical direction changes the brightness, while the horizontal direction changes the contrast. 
 
 **Applying Masks**
+
 The application only reports the analysis of vessels that are contained in a mask. When no mask is supplied, the program will not give any output. Masks can be applied in three different ways:
 *  Segmenting -  A mask can be segmented from a T1 dicom by selecting the Segment Mask option from the mask menu in the menubar. A Cat-12 white matter segmentation algorithm is called. This feature is currently only supported for Sagittal T1 volumes. It might take up to 10 minutes to perform the segmentation. 
 *  Loading from files - A pregenerated mask can be applied to the image by selecting the ‘Load Mask’ option from the mask menu in the menubar. The program currently supports .png, .npy, and .mat files. Note: not all .mat files work. If the program shows an error message, it might not be the right type of .mat file. Loading the mask in a newer version of Matlab (2019a+) and saving as .mat, might yield the correct filetype.
@@ -84,10 +86,9 @@ The application only reports the analysis of vessels that are contained in a mas
 
 After a mask is obtained, it can be easily removed by drawing a large exclusion zone around it, or via the Clear Mask function in the mask menu. It can also be saved via the Save Mask function. 
 
-
 # Explanation of Algorithm
 
-The next step is the analysis. This can be run via the Analyse Vessels function in the Analyse menu. It can take a few minutes to perform the analysis. The current version of the program (0.3.7) doesn't have multithreaded support, so it might appear as if the program is frozen. Even if the operating system warns that the program might be stuck, please allow a few (up to 5) minutes to pass before shutting it down.
+The next step is the analysis. This can be run via the Analyse Vessels function in the Analyse menu. It can take a few minutes to perform the analysis. The current version of the program (1.2.0) doesn't have multithreaded support, so it might appear as if the program is frozen. Even if the operating system warns that the program might be stuck, please allow a few (up to 5) minutes to pass before shutting it down.
 
 The details of the algorithm are more thoroughly described in this work: https://doi.org/10.1002/mrm.26821. Here, a short description of the steps is given.
 
@@ -117,6 +118,20 @@ When switched on in the settings, all voxel-clusters (assumed to be vessels) are
 When switched on in the settings, vessels that are closer than 6 pixels apart from each other are discarded.
 11. **Report data of selected voxels**
 For each of the vessels that has not been ruled out in previous steps, the velocity, magnitude etc. of each frame is collected and saved to a .txt file. 
+
+# Batch Analysis
+
+From version 1.2.0 and onwards, batch analysis on enhanced dicom files is supported. Batch analysis can be found in the analysis menu in SELMA. Regular vessel analysis can be looped over all available dicom files in a single folder to decrease the amount of manual input in SELMA. The results of the vessel analysis of all dicom files in the folder are saved in a single .mat file for further analysis in MATLAB. The data are saved in a cell array where every cell corresponds with a single dicom file. The cells are filled with a structure containing all analysis results of the corresponding dicom file. The .mat file is stored in the same root folder that contains all dicom files.
+
+In order for batch analysis to properly function, the following conditions have to be met:
+1. All dicom files must be stored in a single root folder. Currently there is no support for classic dicom files or files stored in subfolders.
+2. All masks segmenting anatomical structures must be drawn beforehand and saved in the same root folder.
+3. All masks must contain the same file name of the corresponding dicom file. Furthermore, the mask file must also contain the following string in the name: '-mask'. 
+4. All masks must be saved in a .mat format older than version 7.3.
+
+The easiest way to meet all the requirements is to save all dicom files in a new root folder and then use SELMA to draw and save the masks for each dicom file in the root folder. Any mask drawn in SELMA automatically meets requirements 2, 3, and 4, and therefore should be applicable for batch analysis. Older masks need to be renamed according to requirement 3 if necessary and/or should be converted to an older .mat version in MATLAB. An easy way to do so in MATLAB is by using the following command: save(old_mask_name,'new_mask_name','-v7')
+
+Because there is no multithreading support yet, the progress indicator is not functional and the GUI might appear frozen during batch analysis. A warning is issued to the user prior to batch analysis to not close the GUI while it is frozen as batch analysis will still be running in the background. Batch analysis will continue until it has been completed or an error has occured. In both circumstances the GUI should notify the user what is going on. 
 
 # Settings
 

@@ -76,6 +76,7 @@ def main():
     SDM.signalObject.sendMaskSignal             .connect(SGM.setMaskSlot)
     SDM.signalObject.pixelValueSignal           .connect(SGM.mainWin._imageViewer.mouseHover)
     SDM.signalObject.errorMessageSignal         .connect(SGM.mainWin.errorMessageSlot)
+    SDM.signalObject.infoMessageSignal          .connect(SGM.mainWin.infoMessageSlot)
     SDM.signalObject.sendImVarSignal            .connect(SGM.listenForVarsSlot)
     SDM.signalObject.setProgressLabelSignal     .connect(SGM.setProgressLabelSlot)
 
