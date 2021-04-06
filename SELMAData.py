@@ -1377,23 +1377,23 @@ class SELMADataObject:
         
         if self._readFromSettings('deduplicate'):
         
-            self._batchAnalysisDict['No. of vessels'] = self._velocityDict[0]['No. lone vessels'] 
+            self._batchAnalysisDict['No_of_vessels'] = self._velocityDict[0]['No. lone vessels'] 
             self._batchAnalysisDict['V_mean'] = self._velocityDict[0]['Vmean lone vessels'] 
             self._batchAnalysisDict['PI_mean'] = self._velocityDict[0]['PI_norm lone vessels']
             
         else:
             
-            self._batchAnalysisDict['No. of vessels'] = self._velocityDict[0]['No. of vessels'] 
+            self._batchAnalysisDict['No_of_vessels'] = self._velocityDict[0]['No. of vessels'] 
             self._batchAnalysisDict['V_mean'] = self._velocityDict[0]['Vmean vessels'] 
             self._batchAnalysisDict['PI_mean'] = self._velocityDict[0]['PI_norm vessels']
                 
-        self._batchAnalysisDict['V_mean SEM'] = self._velocityDict[0]['Vmean SEM'] 
-        self._batchAnalysisDict['PI_mean SEM'] = self._velocityDict[0]['PI_norm SEM']        
+        self._batchAnalysisDict['V_mean_SEM'] = self._velocityDict[0]['Vmean SEM'] 
+        self._batchAnalysisDict['PI_mean_SEM'] = self._velocityDict[0]['PI_norm SEM']        
 
-        velocityTrace = np.zeros((self._batchAnalysisDict['No. of vessels'],
+        velocityTrace = np.zeros((self._batchAnalysisDict['No_of_vessels'],
                                   len(self._correctedVelocityFrames)))
                 
-        for blob in range(1, self._batchAnalysisDict['No. of vessels'] + 1):
+        for blob in range(1, self._batchAnalysisDict['No_of_vessels'] + 1):
             
             for vessel in range(0,len(self._vesselDict)):
                 
@@ -1413,7 +1413,7 @@ class SELMADataObject:
                     
                     break
 
-        self._batchAnalysisDict['Velocity trace'] = np.mean(velocityTrace,axis=0)
+        self._batchAnalysisDict['Velocity_trace'] = np.mean(velocityTrace,axis=0)
 
     def _writeToFile(self):
         """
