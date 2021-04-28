@@ -31,7 +31,7 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         """Read the dicom header using pydicom. 
         Also extract the pixel array.
         Call the functions that initiate the Dicom."""
-        
+ 
         self._dcmFilenames    = dcmFilenames
         
         self._tags              = dict()

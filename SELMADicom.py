@@ -45,7 +45,7 @@ class SELMADicom:
         self._findVEncoding()
         self._findFrameTypes()
         self._findPixelSpacing()     
-        self._findRRIntervals()
+        # self._findRRIntervals()
         self._findTargets()
         
         #Get rescale values and apply
@@ -101,8 +101,8 @@ class SELMADicom:
     def getPixelSpacing(self):
         return self._tags['pixelSpacing']
     
-    def getRRIntervals(self):
-        return self._tags['R-R Interval']
+    # def getRRIntervals(self):
+    #     return self._tags['R-R Interval']
         
     
     #Setter functions
@@ -238,20 +238,20 @@ class SELMADicom:
             
     def _findFrameTypes(self):
         """Find the frame types per manufacturer.
-        Method differs for each manifacturer."""
+        Method differs for each manufacturer."""
         
         self._tags['frameTypes'] = []
         
         #Philips
         if 'philips' in self._tags['manufacturer'].lower():
-            dcmFrameAddress             = 0x5200, 0x9230
-            dcmPrivateCreatorAddress    = 0x2005, 0x140f
-            dcmImageTypeAddress         = 0x0008, 0x0008
+            self._dcmFrameAddress             = 0x5200, 0x9230
+            self._dcmPrivateCreatorAddress    = 0x2005, 0x140f
+            self._dcmImageTypeAddress         = 0x0008, 0x0008
             
             for i in range(self._numFrames):
-                frameType = self._DCM[dcmFrameAddress][i]                   \
-                                [dcmPrivateCreatorAddress][0]               \
-                                [dcmImageTypeAddress].value[2]
+                frameType = self._DCM[self._dcmFrameAddress][i]                   \
+                                [self._dcmPrivateCreatorAddress][0]               \
+                                [self._dcmImageTypeAddress].value[2]
                 self._tags['frameTypes'].append(frameType)
             
             
@@ -269,12 +269,12 @@ class SELMADicom:
         
         self._tags['pixelSpacing'] = ps
         
-    def _findRRIntervals(self):
-        """Find RR intervals in Dicom header, save it to the tags"""
+    # def _findRRIntervals(self):
+    #     """Find RR intervals in Dicom header, save it to the tags"""
         
-        RR_interval = self._DCM.CardiacRRIntervalSpecified
+    #     RR_interval = self._DCM.CardiacRRIntervalSpecified
         
-        self._tags['R-R Interval'] = RR_interval
+    #     self._tags['R-R Interval'] = RR_interval
     
     def _findTargets(self):
         """
@@ -369,6 +369,36 @@ class SELMADicom:
         frameTypes      = self._tags['frameTypes']
         targets         = self._tags['targets']
         
+        # Fix for very rare bug in DICOM headers where certain frames could be
+        # mislabelled. 
+        #TODO add compatibility for other scanner manufacturers
+
+        for idx in range(len(frameTypes)):
+            
+            if all(frameTypes[idx][0:3] not in mystring for mystring in targets.values()): #frameTypes[idx]
+                
+                tempFrameType = self._DCM[self._dcmFrameAddress][idx]                   \
+                                [self._dcmPrivateCreatorAddress][0]               \
+                                [self._dcmImageTypeAddress].value[3:5]
+                
+                if tempFrameType[1] in targets['magnitude']:
+                    
+                    frameTypes[idx] = targets['magnitude']
+                    
+                elif tempFrameType[1] in targets['modulus']:
+                    
+                    if tempFrameType[0] in targets['phase']:
+                
+                        frameTypes[idx] = targets['phase']
+                        
+                    else:
+                        
+                        frameTypes[idx] = targets['modulus']
+                        
+                else:
+                    
+                    frameTypes[idx] = targets['velocity']
+    
         for idx in range(self._numFrames):
                         
             if targets['velocity'] in frameTypes[idx]:
