@@ -25,6 +25,8 @@ def getLibraries():
     COMPANY = "UMCu"
     APPNAME = "SELMA"
     
+    #import pdb; pdb.set_trace()
+    
     settings = QtCore.QSettings(COMPANY, APPNAME)
     
     libs    = []

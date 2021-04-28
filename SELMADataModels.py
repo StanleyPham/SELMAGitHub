@@ -230,7 +230,7 @@ class SelmaDataModel:
         """
         if fnames is None:
             return
-        
+ 
         self._SDO   = SELMAData.SELMADataObject(self.signalObject,
                                                 dcmFilename=fnames,
                                                 classic = True)
@@ -313,105 +313,228 @@ class SelmaDataModel:
                  "or an error has occured. Press OK to continue.")
         
         # os.chdir(dirName)
+    
         files = os.listdir(dirName)
         
-        #Make list of all suitable .dcm files
-        dcms = []
-        for file in files:
-            if file.find(".dcm") != -1 and file.find("mask") == -1:
-                dcms.append(file)
-  
-        i       = 0 
-        total   = len(dcms)
-        
-        if not dcms:
-        
-            self.signalObject.errorMessageSignal.emit(
-                 "No DICOM files found in folder. This batch job will be "+
-                 "stopped.")
-            
-            return
-
-        batchAnalysisResults = dict()
-        
-        #Iterate over all suitable .dcm files.
-        for dcm in dcms:
-
-            self.signalObject.setProgressLabelSignal.emit(
-                    "Patient %.0f out of %.0f" %(i + 1, total))
-            
-            self._SDO   = SELMAData.SELMADataObject(self.signalObject,
-                                                    dcmFilename= dirName + '/' + dcm,
-                                                    classic = False)
-            
-            name        = dcm[:-4]
-            #find mask
-
+        if not any(os.path.isdir(dirName + '/' + subfolder) for subfolder in files):
+     
+            #Make list of all suitable .dcm files
+            dcms = []
             for file in files:
-                if file.find(name) != -1 and file.find("mask") != -1:
-                    if file[-4:] == ".dcm" or file[-4:] == ".npy":
-                        #Now it will find the dcm object itself.
-#                        self._SDO.setT1(file)
-#                        break
-                        pass
-                    else:
-                        
-                        try:
-                            
-                            mask = SELMADataIO.loadMask(dirName + '/' + file)
-                                                    
-                            self._SDO.setMask(mask)
-                            
-                        except:
-                        
-                            self.signalObject.errorMessageSignal.emit(
-                "The mask of %s has a version of .mat file that " %(dcm) +
-                "is not supported. Please save it as a non-v7.3 file and "+
-                "try again. Moving on to next scan.")
-                            
-                            #return
-
-                            break
+                if file.find(".dcm") != -1 and file.find("mask") == -1:
+                    dcms.append(file)
+      
+            i       = 0 
+            total   = len(dcms)
             
-            #If no mask is found, move on to the next image
-            if self._SDO.getMask() is None:
+            if not dcms:
+            
+                self.signalObject.errorMessageSignal.emit(
+                     "No DICOM files found in folder. This batch job will be "+
+                     "stopped.")
                 
-                self.signalObject.infoMessageSignal.emit(
-                 "Mask of %s not found in folder. Moving to next scan"
-                 %(dcm))
+                return
+    
+            batchAnalysisResults = dict()
+            
+            #Iterate over all suitable .dcm files.
+            for dcm in dcms:
+    
+                self.signalObject.setProgressLabelSignal.emit(
+                        "Patient %.0f out of %.0f" %(i + 1, total))
                 
-                continue
+                self._SDO   = SELMAData.SELMADataObject(self.signalObject,
+                                                        dcmFilename= dirName + '/' + dcm,
+                                                        classic = False)
+                
+                name        = dcm[:-4]
+                #find mask
+    
+                for file in files:
+                    if file.find(name) != -1 and file.find("mask") != -1:
+                        if file[-4:] == ".dcm" or file[-4:] == ".npy":
+                            #Now it will find the dcm object itself.
+    #                        self._SDO.setT1(file)
+    #                        break
+                            pass
+                        else:
+                            
+                            try:
+                                
+                                mask = SELMADataIO.loadMask(dirName + '/' + file)
+                                                        
+                                self._SDO.setMask(mask)
+                                
+                            except:
+                            
+                                self.signalObject.errorMessageSignal.emit(
+                    "The mask of %s has a version of .mat file that " %(dcm) +
+                    "is not supported. Please save it as a non-v7.3 file and "+
+                    "try again. Moving on to next scan.")
+                                
+                                #return
+    
+                                break
+                
+                #If no mask is found, move on to the next image
+                if self._SDO.getMask() is None:
+                    
+                    self.signalObject.infoMessageSignal.emit(
+                     "Mask of %s not found in folder. Moving to next scan"
+                     %(dcm))
+                    
+                    continue
+                
+                #Do vessel analysis
+                self._SDO.analyseVessels()
+                
+                #Save results
+                #TODO: support for other output types.
+                vesselDict, velocityDict = self._SDO.getVesselDict()
+                addonDict = self._SDO.getAddonDict()
+                
+                outputName = dirName + '/' + name + "-Vessel_Data.txt"
+                SELMADataIO.writeVesselDict(vesselDict, addonDict, outputName)
+                outputName = dirName + '/' + name + "-averagePIandVelocity_Data.txt"
+                SELMADataIO.writeVelocityDict(velocityDict, addonDict, outputName)
+    
+                #Save in single file
+                batchAnalysisResults[i] = self._SDO.getBatchAnalysisResults()
+                
+                outputName = dirName + '/batchAnalysisResults.mat' 
+                SELMADataIO.writeBatchAnalysisDict(batchAnalysisResults, outputName)
+                      
+                #Emit progress to progressbar
+                self.signalObject.setProgressBarSignal.emit(int(100 * i / total))
+                    
+                i += 1
             
-            #Do vessel analysis
-            self._SDO.analyseVessels()
+            outputName = dirName + '/batchAnalysisResults.mat' 
+            SELMADataIO.writeBatchAnalysisDict(batchAnalysisResults, outputName)
             
-            #Save results
-            #TODO: support for other output types.
-            vesselDict, velocityDict = self._SDO.getVesselDict()
-            addonDict = self._SDO.getAddonDict()
-            
-            outputName = dirName + '/' + name + "-Vessel_Data.txt"
-            SELMADataIO.writeVesselDict(vesselDict, addonDict, outputName)
-            outputName = dirName + '/' + name + "-averagePIandVelocity_Data.txt"
-            SELMADataIO.writeVelocityDict(velocityDict, addonDict, outputName)
-
-            #Save in single file
-            batchAnalysisResults[i] = self._SDO.getBatchAnalysisResults()
-                  
             #Emit progress to progressbar
-            self.signalObject.setProgressBarSignal.emit(int(100 * i / total))
-                
-            i += 1
-        
-        outputName = dirName + '/batchAnalysisResults.mat' 
-        SELMADataIO.writeBatchAnalysisDict(batchAnalysisResults, outputName)
-        
-        #Emit progress to progressbar
-        self.signalObject.setProgressBarSignal.emit(int(100))
-        self.signalObject.setProgressLabelSignal.emit(
-                    "Batch analysis complete!"
-                    )
+            self.signalObject.setProgressBarSignal.emit(int(100))
+            self.signalObject.setProgressLabelSignal.emit(
+                        "Batch analysis complete!"
+                        )
             
+        elif any(os.path.isdir(dirName + '/' + subfolder) for subfolder in files):
+          
+            i       = 0 
+            total   = len(files)
+            
+            batchAnalysisResults = dict()
+
+            for subject in files:
+                
+                if not os.path.isdir(dirName + '/' + subject):
+                    
+                    continue
+                
+                subject_folder = os.listdir(dirName + '/' + subject)
+                
+                dcmFilename = []
+                
+                for file in subject_folder:
+                    
+                    if file.endswith('.txt'):
+                        
+                        continue
+                    
+                    elif file.endswith('.mat'):
+                        
+                        if file.find('mask') != -1:
+                            
+                            try:
+                                
+                                mask = SELMADataIO.loadMask(dirName + '/' + subject + '/' + file)
+            
+                            except:
+                            
+                                self.signalObject.errorMessageSignal.emit(
+                    "The mask of %s has a version of .mat file that " %(subject) +
+                    "is not supported. Please save it as a non-v7.3 file and "+
+                    "try again. Moving on to next scan.")
+                                
+                                #return
+    
+                                break
+                        
+                        continue
+                    
+                    elif file.endswith('.log'):
+                        
+                        continue
+                    
+                    elif file.endswith('.dcm'):
+                        
+                        continue
+                    
+                    elif file.endswith('.npy'):
+                        
+                        continue
+                    
+                    elif os.path.getsize(dirName + '/' + subject + '/' + file) < 100000:
+                        
+                        continue
+                    
+                    dcmFilename.append(dirName + '/' + subject + '/' + file)
+                    
+                if dcmFilename == []:
+                    
+                    continue
+                
+                self.signalObject.setProgressLabelSignal.emit(
+                        "Patient %.0f out of %.0f" %(i + 1, total))
+                
+                self._SDO   = SELMAData.SELMADataObject(self.signalObject,
+                                                        dcmFilename ,
+                                                        classic = True)
+                
+                self._SDO.setMask(mask)
+                                         
+                #If no mask is found, move on to the next image
+                if self._SDO.getMask() is None:
+                    
+                    self.signalObject.infoMessageSignal.emit(
+                     "Mask of %s not found in folder. Moving to next subject"
+                     %(subject))
+                    
+                    continue
+                
+                #Do vessel analysis
+                self._SDO.analyseVessels()
+                
+                #Save results
+                #TODO: support for other output types.
+                vesselDict, velocityDict = self._SDO.getVesselDict()
+                addonDict = self._SDO.getAddonDict()
+                
+                outputName = dirName + '/' + subject + "-Vessel_Data.txt"
+                SELMADataIO.writeVesselDict(vesselDict, addonDict, outputName)
+                outputName = dirName + '/' + subject + "-averagePIandVelocity_Data.txt"
+                SELMADataIO.writeVelocityDict(velocityDict, addonDict, outputName)
+    
+                #Save in single file
+                batchAnalysisResults[i] = self._SDO.getBatchAnalysisResults()
+                
+                outputName = dirName + '/batchAnalysisResults.mat' 
+                SELMADataIO.writeBatchAnalysisDict(batchAnalysisResults, outputName)
+                      
+                #Emit progress to progressbar
+                self.signalObject.setProgressBarSignal.emit(int(100 * i / total))
+                    
+                i += 1
+                
+            outputName = dirName + '/batchAnalysisResults.mat' 
+            SELMADataIO.writeBatchAnalysisDict(batchAnalysisResults, outputName)
+            
+            #Emit progress to progressbar
+            self.signalObject.setProgressBarSignal.emit(int(100))
+            self.signalObject.setProgressLabelSignal.emit(
+                        "Batch analysis complete!"
+                        )
+                                   
     def switchViewSlot(self):
         if self._SDO is None:
             return

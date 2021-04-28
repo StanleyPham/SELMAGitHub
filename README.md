@@ -1,5 +1,5 @@
 # SELMA
-Trial-ready **S**mall Vess**el** MRI **Ma**rkers -- version 1.2.0
+Trial-ready **S**mall Vess**el** MRI **Ma**rkers -- version 1.3.0
 
 
 The SELMA application is used for extracting and analysing flow information in cerebral vessels. 
@@ -88,7 +88,7 @@ After a mask is obtained, it can be easily removed by drawing a large exclusion 
 
 # Explanation of Algorithm
 
-The next step is the analysis. This can be run via the Analyse Vessels function in the Analyse menu. It can take a few minutes to perform the analysis. The current version of the program (1.2.0) doesn't have multithreaded support, so it might appear as if the program is frozen. Even if the operating system warns that the program might be stuck, please allow a few (up to 5) minutes to pass before shutting it down.
+Before starting the analysis, select the correct anatomical structure in the 'Structure' tab in the settings. This makes sure that the correct cluster settings are used in vessel detection. Without structure selection, the analysis will fail. For advanced users, there is an option to enable custom clustering. This will override the pre-applied cluster settings of the selected anatomical structure. By navigating to the Advanced Clustering tab in the settings, the user can freely select which magnitudes and flows to include in the analysis. The next step is the analysis. This can be run via the Analyse Vessels function in the Analyse menu. It can take a few minutes to perform the analysis. The current version of the program (1.3.0) doesn't have multithreaded support, so it might appear as if the program is frozen. Even if the operating system warns that the program might be stuck, please allow a few (up to 5) minutes to pass before shutting it down.
 
 The details of the algorithm are more thoroughly described in this work: https://doi.org/10.1002/mrm.26821. Here, a short description of the steps is given.
 
@@ -121,17 +121,31 @@ For each of the vessels that has not been ruled out in previous steps, the veloc
 
 # Batch Analysis
 
-From version 1.2.0 and onwards, batch analysis on enhanced dicom files is supported. Batch analysis can be found in the analysis menu in SELMA. Regular vessel analysis can be looped over all available dicom files in a single folder to decrease the amount of manual input in SELMA. The results of the vessel analysis of all dicom files in the folder are saved in a single .mat file for further analysis in MATLAB. The data are saved in a cell array where every cell corresponds with a single dicom file. The cells are filled with a structure containing all analysis results of the corresponding dicom file. The .mat file is stored in the same root folder that contains all dicom files.
+From version 1.3.0 and onwards, batch analysis on both classic and enhanced dicom files is supported. Batch analysis can be found in the analysis menu in SELMA. Regular vessel analysis can be looped over all available dicom files in a single folder to decrease the amount of manual input in SELMA. The results of the vessel analysis of all dicom files in the folder are saved in a single .mat file for further analysis in MATLAB. The data are saved in a cell array where every cell corresponds with a single dicom file. The cells are filled with a structure containing all analysis results of the corresponding dicom file. The .mat file is stored in the same root folder that contains all dicom files. Because there is no multithreading support yet, the progress indicator is not functional and the GUI might appear frozen during batch analysis. A warning is issued to the user prior to batch analysis to not close the GUI while it is frozen as batch analysis will still be running in the background. Batch analysis will continue until it has been completed or an error has occured. In both circumstances the GUI should notify the user what is going on. 
 
-In order for batch analysis to properly function, the following conditions have to be met:
-1. All dicom files must be stored in a single root folder. Currently there is no support for classic dicom files or files stored in subfolders.
+**Enhanced dicom**
+
+In order for batch analysis to properly function on enhanced dicom data, the following conditions have to be met:
+1. All dicom files must be stored in a single root folder. Currently there is no support for enhanced dicom files stored in subfolders.
 2. All masks segmenting anatomical structures must be drawn beforehand and saved in the same root folder.
 3. All masks must contain the same file name of the corresponding dicom file. Furthermore, the mask file must also contain the following string in the name: '-mask'. 
 4. All masks must be saved in a .mat format older than version 7.3.
 
-The easiest way to meet all the requirements is to save all dicom files in a new root folder and then use SELMA to draw and save the masks for each dicom file in the root folder. Any mask drawn in SELMA automatically meets requirements 2, 3, and 4, and therefore should be applicable for batch analysis. Older masks need to be renamed according to requirement 3 if necessary and/or should be converted to an older .mat version in MATLAB. An easy way to do so in MATLAB is by using the following command: save(old_mask_name,'new_mask_name','-v7')
+The easiest way to meet all the requirements is to save all dicom files in a new root folder and then use SELMA to draw and save the masks for each dicom file in the root folder. Any mask drawn in SELMA automatically meets requirements 2, 3, and 4, and therefore should be applicable for batch analysis. Older masks need to be renamed according to requirement 3 if necessary and/or should be converted to an older .mat version in MATLAB. An easy way to do so in MATLAB is by using the following command: save(old_mask_name,'new_mask_name','-v7'). An example of the correct folder structure can be found below:
 
-Because there is no multithreading support yet, the progress indicator is not functional and the GUI might appear frozen during batch analysis. A warning is issued to the user prior to batch analysis to not close the GUI while it is frozen as batch analysis will still be running in the background. Batch analysis will continue until it has been completed or an error has occured. In both circumstances the GUI should notify the user what is going on. 
+![Tab 1](Images/EnhancedBatchAnalysis.png)
+
+**Classic dicom**
+
+In order for batch analysis to properly function on classic dicom data, the following conditions have to be met:
+1. All classic dicom files belonging to a single subject must be stored in a single subject folder. All subject folders must be stored in a single root folder. It is recommended to name the specific subject folders according to the subject names. 
+2. All masks segmenting anatomical structures must be drawn beforehand and saved in the subject folders together with the classic dicom files.
+3. All masks must be saved in a .mat format older than version 7.3 and must also contain the following string in the name: '-mask'. 
+
+The easiest way to meet all the requirements is to save all dicom files belonging to a single subject in a specific subject folder, then save all subject folders into a single root folder. Subsequently, use SELMA to draw and save the masks for each subject by loading all classic dicom files of a single subject and then draw the mask. Any mask drawn in SELMA automatically meets requirements 2 and 3, and therefore should be applicable for batch analysis. The mask will copy the name of the first classic dicom file in the subject folder, but should be applicable for all classic dicom files in the folder. Older masks need to be renamed according to requirement 3 if necessary and/or should be converted to an older .mat version in MATLAB. An easy way to do so in MATLAB is by using the following command: save(old_mask_name,'new_mask_name','-v7'). An example of the folder structure can be found below:
+
+![Tab 1](Images/ClassicBatchAnalysis1.png)
+![Tab 1](Images/ClassicBatchAnalysis2.png)
 
 # Settings
 
@@ -155,16 +169,16 @@ When toggled on, step 5 in the algorithm (see above) is used.
 6. **Use a decimal comma in the output instead of a dot**
 When a decimal comma is preferred in the output for further analysis, it can be turned on with this setting
 
-**Clustering**
+**Structure**
 
 ![Tab 1](Images/selmasettings2.png)
 
-1. **Include positive magnitude**
-When toggled on, significant flow voxels with positive magnitude are included in the analysis.
-2. **Include negative magnitude**
-When toggled on, significant flow voxels with negative magnitude are included in the analysis.
-3. **Incude isointense magnitude**
-When toggled on, significant flow voxels with isointense magnitude are included in the analysis.
+1. **Perform analysis on basal ganglia**
+When toggled on, the vessel analysis will use the standard clustering settings defined for the basal ganglia (Positive magnitude and velocity).
+2. **Perform analysis on semioval centre**
+When toggled on, the vessel analysis will use the standard clustering settings defined for the semioval centre (Any magnitude and negative velocity).
+3. **Use custom clustering settings from advanced clustering menu.**
+When toggled on, custom clustering settings from the advanced clustering menu is enabled. Settings from the advanced clustering menu override the standard clustering settings of the anatomical structures. 
 
 **Ghosting**
 
@@ -216,9 +230,25 @@ Minimum pixel distance between two vessels for not to be removed as two duplicat
 1. **White matter probability**
 Sets the threshold for segmenting the white matter with Cat-12. 
 
-**Reset**
+**Advanced Clustering**
 
 ![Tab 1](Images/selmasettings7.png)
+
+1. **Include clusters with significant positive magnitude**
+When toggled on, clusters with a significant positive magnitude are included in the vessel analysis. 
+2. **Include clusters with significant negative magnitude**
+When toggled on, clusters with a significant negative magnitude are included in the vessel analysis. 
+3. **Include clusters with significant isointense magnitude**
+When toggled on, clusters with a significant isointense magnitude are included in the vessel analysis. 
+4. **Include clusters with significant positive velocity**
+When toggled on, clusters with a significant positive velocity are included in the vessel analysis. 
+5. **Include clusters with significant negative velocity**
+When toggled on, clusters with a significant negative velocity are included in the vessel analysis. 
+
+
+**Reset**
+
+![Tab 1](Images/selmasettings8.png)
 
 1. **Reset settings**
 Reset the settings to the default values

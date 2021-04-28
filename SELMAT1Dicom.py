@@ -173,6 +173,9 @@ class SELMAT1Dicom(SELMADicom.SELMADicom):
         dcm2nii = libraries[1]
 
         eng = matlab.engine.start_matlab()
+        
+        #import pdb; pdb.set_trace()
+        
         wm = eng.spmSegment(self._dcmFilename,
                              spm,
                              dcm2nii)
