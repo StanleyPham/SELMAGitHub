@@ -1,5 +1,5 @@
 # SELMA
-Trial-ready **S**mall Vess**el** MRI **Ma**rkers -- version 1.3.0
+Trial-ready **S**mall Vess**el** MRI **Ma**rkers -- version 1.3.1
 
 
 The SELMA application is used for extracting and analysing flow information in cerebral vessels. 
@@ -88,7 +88,7 @@ After a mask is obtained, it can be easily removed by drawing a large exclusion 
 
 # Explanation of Algorithm
 
-Before starting the analysis, select the correct anatomical structure in the 'Structure' tab in the settings. This makes sure that the correct cluster settings are used in vessel detection. Without structure selection, the analysis will fail. For advanced users, there is an option to enable custom clustering. This will override the pre-applied cluster settings of the selected anatomical structure. By navigating to the Advanced Clustering tab in the settings, the user can freely select which magnitudes and flows to include in the analysis. The next step is the analysis. This can be run via the Analyse Vessels function in the Analyse menu. It can take a few minutes to perform the analysis. The current version of the program (1.3.0) doesn't have multithreaded support, so it might appear as if the program is frozen. Even if the operating system warns that the program might be stuck, please allow a few (up to 5) minutes to pass before shutting it down.
+Before starting the analysis, select the correct anatomical structure in the 'Structure' tab in the settings. This makes sure that the correct cluster settings are used in vessel detection. Without structure selection, the analysis will fail. For advanced users, there is an option to enable custom clustering. This will override the pre-applied cluster settings of the selected anatomical structure. By navigating to the Advanced Clustering tab in the settings, the user can freely select which magnitudes and flows to include in the analysis. The next step is the analysis. This can be run via the Analyse Vessels function in the Analyse menu. It can take a few minutes to perform the analysis. The current version of the program (1.3.1) doesn't have multithreaded support, so it might appear as if the program is frozen. Even if the operating system warns that the program might be stuck, please allow a few (up to 5) minutes to pass before shutting it down.
 
 The details of the algorithm are more thoroughly described in this work: https://doi.org/10.1002/mrm.26821. Here, a short description of the steps is given.
 
@@ -140,7 +140,7 @@ The easiest way to meet all the requirements is to save all dicom files in a new
 In order for batch analysis to properly function on classic dicom data, the following conditions have to be met:
 1. All classic dicom files belonging to a single subject must be stored in a single subject folder. All subject folders must be stored in a single root folder. It is recommended to name the specific subject folders according to the subject names. 
 2. All masks segmenting anatomical structures must be drawn beforehand and saved in the subject folders together with the classic dicom files.
-3. All masks must be saved in a .mat format older than version 7.3 and must also contain the following string in the name: '-mask'. 
+3. All masks must be saved in a .mat format older than version 7.3 and must also contain the following string in the name: '-mask'. It does not matter which classic dicom file the mask file takes the name from, as long as it contains the '-mask' string in the name. 
 
 The easiest way to meet all the requirements is to save all dicom files belonging to a single subject in a specific subject folder, then save all subject folders into a single root folder. Subsequently, use SELMA to draw and save the masks for each subject by loading all classic dicom files of a single subject and then draw the mask. Any mask drawn in SELMA automatically meets requirements 2 and 3, and therefore should be applicable for batch analysis. The mask will copy the name of the first classic dicom file in the subject folder, but should be applicable for all classic dicom files in the folder. Older masks need to be renamed according to requirement 3 if necessary and/or should be converted to an older .mat version in MATLAB. An easy way to do so in MATLAB is by using the following command: save(old_mask_name,'new_mask_name','-v7'). An example of the folder structure can be found below:
 
