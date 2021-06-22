@@ -474,6 +474,18 @@ class SelmaDataModel:
                         
                         continue
                     
+                    elif file.endswith('.log'):
+                        
+                        continue
+                    
+                    elif file.endswith('.dcm'):
+                        
+                        continue
+                    
+                    elif file.endswith('.npy'):
+                        
+                        continue
+                    
                     # Skip DICOMDIR files
                     elif os.path.getsize(dirName + '/' + subject + '/' 
                                          + file) < 100000:
@@ -481,10 +493,8 @@ class SelmaDataModel:
                         continue
                     
                     else:
-                        
-                        continue
             
-                    dcmFilename.append(dirName + '/' + subject + '/' + file)
+                        dcmFilename.append(dirName + '/' + subject + '/' + file)
                     
                 if dcmFilename == []:
                     
