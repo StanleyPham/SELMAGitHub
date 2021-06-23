@@ -302,7 +302,6 @@ class SELMADataObject:
     
     def getDcmFilename(self):
         return self._dcmFilename
-#    
     
     #Setter functions
     # ------------------------------------------------------------------    
@@ -858,7 +857,7 @@ class SELMADataObject:
         
         self._nComp     = 0
         self._clusters  = []
-
+    
         'Positive magnitude clustering'
 
         # original flow masks with significant magnitudes in either direction
@@ -2007,6 +2006,7 @@ class SELMADataObject:
 
         #Message if no vessels were found
         if len(np.nonzero(self._lone_vessels)[0]) == 0:
+            
             self._signalObject.errorMessageSignal.emit("No vessels Found")
             return
         

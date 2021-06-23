@@ -399,6 +399,11 @@ class SelmaDataModel:
                 #Save results
                 #TODO: support for other output types.
                 vesselDict, velocityDict = self._SDO.getVesselDict()
+                                
+                if not bool(vesselDict):
+                    
+                    continue
+                
                 addonDict = self._SDO.getAddonDict()
                 
                 outputName = dirName + '/' + name + "-Vessel_Data.txt"
@@ -520,10 +525,15 @@ class SelmaDataModel:
                 
                 #Do vessel analysis
                 self._SDO.analyseVessels()
-                
+      
                 #Save results
                 #TODO: support for other output types.
                 vesselDict, velocityDict = self._SDO.getVesselDict()
+                
+                if not bool(vesselDict):
+                    
+                    continue
+                
                 addonDict = self._SDO.getAddonDict()
                 
                 outputName = dirName + '/' + subject + "-Vessel_Data.txt"
