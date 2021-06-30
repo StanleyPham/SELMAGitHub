@@ -483,11 +483,19 @@ class SelmaDataModel:
                         
                         continue
                     
-                    elif file.endswith('.dcm'):
+                    # elif file.endswith('.dcm'): # In case of Marseille data
+                        
+                    #     continue
+                    
+                    elif file.endswith('.npy'):
                         
                         continue
                     
-                    elif file.endswith('.npy'):
+                    elif file.endswith('.xml'):
+                        
+                        continue
+                    
+                    elif file.endswith('.txt'):
                         
                         continue
                     

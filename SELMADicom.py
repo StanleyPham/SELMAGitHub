@@ -142,7 +142,7 @@ class SELMADicom:
     
     def _findManufacturer(self):
         """Extract the manufacturer from the dicom"""
- 
+
         self._tags['manufacturer'] = self._DCM[0x0008, 0x0070].value
     
     def _findRescaleValues(self):
@@ -313,8 +313,8 @@ class SELMADicom:
     # ------------------------------------------------------------------    
 
     def _rescaleFrames(self):
-        ''' Applies the rescale slope and intercept to the frames. '''
-         
+        ''' Applies the rescale slope and intercept to the frames. '''       
+
         self._rescaledFrames    = []
         for i in range(len(self._rawFrames)):
             rescaleSlope        = self._tags['rescaleSlopes'][i]

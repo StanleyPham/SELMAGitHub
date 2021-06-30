@@ -78,6 +78,7 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         
         Manufacturer is stored as a lower script version.
         """
+
         self._tags['manufacturer'] = self._DCMs[0][0x8, 0x70].value.lower()
     
     def _findRescaleValues(self):
@@ -116,13 +117,24 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
             for i in range(self._numFrames):
                 
                 try:
-                    rescaleSlope        = float(self._DCMs[i]
-                                        [dcmRescaleSlopeAddress].value)
-                    rescaleIntercept    = float(self._DCMs[i]
-                                        [dcmRescaleInterceptAddress].value)
-                       
-                    rescaleSlopes.append(rescaleSlope)
-                    rescaleIntercepts.append(rescaleIntercept)
+                    
+                    if self._DCMs[i][0x8, 0x8].value[2] == 'V' or \
+                        self._DCMs[i][0x8, 0x8].value[2] == 'P':
+                    
+                            venc    = self._tags['venc'] 
+                            minVal  = np.min(self._rawFrames[i])
+                            maxVal  = np.max(self._rawFrames[i])
+                            
+                            slope   = (maxVal - minVal) / ( 2 * venc) 
+                            intercept   = (maxVal - minVal) / 2 + minVal
+                            
+                            rescaleSlopes.append(slope)
+                            rescaleIntercepts.append(intercept)
+                    
+                    else:
+                        
+                        rescaleSlopes.append([])  
+                        rescaleIntercepts.append([])
                         
                 except:
                 #If no rescale values can be found, the values can be 
@@ -172,15 +184,21 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
             for i in range(self._numFrames):
                 
                 try:
-                    rescaleSlope        = float(self._DCMs[i]
-                                        [dcmRescaleSlopeAddress].value)
-                    if rescaleSlope != 0:
-                        rescaleSlope    = 1 / rescaleSlope
-                    rescaleIntercept    = float(self._DCMs[i]
-                                        [dcmRescaleInterceptAddress].value)
-                       
-                    rescaleSlopes.append(rescaleSlope)
-                    rescaleIntercepts.append(rescaleIntercept)
+                    
+                    if i < int(self._numFrames / 2):
+                    
+                        rescaleSlope        = float(self._DCMs[i]
+                                            [dcmRescaleSlopeAddress].value)
+                        rescaleIntercept    = float(self._DCMs[i]
+                                            [dcmRescaleInterceptAddress].value)
+                            
+                        rescaleSlopes.append(rescaleSlope)
+                        rescaleIntercepts.append(rescaleIntercept)
+                        
+                    else:
+                        
+                        rescaleSlopes.append([])  
+                        rescaleIntercepts.append([])
                         
                 except:
                 #If no rescale values can be found, the values can be 
@@ -213,6 +231,7 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
                         
                         rescaleSlopes.append([])  
                         rescaleIntercepts.append([])
+
             
             
 
@@ -270,9 +289,9 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
             if type(venc) == 'list':
                 venc    = venc[-1]
                 
-            # if venc > 50:
-            #     #Change from mm/s to cm/s
-            #     venc    /= 10
+            if venc > 50:
+                #Change from mm/s to cm/s
+                venc    /= 10
         
         
         #Siemens
@@ -311,6 +330,8 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         Method differs for each manifacturer."""
         
         self._tags['frameTypes'] = []
+        
+        # import pdb; pdb.set_trace()
         
         #Philips
         if 'philips' in self._tags['manufacturer']:
@@ -382,6 +403,8 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
     
     def _rescaleFrames(self):
         ''' Applies the rescale slope and intercept to the frames. '''
+
+        # import pdb; pdb.set_trace()
         
         self._rescaledFrames = []
         for i in range(len(self._rawFrames)):
@@ -410,7 +433,7 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
     #         #Check if the velocity frames aren't accidentally stored as phase
             
     #         if np.round(np.max(self._phaseFrames), 1) == venc and \
-    #            np.round(np.min(self._phaseFrames), 1) == -venc:
+    #             np.round(np.min(self._phaseFrames), 1) == -venc:
                
     #             self._velocityFrames        = self._phaseFrames
     #             self._rawVelocityFrames     = self._rawPhaseFrames
