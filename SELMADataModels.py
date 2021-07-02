@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 
 """
-This module is contains all the relevant classes that form the second layer 
+This module is contains all the relevant classes that form the second layer
 between the SELMA GUI and the data objects. It contains the following classes:
 
 + :class: `SDMSignals`
 + :class: `SelmaDataModel`
-    
+
 """
 
 # ====================================================================
 
+import os
 import numpy as np
 from PyQt5 import (QtCore)
-import os
-import scipy
+# import scipy
 
 # ====================================================================
 
@@ -139,7 +139,7 @@ class SelmaDataModel:
         frameShape  = frame.shape
         
         if maskShape != frameShape:
-            errStr  = "The dimensions of the frame and the mask do not align. "
+            errStr  = "The dimensions of the frame and the mask do not align."
             self.signalObject.errorMessageSignal.emit(errStr + 
                                                       str(frameShape) + 
                                                       str(maskShape))
@@ -147,6 +147,7 @@ class SelmaDataModel:
         else:
             self._SDO.setMask(mask)
             self.signalObject.sendMaskSignal.emit(mask)
+            
         
     def saveMaskSlot(self, fname):
         """
@@ -161,6 +162,7 @@ class SelmaDataModel:
         
         mask = self._SDO.getMask()
         SELMADataIO.saveMask(fname, mask)
+        
     
     def segmentMaskSlot(self):
         """
@@ -182,6 +184,7 @@ class SelmaDataModel:
         print(mask.shape, np.unique(mask))
         self.signalObject.sendMaskSignal.emit(mask)
         
+        
     def thresholdMaskSlot(self):
         """Gets a new copy of the (thresholded) mask from the SDO and 
         returns it to the GUI"""
@@ -192,6 +195,7 @@ class SelmaDataModel:
         mask = self._SDO.getMask()
         if mask is not None:
             self.signalObject.sendMaskSignal.emit(mask)
+            
 
     def loadDCMSlot(self, fname):
         """
@@ -218,6 +222,7 @@ class SelmaDataModel:
         self._frameMax      = self._SDO.getNumFrames()
         
         self._displayFrame()
+        
             
     def loadClassicDCMSlot(self, fnames):
         """
@@ -238,6 +243,7 @@ class SelmaDataModel:
         self._frameMax = self._SDO.getNumFrames()
         
         self._displayFrame()
+        
     
     def loadT1DCMSlot(self, fname):
         """
@@ -261,9 +267,8 @@ class SelmaDataModel:
         self._displayT1     = True
         
         self._displayFrame()
+           
         
-    
-    
     def applyMaskSlot(self, mask):
         """
         Sets the drawn mask into the data object.
@@ -308,15 +313,16 @@ class SelmaDataModel:
         #TODO: add progress feedback
 
         self.signalObject.infoMessageSignal.emit(
-                 "GUI may become unresponsive while executing batch analysis. "+
-                 "Please do not close GUI until batch analysis is complete "+
-                 "or an error has occured. Press OK to continue.")
+            "GUI may become unresponsive while executing batch analysis. "+
+            "Please do not close GUI until batch analysis is complete "+
+            "or an error has occured. Press OK to continue.")
         
         # os.chdir(dirName)
     
         files = os.listdir(dirName)
         
-        if not any(os.path.isdir(dirName + '/' + subfolder) for subfolder in files):
+        if not any(os.path.isdir(dirName + '/' + subfolder) 
+                   for subfolder in files):
      
             #Make list of all suitable .dcm files
             dcms = []
@@ -330,8 +336,8 @@ class SelmaDataModel:
             if not dcms:
             
                 self.signalObject.errorMessageSignal.emit(
-                     "No DICOM files found in folder. This batch job will be "+
-                     "stopped.")
+                     "No DICOM files found in folder. This batch job will "+
+                     "be stopped.")
                 
                 return
     
@@ -344,7 +350,8 @@ class SelmaDataModel:
                         "Patient %.0f out of %.0f" %(i + 1, total))
                 
                 self._SDO   = SELMAData.SELMADataObject(self.signalObject,
-                                                        dcmFilename= dirName + '/' + dcm,
+                                                        dcmFilename = dirName 
+                                                        + '/' + dcm,
                                                         classic = False)
                 
                 name        = dcm[:-4]
@@ -361,7 +368,8 @@ class SelmaDataModel:
                             
                             try:
                                 
-                                mask = SELMADataIO.loadMask(dirName + '/' + file)
+                                mask = SELMADataIO.loadMask(dirName + '/' + 
+                                                            file)
                                                         
                                 self._SDO.setMask(mask)
                                 
@@ -369,8 +377,8 @@ class SelmaDataModel:
                             
                                 self.signalObject.errorMessageSignal.emit(
                     "The mask of %s has a version of .mat file that " %(dcm) +
-                    "is not supported. Please save it as a non-v7.3 file and "+
-                    "try again. Moving on to next scan.")
+                    "is not supported. Please save it as a non-v7.3 file "+
+                    "and try again. Moving on to next scan.")
                                 
                                 #return
     
@@ -391,26 +399,36 @@ class SelmaDataModel:
                 #Save results
                 #TODO: support for other output types.
                 vesselDict, velocityDict = self._SDO.getVesselDict()
+                                
+                if not bool(vesselDict):
+                    
+                    continue
+                
                 addonDict = self._SDO.getAddonDict()
                 
                 outputName = dirName + '/' + name + "-Vessel_Data.txt"
                 SELMADataIO.writeVesselDict(vesselDict, addonDict, outputName)
-                outputName = dirName + '/' + name + "-averagePIandVelocity_Data.txt"
-                SELMADataIO.writeVelocityDict(velocityDict, addonDict, outputName)
+                outputName = (dirName + '/' + name + "-averagePIandVelocity"
+                + "_Data.txt")
+                SELMADataIO.writeVelocityDict(velocityDict, addonDict, 
+                                              outputName)
     
                 #Save in single file
                 batchAnalysisResults[i] = self._SDO.getBatchAnalysisResults()
                 
                 outputName = dirName + '/batchAnalysisResults.mat' 
-                SELMADataIO.writeBatchAnalysisDict(batchAnalysisResults, outputName)
+                SELMADataIO.writeBatchAnalysisDict(batchAnalysisResults, 
+                                                   outputName)
                       
                 #Emit progress to progressbar
-                self.signalObject.setProgressBarSignal.emit(int(100 * i / total))
+                self.signalObject.setProgressBarSignal.emit(int(100 * i / 
+                                                                total))
                     
                 i += 1
             
             outputName = dirName + '/batchAnalysisResults.mat' 
-            SELMADataIO.writeBatchAnalysisDict(batchAnalysisResults, outputName)
+            SELMADataIO.writeBatchAnalysisDict(batchAnalysisResults, 
+                                               outputName)
             
             #Emit progress to progressbar
             self.signalObject.setProgressBarSignal.emit(int(100))
@@ -418,7 +436,8 @@ class SelmaDataModel:
                         "Batch analysis complete!"
                         )
             
-        elif any(os.path.isdir(dirName + '/' + subfolder) for subfolder in files):
+        elif any(os.path.isdir(dirName + '/' + subfolder) 
+                 for subfolder in files):
           
             i       = 0 
             total   = len(files)
@@ -437,24 +456,22 @@ class SelmaDataModel:
                 
                 for file in subject_folder:
                     
-                    if file.endswith('.txt'):
-                        
-                        continue
-                    
-                    elif file.endswith('.mat'):
+                    if file.endswith('.mat'):
                         
                         if file.find('mask') != -1:
                             
                             try:
                                 
-                                mask = SELMADataIO.loadMask(dirName + '/' + subject + '/' + file)
+                                mask = SELMADataIO.loadMask(dirName + '/' + 
+                                                            subject + '/' + 
+                                                            file)
             
                             except:
                             
                                 self.signalObject.errorMessageSignal.emit(
-                    "The mask of %s has a version of .mat file that " %(subject) +
-                    "is not supported. Please save it as a non-v7.3 file and "+
-                    "try again. Moving on to next scan.")
+                    "The mask of %s has a version of .mat file that " 
+                    %(subject) + "is not supported. Please save it as a " + 
+                    "non-v7.3 file and try again. Moving on to next scan.")
                                 
                                 #return
     
@@ -466,19 +483,31 @@ class SelmaDataModel:
                         
                         continue
                     
-                    elif file.endswith('.dcm'):
+                    # elif file.endswith('.dcm'): # In case of Marseille data
                         
-                        continue
+                    #     continue
                     
                     elif file.endswith('.npy'):
                         
                         continue
                     
-                    elif os.path.getsize(dirName + '/' + subject + '/' + file) < 100000:
+                    elif file.endswith('.xml'):
                         
                         continue
                     
-                    dcmFilename.append(dirName + '/' + subject + '/' + file)
+                    elif file.endswith('.txt'):
+                        
+                        continue
+                    
+                    # Skip DICOMDIR files
+                    elif os.path.getsize(dirName + '/' + subject + '/' 
+                                         + file) < 100000:
+                        
+                        continue
+                    
+                    else:
+            
+                        dcmFilename.append(dirName + '/' + subject + '/' + file)
                     
                 if dcmFilename == []:
                     
@@ -504,30 +533,40 @@ class SelmaDataModel:
                 
                 #Do vessel analysis
                 self._SDO.analyseVessels()
-                
+      
                 #Save results
                 #TODO: support for other output types.
                 vesselDict, velocityDict = self._SDO.getVesselDict()
+                
+                if not bool(vesselDict):
+                    
+                    continue
+                
                 addonDict = self._SDO.getAddonDict()
                 
                 outputName = dirName + '/' + subject + "-Vessel_Data.txt"
                 SELMADataIO.writeVesselDict(vesselDict, addonDict, outputName)
-                outputName = dirName + '/' + subject + "-averagePIandVelocity_Data.txt"
-                SELMADataIO.writeVelocityDict(velocityDict, addonDict, outputName)
+                outputName = (dirName + '/' + subject + "-averagePIandVelocity "
+                + "_Data.txt")
+                SELMADataIO.writeVelocityDict(velocityDict, addonDict, 
+                                              outputName)
     
                 #Save in single file
                 batchAnalysisResults[i] = self._SDO.getBatchAnalysisResults()
                 
                 outputName = dirName + '/batchAnalysisResults.mat' 
-                SELMADataIO.writeBatchAnalysisDict(batchAnalysisResults, outputName)
+                SELMADataIO.writeBatchAnalysisDict(batchAnalysisResults, 
+                                                   outputName)
                       
                 #Emit progress to progressbar
-                self.signalObject.setProgressBarSignal.emit(int(100 * i / total))
+                self.signalObject.setProgressBarSignal.emit(int(100 * i 
+                                                                / total))
                     
                 i += 1
                 
             outputName = dirName + '/batchAnalysisResults.mat' 
-            SELMADataIO.writeBatchAnalysisDict(batchAnalysisResults, outputName)
+            SELMADataIO.writeBatchAnalysisDict(batchAnalysisResults, 
+                                               outputName)
             
             #Emit progress to progressbar
             self.signalObject.setProgressBarSignal.emit(int(100))
@@ -656,6 +695,3 @@ class SelmaDataModel:
                                                        self._frameMax)
             
         self.signalObject.setPixmapSignal.emit(frame)
-        
-        
-

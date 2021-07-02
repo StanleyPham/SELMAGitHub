@@ -194,9 +194,9 @@ class SelmaSettings(QtWidgets.QWidget):
     def initStructureTab(self):
         """The tab containing the structure settings.        """
         
-        self.structureTab.BasalGangliaBox              = QtWidgets.QCheckBox()
-        self.structureTab.SemiovalCentreBox            = QtWidgets.QCheckBox()
-        self.structureTab.AdvancedClusteringBox        = QtWidgets.QCheckBox()
+        self.structureTab.BasalGangliaButton         = QtWidgets.QRadioButton()
+        self.structureTab.SemiovalCentreButton       = QtWidgets.QRadioButton()
+        self.structureTab.AdvancedClusteringButton   = QtWidgets.QRadioButton()
         
         self.structureTab.label1     = QtWidgets.QLabel("Perform analysis on basal ganglia")
         self.structureTab.label2     = QtWidgets.QLabel("Perform analysis on semioval centre")
@@ -213,11 +213,11 @@ class SelmaSettings(QtWidgets.QWidget):
         
         #Add items to layout
         self.structureTab.layout     = QtWidgets.QGridLayout()
-        self.structureTab.layout.addWidget(self.structureTab.BasalGangliaBox ,
+        self.structureTab.layout.addWidget(self.structureTab.BasalGangliaButton ,
                                       0,0)
-        self.structureTab.layout.addWidget(self.structureTab.SemiovalCentreBox ,
+        self.structureTab.layout.addWidget(self.structureTab.SemiovalCentreButton ,
                                       1,0)
-        self.structureTab.layout.addWidget(self.structureTab.AdvancedClusteringBox,
+        self.structureTab.layout.addWidget(self.structureTab.AdvancedClusteringButton,
                                       3,0)
         
         #Add labels to layout
@@ -590,7 +590,7 @@ class SelmaSettings(QtWidgets.QWidget):
             BasalGanglia   = False
         else:
             BasalGanglia   = BasalGanglia == 'true'
-        self.structureTab.BasalGangliaBox.setChecked(BasalGanglia)
+        self.structureTab.BasalGangliaButton.setChecked(BasalGanglia)
         
         #Select analysis for white matter data
         SemiovalCentre       = settings.value("SemiovalCentre")
@@ -598,7 +598,7 @@ class SelmaSettings(QtWidgets.QWidget):
             SemiovalCentre   = False
         else:
             SemiovalCentre   = SemiovalCentre == 'true'
-        self.structureTab.SemiovalCentreBox.setChecked(SemiovalCentre)
+        self.structureTab.SemiovalCentreButton.setChecked(SemiovalCentre)
         
         #Enable custom clustering for advanced users
         AdvancedClustering    = settings.value("AdvancedClustering")
@@ -606,7 +606,7 @@ class SelmaSettings(QtWidgets.QWidget):
             AdvancedClustering   = False
         else:
             AdvancedClustering   = AdvancedClustering == 'true'
-        self.structureTab.AdvancedClusteringBox.setChecked(AdvancedClustering)
+        self.structureTab.AdvancedClusteringButton.setChecked(AdvancedClustering)
         
         
         #Ghosting settings
@@ -868,9 +868,9 @@ class SelmaSettings(QtWidgets.QWidget):
         #=========================================
         #=========================================
         
-        BasalGanglia   = self.structureTab.BasalGangliaBox.isChecked()
-        SemiovalCentre   = self.structureTab.SemiovalCentreBox.isChecked()
-        AdvancedClustering   = self.structureTab.AdvancedClusteringBox.isChecked()
+        BasalGanglia   = self.structureTab.BasalGangliaButton.isChecked()
+        SemiovalCentre   = self.structureTab.SemiovalCentreButton.isChecked()
+        AdvancedClustering   = self.structureTab.AdvancedClusteringButton.isChecked()
         
         #=========================================
         #=========================================
