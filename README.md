@@ -1,5 +1,5 @@
-# SELMA
-Trial-ready **S**mall Vess**el** MRI **Ma**rkers -- version 1.3.1
+﻿# SELMA
+Trial-ready **S**mall Vess**el** MRI **Ma**rkers -- version 1.4.1
 
 
 The SELMA application is used for extracting and analysing flow information in cerebral vessels. 
@@ -88,7 +88,7 @@ After a mask is obtained, it can be easily removed by drawing a large exclusion 
 
 # Explanation of Algorithm
 
-Before starting the analysis, select the correct anatomical structure in the 'Structure' tab in the settings. This makes sure that the correct cluster settings are used in vessel detection. Without structure selection, the analysis will fail. For advanced users, there is an option to enable custom clustering. This will override the pre-applied cluster settings of the selected anatomical structure. By navigating to the Advanced Clustering tab in the settings, the user can freely select which magnitudes and flows to include in the analysis. The next step is the analysis. This can be run via the Analyse Vessels function in the Analyse menu. It can take a few minutes to perform the analysis. The current version of the program (1.3.1) doesn't have multithreaded support, so it might appear as if the program is frozen. Even if the operating system warns that the program might be stuck, please allow a few (up to 5) minutes to pass before shutting it down.
+Before starting the analysis, select the correct anatomical structure in the 'Structure' tab in the settings. This makes sure that the correct cluster settings are used in vessel detection. Without structure selection, the analysis will fail. For advanced users, there is an option to enable custom clustering. This will override the pre-applied cluster settings of the selected anatomical structure. By navigating to the Advanced Clustering tab in the settings, the user can freely select which magnitudes and flows to include in the analysis. The next step is the analysis. This can be run via the Analyse Vessels function in the Analyse menu. It can take a few minutes to perform the analysis. The current version of the program (1.4.1) doesn't have multithreaded support, so it might appear as if the program is frozen. Even if the operating system warns that the program might be stuck, please allow a few (up to 5) minutes to pass before shutting it down.
 
 The details of the algorithm are more thoroughly described in this work: https://doi.org/10.1002/mrm.26821. Here, a short description of the steps is given.
 
@@ -121,7 +121,7 @@ For each of the vessels that has not been ruled out in previous steps, the veloc
 
 # Batch Analysis
 
-From version 1.3.0 and onwards, batch analysis on both classic and enhanced dicom files is supported. Batch analysis can be found in the analysis menu in SELMA. Regular vessel analysis can be looped over all available dicom files in a single folder to decrease the amount of manual input in SELMA. The results of the vessel analysis of all dicom files in the folder are saved in a single .mat file for further analysis in MATLAB. The data are saved in a cell array where every cell corresponds with a single dicom file. The cells are filled with a structure containing all analysis results of the corresponding dicom file. The .mat file is stored in the same root folder that contains all dicom files. Because there is no multithreading support yet, the progress indicator is not functional and the GUI might appear frozen during batch analysis. A warning is issued to the user prior to batch analysis to not close the GUI while it is frozen as batch analysis will still be running in the background. Batch analysis will continue until it has been completed or an error has occured. In both circumstances the GUI should notify the user what is going on. 
+Batch analysis on both classic and enhanced dicom files is supported. Batch analysis can be found in the analysis menu in SELMA. Regular vessel analysis can be looped over all available dicom files in a single folder to decrease the amount of manual input in SELMA. The results of the vessel analysis of all dicom files in the folder are saved in a single .mat file for further analysis in MATLAB. The data are saved in a cell array where every cell corresponds with a single dicom file. The cells are filled with a structure containing all analysis results of the corresponding dicom file. The .mat file is stored in the same root folder that contains all dicom files. Because there is no multithreading support yet, the progress indicator is not functional and the GUI might appear frozen during batch analysis. A warning is issued to the user prior to batch analysis to not close the GUI while it is frozen as batch analysis will still be running in the background. Batch analysis will continue until it has been completed or an error has occured. In both circumstances the GUI should notify the user what is going on. 
 
 **Enhanced dicom**
 
