@@ -14,7 +14,7 @@ between the SELMA GUI and the data objects. It contains the following classes:
 import os
 import numpy as np
 from PyQt5 import (QtCore)
-# import scipy
+import threading
 
 # ====================================================================
 
@@ -290,7 +290,11 @@ class SelmaDataModel:
             self.signalObject.errorMessageSignal.emit("No DICOM loaded.")
             return
         
-        self._SDO.analyseVessels()
+        self.analysisThread = threading.Thread(
+                                target= self._SDO.analyseVessels,
+                                daemon = True)    
+        
+        self.analysisThread.start()
         
     
     def analyseBatchSlot(self, dirName):

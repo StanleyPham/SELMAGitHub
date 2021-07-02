@@ -14,7 +14,7 @@ from PyQt5 import (QtCore, QtGui, QtWidgets)
 
 # ====================================================================
 
-import SELMAGUIImage
+import SELMAImageViewer
 import SELMAGUISettings
 import SELMAGUIImVar
 
@@ -41,7 +41,7 @@ class SELMAMainWindow(QtWidgets.QMainWindow):
         """:param QPixmap pixmap: |QPixmap| to display"""
         super(SELMAMainWindow, self).__init__()
 
-        self._imageViewer = SELMAGUIImage.ImageViewer()
+        self._imageViewer = SELMAImageViewer.ImageViewer()
         self.setCentralWidget(self._imageViewer)
 
         self.createActions()
