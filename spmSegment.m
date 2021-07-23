@@ -137,7 +137,7 @@ function out    = spmSegment(structural_fn, spm_dir, dcm2nii_dir)
     % return filenames of all the created files
     
     movefile([d filesep 'c2' f e], [newSegDir filesep 'c2' f e]);
-    out = [[d filesep 'c2' f e] filesep 'c2' f e];     %wm file
+    out = [newSegDir filesep 'c2' f e];     %wm file
 
 end
 

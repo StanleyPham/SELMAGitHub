@@ -18,6 +18,7 @@ import numpy as np
 import pydicom
 import imageio
 import scipy.io
+import time
 # import h5py
 from PyQt5 import (QtCore, QtGui, QtWidgets)
 # ====================================================================
@@ -30,50 +31,14 @@ import SELMAGUISettings
 This module contains all methods concerning IO.
 """
 
-# def loadFlowDicom(fname):
-#     """
-#     Loads a single Dicom file containing the phase, modulus and
-#     magnitude frames. 
-    
-#     Args:
-#         fname(str): path to the Dicom file.
-        
-#     Returns:
-#         dcm(pydicom.dcm): dicom object containing all the headers and 
-#         pixel arrays.
-#     """
-    
-#     dcm = pydicom.dcmread(fname)
-#     return dcm
+"PUBLIC"
 
-# def loadFlowDicomFromDirectory( fname):
-#     """Loads all Dicom files in a directory.
+def getBatchAnalysisResults(self):
     
-#     Not implemented yet.
+    _makeBatchAnalysisDict(self)
     
-#     Args:
-#          fname(str): path to directory containing Dicom.
-            
-#     Returns:
-#         A merged Dicom object that behaves as if it's a non-classic Dicom.
-#         """
-#     pass
-
-# # ====================================================================
-
-# def loadDicom(fname):
-#     """
-#     Loads a single Dicom file containing the phase, modulus and
-#     magnitude frames. 
+    return self._batchAnalysisDict
     
-#     Args:
-#         fname(str): path to the Dicom file.
-        
-#     Returns:
-#         dcm(pydicom.dcm): dicom object containing all the headers and 
-#         pixel arrays.
-#     """
-#     pass
 
 def loadMask( fname):
     """Loads a mask file. The following types are supported:
@@ -140,30 +105,122 @@ def saveMask(fname, mask):
     elif    ext == ".npy":
         np.save(fname, mask)
         scipy.io.savemat(fname[0:len(fname)-4], {'WMslice': mask})
-        
     
-#    elif    ext == ".mat":
-#        mask = makeMatlabDict(mask)
-#        
-#        
-#def makeMatlabDict(mask):
-#    """
-#    Turns an ndarray object into a dictionary that can be read by
-#    Matlab.
-#    
-#    Not implemented yet.
-#    
-#    Args:
-#        mask(numpy.ndarray): binary mask
-#    
-#    Returns
-#        maskDict(dict): dictionary that can be saved to .mat file.
-#    
-#    """
-#    
-#    #TODO: implement
-#    
-#    return mask
+def _makeBatchAnalysisDict(self):
+    """"Makes a dictionary containing the following statistics per scan:
+        No. of vessels
+        V_mean
+        V_mean SEM
+        PI_mean
+        PI_mean SEM
+        mean Velocity Trace
+    """
+    
+    self._batchAnalysisDict = dict()
+    
+    # if self._readFromSettings('deduplicate'):
+
+    self._batchAnalysisDict['No_of_vessels'] = self._velocityDict[0][
+                                                    'No. included vessels'] 
+    self._batchAnalysisDict['V_mean'] = self._velocityDict[0][
+                                                    'Vmean vessels'] 
+    self._batchAnalysisDict['PI_mean'] = self._velocityDict[0][
+                                                    'PI_norm vessels']
+            
+    self._batchAnalysisDict['V_mean_SEM'] = self._velocityDict[0][
+                                                    'Vmean SEM'] 
+    self._batchAnalysisDict['PI_mean_SEM'] = self._velocityDict[0][
+                                                    'PI_norm SEM']  
+    self._batchAnalysisDict['Filename'] = self._dcmFilename   
+
+    velocityTrace = np.zeros((self._batchAnalysisDict['No_of_vessels'],
+                              len(self._correctedVelocityFrames)))
+            
+    for blob in range(1, self._batchAnalysisDict['No_of_vessels'] + 1):
+        
+        for vessel in range(0,len(self._vesselDict)):
+            
+            if self._vesselDict[vessel]['iblob'] == blob and (
+                    self._vesselDict[vessel]['ipixel'] == 1):
+
+                for num in range(1,len(self._correctedVelocityFrames) + 1):
+                   
+                   if num < 10:
+                           
+                       numStr = '0' + str(num)
+                           
+                   else:
+                           
+                       numStr = str(num)
+                       
+                   velocityTrace[blob - 1,num - 1] = abs(self._vesselDict[
+                                                  vessel]['Vpha' + numStr])
+                
+                break
+
+    self._batchAnalysisDict['Velocity_trace'] = np.mean(velocityTrace,
+                                                        axis=0)
+
+def _writeToFile(self):
+    """
+    Creates a filename for the output and passes it to writeVesselDict
+    along with the vesselDict object to be written. The velocityDict 
+    object is written to a different file. 
+    """
+
+    #Message if no vessels were found
+    if len(np.nonzero(self._lone_vessels)[0]) == 0:
+        
+        self._signalObject.errorMessageSignal.emit("No vessels Found")
+        return
+    
+    #Get filename for textfile output for vesselData
+    fname = self._dcmFilename[:-4]
+    fname += "-Vessel_Data.txt"
+    
+    #Get filename for textfile output for velocityData
+    fname_vel = self._dcmFilename[:-4]
+    fname_vel += "-averagePIandVelocity_Data.txt"
+    
+    addonDict = getAddonDict(self)
+    
+    writeVesselDict(self._vesselDict,
+                                addonDict,
+                                fname)
+    
+    writeVelocityDict(self._velocityDict,
+                                addonDict,
+                                fname_vel)
+    
+def getAddonDict(self):
+    """Makes a dictionary that contains the necessary information for
+    repeating the analysis.""" 
+    
+    COMPANY, APPNAME, version = SELMAGUISettings.getInfo()
+    COMPANY             = COMPANY.split()[0]
+    APPNAME             = APPNAME.split()[0]
+    version             = version.split()[0]
+    settings            = QtCore.QSettings(COMPANY, APPNAME)
+    
+    addonDict   = dict()
+    
+    for key in settings.allKeys():
+        addonDict[key]  = settings.value(key)
+    
+    venc                = self._selmaDicom.getTags()['venc']
+    addonDict['venc']   = venc
+    addonDict['version']= version
+    
+    date                = time.localtime()
+    datestr     = str(date[2]) + '/' + str(date[1]) + '/' + str(date[0])
+    timestr     = str(date[3]) + ':' + str(date[4]) + ':' + str(date[5])
+    addonDict['date']   = datestr
+    addonDict['time']   = timestr
+    
+    addonDict['filename'] = self._dcmFilename
+    
+    return addonDict        
+    
 
 def writeVesselDict(vesselDict, addonDict, fname):
     """
@@ -228,9 +285,9 @@ def writeVelocityDict(velocityDict, addonDict, fname):
     APPNAME             = APPNAME.split()[0]
     settings            = QtCore.QSettings(COMPANY, APPNAME)
     decimalComma        = settings.value('decimalComma') == 'true'
-
+    
     with open(fname, 'w') as f:    
-
+    
         for key in velocityDict[0].keys():
             f.write(key)
             f.write('\t')
@@ -266,9 +323,8 @@ def writeBatchAnalysisDict(batchAnalysisResults, fname):
     for scan in range(0, len(batchAnalysisResults)):
           
         struct_object.append(batchAnalysisResults[scan])        
-
+    
     scipy.io.savemat(fname,{'Results':[struct_object]})
-    
-    
-    
-    
+
+
+

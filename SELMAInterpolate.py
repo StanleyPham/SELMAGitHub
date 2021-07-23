@@ -10,10 +10,11 @@ This static module contains the following functions:
 """
 
 import numpy as np
+import pydicom
 from PyQt5 import (QtCore, QtGui, QtWidgets)
 from scipy.interpolate import RegularGridInterpolator
 
-def getLibraries():
+def getLibraries(self):
     """
         Checks for the existence of necessary libraries, prompts the user if
         none exist. 
@@ -24,33 +25,51 @@ def getLibraries():
 
     COMPANY = "UMCu"
     APPNAME = "SELMA"
-    
-    #import pdb; pdb.set_trace()
-    
+
     settings = QtCore.QSettings(COMPANY, APPNAME)
     
     libs    = []
-    
+ 
     #SPM
     try:
         dirname     = settings.value("spmDir")
+        
+        if dirname is None:
+                                
+            dirname = QtWidgets.QFileDialog.getExistingDirectory(
+                                                      caption =
+                                                      'Open SPM12 folder')
+            settings.setValue("spmDir",      dirname)
+            
     except:
+        
         dirname = QtWidgets.QFileDialog.getExistingDirectory(
-                                                      'Open SPM12 folder',
-                                                      ''
-                                                      )
-        settings.setValuelue("spmDir",      dirname)
+                                                      caption =
+                                                      'Open SPM12 folder')
+        settings.setValue("spmDir",      dirname)
         
     libs.append(dirname)
         
     try:
         dirname     = settings.value("dcm2niiDir")
-    except:
-        dirname = QtWidgets.QFileDialog.getExistingDirectory(
-                                                      'Open dcm2nii folder',
-                                                      ''
+        
+        if dirname is None:
+            
+            dirname = QtWidgets.QFileDialog.getExistingDirectory(
+                                                      caption =
+                                                      'Open dcm2nii folder'
                                                       )
-        settings.setValuelue("dcm2niiDir",      dirname)
+        
+            settings.setValue("dcm2niiDir",      dirname)
+            
+    except:
+        
+        dirname = QtWidgets.QFileDialog.getExistingDirectory(
+                                                      caption =
+                                                      'Open dcm2nii folder'
+                                                      )
+        
+        settings.setValue("dcm2niiDir",      dirname)
     
     libs.append(dirname)
     
@@ -60,33 +79,62 @@ def getTransMatrix(info):
     '''Returns the rotation and transformation matrices based on the image 
     position and image orientation for a dicom info object.'''
     
-    
-    #Find the rightmost(?) frame and get the ImagePositionPatien from there
+    # import pdb; pdb.set_trace()
+    #Find the rightmost(?) frame and get the ImagePositionPatient from there
     maxIdx  = 0
     maxVal  = -1e10
-    for i in range(info.pixel_array.shape[0]):
-        val     = info.PerFrameFunctionalGroupsSequence[i].\
-                                  PlanePositionSequence[0].\
-                                  ImagePositionPatient[0]
-                                   
-        if float(val) > maxVal:
-            maxVal = float(val)
-            maxIdx   = i
+    vals = []
+    
+    if type(info) is list:
+        
+        i = 0
+        
+        for frame in info:
+            
+            T1dcm = pydicom.dcmread(frame)
+            val     = T1dcm.ImagePositionPatient[0]
+            vals.append(val)
+            
+            if float(val) > maxVal:
+                maxVal = float(val)
+                maxIdx   = i
+                
+            i = i + 1
+        
+        info = pydicom.dcmread(info[maxIdx])
+            
+        ipp = info.ImagePositionPatient
+        ipp = [float(ipp[0]), float(ipp[1]), float(ipp[2])] #coordinates of right most pixel
+        iop = info.ImageOrientationPatient # orientation (direction of axes)
+        ps  = info.PixelSpacing 
+        ps  = [float(ps[0]), float(ps[1])] # Pixel spacing
+        st  = float(info.SliceThickness) #Slice thickness
+        
+    else:
+    
+        for i in range(info.pixel_array.shape[0]):
+            val     = info.PerFrameFunctionalGroupsSequence[i].\
+                                      PlanePositionSequence[0].\
+                                      ImagePositionPatient[0]
+                                       
+            if float(val) > maxVal:
+                maxVal = float(val)
+                maxIdx   = i
            
-    ipp = info.PerFrameFunctionalGroupsSequence[maxIdx].\
-                PlanePositionSequence[0].\
-                ImagePositionPatient
-    ipp = [float(ipp[0]), float(ipp[1]), float(ipp[2])]
-    iop = info.PerFrameFunctionalGroupsSequence[0].\
-                PlaneOrientationSequence[0].\
-                ImageOrientationPatient
-    ps  = info.PerFrameFunctionalGroupsSequence[0].\
-        PixelMeasuresSequence[0].\
-            PixelSpacing
-    ps  = [float(ps[0]), float(ps[1])]
-    st  = float(info.
-              PerFrameFunctionalGroupsSequence[0]
-              [0x2005,0x140f][0].SliceThickness)
+        ipp = info.PerFrameFunctionalGroupsSequence[maxIdx].\
+                    PlanePositionSequence[0].\
+                    ImagePositionPatient
+        ipp = [float(ipp[0]), float(ipp[1]), float(ipp[2])] #coordinates of right most pixel
+        iop = info.PerFrameFunctionalGroupsSequence[0].\
+                    PlaneOrientationSequence[0].\
+                    ImageOrientationPatient # orientation (direction of axes)
+        ps  = info.PerFrameFunctionalGroupsSequence[0].\
+            PixelMeasuresSequence[0].\
+                PixelSpacing 
+        ps  = [float(ps[0]), float(ps[1])] # Pixel spacing
+        st  = float(info.
+                  PerFrameFunctionalGroupsSequence[0]
+                  [0x2005,0x140f][0].SliceThickness) #Slice thickness
 
 
     #%Translate to put top left pixel at ImagePositionPatient
@@ -144,8 +192,9 @@ def doInterpolation(M, t1im, pcaShape):
         program. It has been tested and seems to work, but many of the steps
         are only empirically verified (= I don't know why everything works
                                        the way it does.)
+        
         '''
-    
+
         #swap axes for x and y 
         t1toqfnew = np.zeros((4,4))
         t1toqfnew[:,0] = M[:,1]
@@ -222,8 +271,7 @@ def doInterpolation(M, t1im, pcaShape):
         y = np.arange(0,t1_3D.shape[1])
         z = np.arange(0,t1_3D.shape[2])
         inter = RegularGridInterpolator((x,y,z), t1_3D)
-        
-        
+   
         # Interpolate at the pca coordinate locations
         inp     = inter(pts)
         

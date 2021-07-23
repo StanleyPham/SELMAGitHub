@@ -33,20 +33,10 @@ def _readFromSettings(self, key):
         return True
     if val == "false":
         return False
-
-def calculateParameters(self):
-    """
-    Computes the average velocity over all the detected vessels and 
-    computes the PI over all the vessels using the average normalised
-    velocity. This implementation completely corresponds with the method
-    found in MATLAB.
-    """
     
-    BasalGanglia           = self._readFromSettings('BasalGanglia')
-    SemiovalCentre         = self._readFromSettings('SemiovalCentre')
-    AdvancedClustering     = self._readFromSettings('AdvancedClustering')
+def obtainFilters(self):
     
-    if AdvancedClustering:
+    if self._readFromSettings('AdvancedClustering'):
         
         PositiveMagnitude = self._readFromSettings('PositiveMagnitude')
         NegativeMagnitude = self._readFromSettings('NegativeMagnitude')
@@ -55,18 +45,18 @@ def calculateParameters(self):
         PositiveFlow = self._readFromSettings('PositiveFlow')
         NegativeFlow = self._readFromSettings('NegativeFlow')
         
-        Magnitude_filter = np.array([PositiveMagnitude, NegativeMagnitude, 
+        self._Magnitude_filter = np.array([PositiveMagnitude, NegativeMagnitude, 
                                      IsointenseMagnitude])
-        Flow_filter = np.array([PositiveFlow, NegativeFlow])
+        self._Flow_filter = np.array([PositiveFlow, NegativeFlow])
     
     meanVelocity    = np.mean(self._correctedVelocityFrames,axis = 0)
     
-    V_cardiac_cycle = np.zeros((len(self._lone_vessels),
+    self._V_cardiac_cycle = np.zeros((len(self._lone_vessels),
                                 self._correctedVelocityFrames.shape[0] 
                                 + 3))
 
-    Magnitudes = np.zeros((len(self._lone_vessels),3))
-    Flows = np.zeros((len(self._lone_vessels),2))
+    self._Magnitudes = np.zeros((len(self._lone_vessels),3))
+    self._Flows = np.zeros((len(self._lone_vessels),2))
 
     for idx, vessel in enumerate(self._lone_vessels):
     
@@ -77,90 +67,80 @@ def calculateParameters(self):
             
         pidx = np.where(vessel_velocities == max(vessel_velocities))
          
-        V_cardiac_cycle[idx,0] = vesselCoords[0][pidx[0][0]]
-        V_cardiac_cycle[idx,1] = vesselCoords[1][pidx[0][0]]
+        self._V_cardiac_cycle[idx,0] = vesselCoords[0][pidx[0][0]]
+        self._V_cardiac_cycle[idx,1] = vesselCoords[1][pidx[0][0]]
         
-        Flows[idx,0] = round(self._sigFlowPos[vesselCoords[0][pidx[0][0]],
+        self._Flows[idx,0] = round(self._sigFlowPos[vesselCoords[0][pidx[0][0]],
                             vesselCoords[1][pidx[0][0]]],  4)
-        Flows[idx,1] = round(self._sigFlowNeg[vesselCoords[0][pidx[0][0]],
+        self._Flows[idx,1] = round(self._sigFlowNeg[vesselCoords[0][pidx[0][0]],
                             vesselCoords[1][pidx[0][0]]],  4)
-        Magnitudes[idx,0] = round(self._sigMagPos[vesselCoords[0]
+        self._Magnitudes[idx,0] = round(self._sigMagPos[vesselCoords[0]
                             [pidx[0][0]],vesselCoords[1][pidx[0][0]]],  4)
-        Magnitudes[idx,1] = round(self._sigMagNeg[vesselCoords[0]
+        self._Magnitudes[idx,1] = round(self._sigMagNeg[vesselCoords[0]
                             [pidx[0][0]],vesselCoords[1][pidx[0][0]]],  4)
-        Magnitudes[idx,2] = round(self._sigMagIso[vesselCoords[0]
+        self._Magnitudes[idx,2] = round(self._sigMagIso[vesselCoords[0]
                             [pidx[0][0]],vesselCoords[1][pidx[0][0]]],  4)
         
-        V_cardiac_cycle[idx,2] = idx + 1
+        self._V_cardiac_cycle[idx,2] = idx + 1
         
-        V_cardiac_cycle[
-        idx,3:V_cardiac_cycle.shape[1]] = self._correctedVelocityFrames[
+        self._V_cardiac_cycle[
+        idx,3:self._V_cardiac_cycle.shape[1]] = self._correctedVelocityFrames[
         :,vesselCoords[0][pidx[0][0]],vesselCoords[1][pidx[0][0]]].ravel()
-        
-    # Include vessels that satisfy the conditions of the Basal Ganglia or 
-    # Semioval Centre respectively
-
-    if BasalGanglia:
-        
-        if AdvancedClustering:
-            
-            selectedMagnitudes = np.where(Magnitude_filter == 1)[0]
-            selectedFlows = np.where(Flow_filter == 1)[0]
-            
-            V_cardiac_cycle = V_cardiac_cycle[np.intersect1d(
-                np.where(Flows[:,selectedFlows] == 1)[0],np.where(
-                    Magnitudes[:,selectedMagnitudes] == 1)[0]),:]
-            
-            self._included_vessels = [i for j, 
-            i in enumerate(self._lone_vessels) 
-            if j in np.intersect1d(np.where(Flows[:,selectedFlows] == 1)[0]
-            ,np.where(Magnitudes[:,selectedMagnitudes] == 1)[0])]
-            
-        else:
+    
+def filterVelocities(self):
+      
+    if self._readFromSettings('BasalGanglia'):
                         
-            V_cardiac_cycle = V_cardiac_cycle[np.intersect1d(
-            np.where(Flows[:,0] == 1)[0],
-            np.where(Magnitudes[:,0] == 1)[0]),:]
-        
-            self._included_vessels = [i for j, 
-            i in enumerate(self._lone_vessels) 
-            if j in np.intersect1d(np.where(Flows[:,0] == 1)[0]
-                                   ,np.where(Magnitudes[:,0] == 1)[0])]
+        self._V_cardiac_cycle = self._V_cardiac_cycle[np.intersect1d(
+        np.where(self._Flows[:,0] == 1)[0],
+        np.where(self._Magnitudes[:,0] == 1)[0]),:]
+    
+        self._included_vessels = [i for j, 
+        i in enumerate(self._lone_vessels) 
+        if j in np.intersect1d(np.where(self._Flows[:,0] == 1)[0]
+                               ,np.where(self._Magnitudes[:,0] == 1)[0])]
 
-    if SemiovalCentre:
+    elif self._readFromSettings('SemiovalCentre'):
+ 
+        self._V_cardiac_cycle = self._V_cardiac_cycle[np.where(self._Flows[
+            :,1]  == 1)[0],:]
+    
+        self._included_vessels = [i for j, 
+        i in enumerate(self._lone_vessels) if j in np.where(self._Flows[:,1] 
+                                                            == 1)[0]]
         
-        if AdvancedClustering:
-            
-            selectedMagnitudes = np.where(Magnitude_filter == 1)[0]
-            selectedFlows = np.where(Flow_filter == 1)[0]
-            
-            V_cardiac_cycle = V_cardiac_cycle[np.intersect1d(
-                np.where(Flows[:,selectedFlows] == 1)[0],
-                np.where(Magnitudes[:,selectedMagnitudes] == 1)[0]),:]
-            
-            self._included_vessels = [i for j, 
-            i in enumerate(self._lone_vessels) 
-            if j in np.intersect1d(np.where(Flows[:,selectedFlows] == 1)[0]
-            ,np.where(Magnitudes[:,selectedMagnitudes] == 1)[0])]
+    elif self._readFromSettings('AdvancedClustering'):
+    
+        selectedMagnitudes = np.where(self._Magnitude_filter == 1)[0]
+        selectedFlows = np.where(self._Flow_filter == 1)[0]
         
-        else:
+        self._V_cardiac_cycle = self._V_cardiac_cycle[np.intersect1d(
+            np.where(self._Flows[:,selectedFlows] == 1)[0], np.where(
+                self._Magnitudes[:,selectedMagnitudes] == 1)[0]),:]
         
-            V_cardiac_cycle = V_cardiac_cycle[np.where(Flows[:,1] == 1)
-                                              [0],:]
-        
-            self._included_vessels = [i for j, 
-            i in enumerate(self._lone_vessels) if j in np.where(Flows[:,1] 
-                                                                == 1)[0]]
+        self._included_vessels = [i for j, 
+        i in enumerate(self._lone_vessels) 
+        if j in np.intersect1d(np.where(self._Flows[:,selectedFlows] == 1)[0],
+                    np.where(self._Magnitudes[:,selectedMagnitudes] == 1)[0])]
 
-    # import pdb; pdb.set_trace()
+def calculateParameters(self):
+    """
+    Computes the average velocity over all the detected vessels and 
+    computes the PI over all the vessels using the average normalised
+    velocity. This implementation completely corresponds with the method2
+    found in MATLAB.
+    """
+  
+    obtainFilters(self)
+    filterVelocities(self)
 
-    for idx in np.where(V_cardiac_cycle[:,3:
+    for idx in np.where(self._V_cardiac_cycle[:,3:
                 self._correctedVelocityFrames.shape[0] + 3] > 
                         self._selmaDicom.getTags()['venc'])[0]:
  
         del(self._included_vessels[idx])
 
-    V_cardiac_cycle = abs(V_cardiac_cycle)
+    V_cardiac_cycle = abs(self._V_cardiac_cycle)
     
     V_cardiac_cycle = np.delete(V_cardiac_cycle, np.where(
     V_cardiac_cycle[:,3:self._correctedVelocityFrames.shape[0] + 3] 

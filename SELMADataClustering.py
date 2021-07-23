@@ -121,6 +121,18 @@ def _readFromSettings(self, key):
     
     return float(val)
 
+def clustering(FlowMag, clusters):
+
+    # Find clusters with negative flow and postive magnitude
+    ncomp, labels = cv2.connectedComponents(FlowMag.astype(np.uint8))
+    
+    # Append the found clusters to the total amount of found vessels
+    for comp in range(1,ncomp):
+        
+        clusters.append(labels == comp)
+        
+    return ncomp, clusters
+
 def clusterVessels(self):
     """
     Uses the flow and magnitude classifications to cluser the vessels.
@@ -145,7 +157,10 @@ def clusterVessels(self):
                 masks. The algorithm first checks positive magnitude
                 clusters and then negative magnitude clusters and removes
                 them from flow mask if the magnitude is significant. The
-                remaining clusters are then grouped as isointense.
+                remaining clusters are then grouped as isointense.              
+    02-07-2021: Created a separate script file for the clustering function.
+                Furthermore, we refactored the code to make the function more 
+                easy to understand. 
         """    
     
     BasalGanglia           = self._readFromSettings('BasalGanglia')
@@ -185,49 +200,31 @@ def clusterVessels(self):
 
     'Positive magnitude clustering'
 
-    # original flow masks with significant magnitudes in either direction
-    entry_mask_VNeg = self._sigFlowNeg 
-    entry_mask_VPos = self._sigFlowPos
-
     # Mask containing positive or negative flow with positive magnitude
-    VNegMPos      = entry_mask_VNeg.astype(np.uint8) * self._sigMagPos
-    VPosMPos      = entry_mask_VPos.astype(np.uint8) * self._sigMagPos
-    
-    if PositiveMagnitude and NegativeFlow:
-    
-        #VNegMPos
-        # Find clusters with negative flow and postive magnitude
-        ncomp_VNegMPos, labels = cv2.connectedComponents(VNegMPos
-                                                         .astype(np.uint8))
-        
-        # Append the found clusters to the total amount of found vessels
-        for comp in range(1,ncomp_VNegMPos):
-            self._clusters.append(labels == comp)
+    VPosMPos      = self._sigFlowPos.astype(np.uint8) * self._sigMagPos
+    VNegMPos      = self._sigFlowNeg.astype(np.uint8) * self._sigMagPos
             
-    else:
-        
-        ncomp_VNegMPos = 1
-    
     # Remove found and overlapping clusters from flow mask
-    output_mask_VNeg = remove_ccs_from_mask(entry_mask_VNeg,VNegMPos)
+    entry_mask_VPos = remove_ccs_from_mask(self._sigFlowPos.astype(np.uint8),
+                                           VPosMPos)
+    entry_mask_VNeg = remove_ccs_from_mask(self._sigFlowNeg.astype(np.uint8),
+                                           VNegMPos)
     
     if PositiveMagnitude and PositiveFlow:
     
-        #VPosMPos
-        # Find clusters with positive flow and postive magnitude
-        ncomp_VPosMPos, labels = cv2.connectedComponents(VPosMPos.
-                                                         astype(np.uint8))
+        ncomp_VPosMPos, self._clusters = clustering(VPosMPos, self._clusters)
         
-        # Append the found clusters to the total amount of found vessels
-        for comp in range(1,ncomp_VPosMPos):
-            self._clusters.append(labels == comp)
-            
     else:
         
         ncomp_VPosMPos = 1
-            
-    # Remove found and overlapping clusters from flow mask
-    output_mask_VPos = remove_ccs_from_mask(entry_mask_VPos,VPosMPos)
+    
+    if PositiveMagnitude and NegativeFlow:
+        
+        ncomp_VNegMPos, self._clusters = clustering(VNegMPos, self._clusters) 
+        
+    else:
+        
+        ncomp_VNegMPos = 1
         
     self._NoMPosClusters = (ncomp_VNegMPos - 1) + (ncomp_VPosMPos - 1)
  
@@ -235,310 +232,67 @@ def clusterVessels(self):
     
     # Output masks of positive magnitude clustering is input for the
     # negative magnitude clustering. Flow masks with only negative 
-    # significant magnitudes are remaining    
-    entry_mask_VNeg = output_mask_VNeg.astype(np.uint8)
-    entry_mask_VPos = output_mask_VPos.astype(np.uint8)
-    
-    # Mask containing positive or negative flow with negative magnitude
-    VNegMNeg      = entry_mask_VNeg.astype(np.uint8) * self._sigMagNeg
+    # significant magnitudes are remaining. Mask containing positive or 
+    # negative flow with negative magnitude
     VPosMNeg      = entry_mask_VPos.astype(np.uint8) * self._sigMagNeg
-    
-    if NegativeMagnitude and NegativeFlow:
-    
-        #VNegMNeg
-        # Find clusters with negative flow and negative magnitude
-        ncomp_VNegMNeg, labels = cv2.connectedComponents(VNegMNeg.
-                                                         astype(np.uint8))
-       
-        # Append the found clusters to the total amount of found vessels
-        for comp in range(1,ncomp_VNegMNeg):
-            self._clusters.append(labels == comp)
-            
-    else:
-        
-        ncomp_VNegMNeg = 1
+    VNegMNeg      = entry_mask_VNeg.astype(np.uint8) * self._sigMagNeg
     
     # Remove found and overlapping clusters from flow mask
-    output_mask_VNeg = remove_ccs_from_mask(entry_mask_VNeg,VNegMNeg)
+    entry_mask_VPos = remove_ccs_from_mask(entry_mask_VPos.astype(np.uint8),
+                                           VPosMNeg)
+    entry_mask_VNeg = remove_ccs_from_mask(entry_mask_VNeg.astype(np.uint8),
+                                           VNegMNeg)
     
     if NegativeMagnitude and PositiveFlow:
-    
-        #VPosMNeg
-        # Find clusters with positive flow and negative magnitude
-        ncomp_VPosMNeg, labels = cv2.connectedComponents(VPosMNeg.
-                                                         astype(np.uint8))
- 
-        # Append the found clusters to the total amount of found vessels
-        for comp in range(1,ncomp_VPosMNeg):
-            self._clusters.append(labels == comp)
+        
+        ncomp_VPosMNeg, self._clusters = clustering(VPosMNeg, self._clusters)
             
     else:
         
         ncomp_VPosMNeg = 1
-     
-    # Remove found and overlapping clusters from flow mask
-    output_mask_VPos = remove_ccs_from_mask(entry_mask_VPos,VPosMNeg)
     
+    if NegativeMagnitude and NegativeFlow:
+
+        ncomp_VNegMNeg, self._clusters = clustering(VNegMNeg, self._clusters)
+        
+    else:
+        
+        ncomp_VNegMNeg = 1
+
     self._NoMNegClusters = (ncomp_VNegMNeg - 1) + (ncomp_VPosMNeg - 1)
             
     'Isointense magnitude clustering'
 
     # Output masks of negative magnitude clustering is input for the
     # isointense magnitude clustering. Flow masks with neither positive or 
-    # negative significant magnitude are remaining.
-    entry_mask_VNeg = output_mask_VNeg.astype(np.uint8)
-    entry_mask_VPos = output_mask_VPos.astype(np.uint8)
-    
-    # Mask containing positive or negative flow with isointense magnitude
-    VNegMIso      = entry_mask_VNeg.astype(np.uint8) * self._sigMagIso
+    # negative significant magnitude are remaining. Mask containing positive 
+    # or negative flow with isointense magnitude
     VPosMIso      = entry_mask_VPos.astype(np.uint8) * self._sigMagIso
-    
-    if IsointenseMagnitude and NegativeFlow:
-    
-        #VNegMIso
-        # Find clusters with negative flow and iosintense magnitude
-        ncomp_VNegMIso, labels = cv2.connectedComponents(VNegMIso.
-                                                         astype(np.uint8))
-
-        # Append the found clusters to the total amount of found vessels
-        for comp in range(1,ncomp_VNegMIso):
-            self._clusters.append(labels == comp)
-            
-    else: 
-        
-        ncomp_VNegMIso = 1
-        
-    # Remove found and overlapping clusters from flow mask    
-    output_mask_VNeg = remove_ccs_from_mask(entry_mask_VNeg,VNegMIso)
+    VNegMIso      = entry_mask_VNeg.astype(np.uint8) * self._sigMagIso
     
     if IsointenseMagnitude and PositiveFlow:
     
-        #VPosMIso
-        # Find clusters with positive flow and iosintense magnitude
-        ncomp_VPosMIso, labels = cv2.connectedComponents(VPosMIso.
-                                                         astype(np.uint8))
-
-        # Append the found clusters to the total amount of found vessels
-        for comp in range(1,ncomp_VPosMIso):
-            self._clusters.append(labels == comp)
+        ncomp_VPosMIso, self._clusters = clustering(VPosMIso, self._clusters)
             
     else: 
         
         ncomp_VPosMIso = 1
+           
+    if IsointenseMagnitude and NegativeFlow:
     
-    # Remove found and overlapping clusters from flow mask                            
-    output_mask_VPos = remove_ccs_from_mask(entry_mask_VPos,VPosMIso)
+        ncomp_VNegMIso, self._clusters = clustering(VNegMIso, self._clusters)
+            
+    else: 
+        
+        ncomp_VNegMIso = 1
     
     self._NoMIsoClusters = (ncomp_VNegMIso - 1) + (ncomp_VPosMIso - 1)
-    
-    """Previous attempt for clustering based solely on magnitude"""
-    
-    # 'Positive magnitude clustering'
-    
-    # if SemiovalCentre:
-    
-    #     # original flow masks with significant magnitudes in either direction
-    #     entry_mask_VNeg = self._sigFlowNeg 
-    #     entry_mask_VPos = self._sigFlowPos
-    
-    #     # Mask containing positive or negative flow with positive magnitude
-    #     VNegMPos      = entry_mask_VNeg.astype(np.uint8) * self._sigMagPos
-    #     VPosMPos      = entry_mask_VPos.astype(np.uint8) * self._sigMagPos
-    
-    #     if PositiveMagnitude and NegativeFlow:
-    
-    #         #VNegMPos
-    #         # Find clusters with negative flow and postive magnitude
-    #         ncomp_VNegMPos, labels = cv2.connectedComponents(VNegMPos.astype(np.uint8))
-        
-    #         # Append the found clusters to the total amount of found vessels
-    #         for comp in range(1,ncomp_VNegMPos):
-    #             self._clusters.append(labels == comp)
-            
-    #     else:
-        
-    #         ncomp_VNegMPos = 1
-    
-    #     # Remove found and overlapping clusters from flow mask
-    #     output_mask_VNeg = remove_ccs_from_mask(entry_mask_VNeg,VNegMPos)
-    
-    #     if PositiveMagnitude and PositiveFlow:
-    
-    #         #VPosMPos
-    #         # Find clusters with positive flow and postive magnitude
-    #         ncomp_VPosMPos, labels = cv2.connectedComponents(VPosMPos.astype(np.uint8))
-        
-    #         # Append the found clusters to the total amount of found vessels
-    #         for comp in range(1,ncomp_VPosMPos):
-    #             self._clusters.append(labels == comp)
-            
-    #     else:
-        
-    #         ncomp_VPosMPos = 1
-    
-    #     # Remove found and overlapping clusters from flow mask
-    #     output_mask_VPos = remove_ccs_from_mask(entry_mask_VPos,VPosMPos)
-        
-    #     self._NoMPosClusters = (ncomp_VNegMPos - 1) + (ncomp_VPosMPos - 1)
-    
-    # elif BasalGanglia:
-    
-    #     mask = self._mask.astype(bool)
-    
-    #     #VNegMPos
-    #     # Find clusters with postive magnitude
-    #     ncomp_MPos, labels = cv2.connectedComponents(self._sigMagPos.astype(np.uint8) * mask)
-    
-    #     if PositiveMagnitude: 
-    
-    #         # Append the found clusters to the total amount of found vessels
-    #         for comp in range(1,ncomp_MPos):
-    #             self._clusters.append(labels == comp)
-            
-    #         self._NoMPosClusters = (ncomp_MPos - 1)
-            
-    #     else:
-        
-    #         self._NoMPosClusters = 0
-     
-    # 'Negative magnitude clustering'
-    
-    # if SemiovalCentre:
-    
-    #     # Output masks of positive magnitude clustering is input for the
-    #     # negative magnitude clustering. Flow masks with only negative 
-    #     # significant magnitudes are remaining    
-    #     entry_mask_VNeg = output_mask_VNeg.astype(np.uint8)
-    #     entry_mask_VPos = output_mask_VPos.astype(np.uint8)
-    
-    #     # Mask containing positive or negative flow with negative magnitude
-    #     VNegMNeg      = entry_mask_VNeg.astype(np.uint8) * self._sigMagNeg
-    #     VPosMNeg      = entry_mask_VPos.astype(np.uint8) * self._sigMagNeg
-    
-    #     if NegativeMagnitude and NegativeFlow:
-    
-    #         #VNegMNeg
-    #         # Find clusters with negative flow and negative magnitude
-    #         ncomp_VNegMNeg, labels = cv2.connectedComponents(VNegMNeg.astype(np.uint8))
-       
-    #         # Append the found clusters to the total amount of found vessels
-    #         for comp in range(1,ncomp_VNegMNeg):
-    #             self._clusters.append(labels == comp)
-            
-    #     else:
-        
-    #         ncomp_VNegMNeg = 1
-    
-    #     # Remove found and overlapping clusters from flow mask
-    #     output_mask_VNeg = remove_ccs_from_mask(entry_mask_VNeg,VNegMNeg)
-    
-    #     if NegativeMagnitude and PositiveFlow:
-    
-    #         #VPosMNeg
-    #         # Find clusters with positive flow and negative magnitude
-    #         ncomp_VPosMNeg, labels = cv2.connectedComponents(VPosMNeg.astype(np.uint8))
-     
-    #         # Append the found clusters to the total amount of found vessels
-    #         for comp in range(1,ncomp_VPosMNeg):
-    #             self._clusters.append(labels == comp)
-            
-    #     else:
-        
-    #         ncomp_VPosMNeg = 1
-     
-    #     # Remove found and overlapping clusters from flow mask
-    #     output_mask_VPos = remove_ccs_from_mask(entry_mask_VPos,VPosMNeg)
-    
-    #     self._NoMNegClusters = (ncomp_VNegMNeg - 1) + (ncomp_VPosMNeg - 1)
-    
-    # elif BasalGanglia:
-    
-    #     #VNegMPos
-    #     # Find clusters with negative magnitude
-    #     ncomp_MNeg, labels = cv2.connectedComponents(self._sigMagNeg.astype(np.uint8) * mask)
-    
-    #     if NegativeMagnitude: 
-     
-    #         # Append the found clusters to the total amount of found vessels
-    #         for comp in range(1,ncomp_MNeg):
-    #             self._clusters.append(labels == comp)
-            
-    #         self._NoMNegClusters = (ncomp_MNeg - 1)
-            
-    #     else:
-        
-    #         self._NoMNegClusters = 0
-        
-    # 'Isointense magnitude clustering'
-    
-    # if SemiovalCentre:
-    
-    #     # Output masks of negative magnitude clustering is input for the
-    #     # isointense magnitude clustering. Flow masks with neither positive or 
-    #     # negative significant magnitude are remaining.
-    #     entry_mask_VNeg = output_mask_VNeg.astype(np.uint8)
-    #     entry_mask_VPos = output_mask_VPos.astype(np.uint8)
-    
-    #     # Mask containing positive or negative flow with isointense magnitude
-    #     VNegMIso      = entry_mask_VNeg.astype(np.uint8) * self._sigMagIso
-    #     VPosMIso      = entry_mask_VPos.astype(np.uint8) * self._sigMagIso
-    
-    #     if IsointenseMagnitude and NegativeFlow:
-    
-    #         #VNegMIso
-    #         # Find clusters with negative flow and iosintense magnitude
-    #         ncomp_VNegMIso, labels = cv2.connectedComponents(VNegMIso.astype(np.uint8))
-    
-    #         # Append the found clusters to the total amount of found vessels
-    #         for comp in range(1,ncomp_VNegMIso):
-    #             self._clusters.append(labels == comp)
-            
-    #     else: 
-        
-    #         ncomp_VNegMIso = 1
-        
-    #     # Remove found and overlapping clusters from flow mask    
-    #     output_mask_VNeg = remove_ccs_from_mask(entry_mask_VNeg,VNegMIso)
-    
-    #     if IsointenseMagnitude and PositiveFlow:
-    
-    #         #VPosMIso
-    #         # Find clusters with positive flow and iosintense magnitude
-    #         ncomp_VPosMIso, labels = cv2.connectedComponents(VPosMIso.astype(np.uint8))
-    
-    #         # Append the found clusters to the total amount of found vessels
-    #         for comp in range(1,ncomp_VPosMIso):
-    #             self._clusters.append(labels == comp)
-            
-    #     else: 
-        
-    #         ncomp_VPosMIso = 1
-    
-    #     # Remove found and overlapping clusters from flow mask                            
-    #     output_mask_VPos = remove_ccs_from_mask(entry_mask_VPos,VPosMIso)
-    
-    #     self._NoMIsoClusters = (ncomp_VNegMIso - 1) + (ncomp_VPosMIso - 1)
-    
-    # elif BasalGanglia:
-    
-    #     #VNegMPos
-    #     # Find clusters with isointense magnitude
-    #     ncomp_MIso, labels = cv2.connectedComponents(self._sigMagIso.astype(np.uint8) * mask)
-    
-    #     if IsointenseMagnitude: 
-    
-    #         # Append the found clusters to the total amount of found vessels
-    #         for comp in range(1,ncomp_MIso):
-    #             self._clusters.append(labels == comp)
-            
-    #         self._NoMIsoClusters = (ncomp_MIso - 1)
-            
-    #     else:
-        
-    #         self._NoMIsoClusters = 0
     
     #Cluster only significant magnitude, to determine iMblob
     NclusPos, self._posMagClusters     = cv2.connectedComponents(
                                 self._sigMagPos * self._mask)
     NclusNeg, self._negMagClusters     = cv2.connectedComponents(
                                 self._sigMagNeg * self._mask)
+
+    
+   

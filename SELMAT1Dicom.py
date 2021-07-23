@@ -166,15 +166,13 @@ class SELMAT1Dicom(SELMADicom.SELMADicom):
         Calls the matlab code that runs the SPM segmentation on the t1 dicom.
         Loads and interpolates the resulting WM mask.
         '''
-        
+  
         #Prepare for matlab call
-        libraries = SELMAInterpolate.getLibraries()
+        libraries = SELMAInterpolate.getLibraries(self)
         spm = libraries[0]
         dcm2nii = libraries[1]
 
         eng = matlab.engine.start_matlab()
-        
-        #import pdb; pdb.set_trace()
         
         wm = eng.spmSegment(self._dcmFilename,
                              spm,
@@ -184,10 +182,15 @@ class SELMAT1Dicom(SELMADicom.SELMADicom):
         im = sitk.ReadImage(wm)
         im = sitk.GetArrayFromImage(im)
         im = np.flip(im, 1)
+        im = np.flip(im, 0)
+        im = np.swapaxes(im,0,2)
+        im = np.swapaxes(im,1,2)
+        
         self._segmentation = im
 
         # Create interpolated slice
         pcaShape        = self._pcaDcm.pixel_array.shape
+   
         self._maskSlice = SELMAInterpolate.doInterpolation(self._M,
                                                            self._segmentation,
                                                            pcaShape)

@@ -14,7 +14,6 @@ from skimage import measure
 from scipy.ndimage import gaussian_filter
 import scipy.signal
 import scipy.stats
-import time
 import cv2
 
 #from multiprocessing import Pool, freeze_support, cpu_count
@@ -167,7 +166,8 @@ class SELMADataObject:
         self._signalObject.setProgressLabelSignal.emit(
                     "Writing results to disk")
         self._makeVesselDict()
-        self._writeToFile()
+        
+        SELMADataIO._writeToFile(self)
     
         self._signalObject.setProgressLabelSignal.emit("")
         
@@ -181,6 +181,7 @@ class SELMADataObject:
         
         self._signalObject.setProgressLabelSignal.emit(
             "Segmenting white matter from T1 - This may take a while.")
+  
         self._NBmask  = self._t1.getSegmentationMask()
         self._thresholdMask()
         self._signalObject.setProgressLabelSignal.emit(
@@ -222,12 +223,6 @@ class SELMADataObject:
 #    
     def getVesselDict(self):
         return self._vesselDict, self._velocityDict
-    
-    def getBatchAnalysisResults(self):
-        
-        self._makeBatchAnalysisDict()
-        
-        return self._batchAnalysisDict
     
     def getDcmFilename(self):
         return self._dcmFilename
@@ -539,6 +534,8 @@ class SELMADataObject:
         
         """
         
+        # import pdb; pdb.set_trace()
+        
         doGhosting      = self._readFromSettings('doGhosting')
         if not doGhosting:
             self._ghostingMask = np.zeros(self._mask.shape)
@@ -758,9 +755,6 @@ class SELMADataObject:
             return
         
         if not self._readFromSettings('removeNonPerp'):
-            # Added clauses for seperate scenarios when different settings are
-            # turned on or off. This ensures the correct clusters are passed
-            # through to the end
             
             self._perp_clusters = []
             self._non_perp_clusters = []
@@ -802,119 +796,81 @@ class SELMADataObject:
         scaledMagnitude[scaledMagnitude < 0] = 0
            
         for idx, cluster in enumerate(self._clusters):
-            
-            # if onlyMPos: #unnecessary after reworked clustering
-            #     #Find the voxel with the highest velocity and check whether
-            #     #it is Mpos, if not continue to the next cluster
-            #     pixels      = np.nonzero(cluster)
-            #     velocities  = np.abs(meanVelocity[pixels])
-            #     indexes     = np.argsort(velocities)
-            #     x,y         = np.transpose(pixels)[indexes[-1]]
-                
-            #     if not self._sigMagPos[x,y]:
-                    
-            #         continue
            
-            if np.size(np.where(cluster)[0]) > 2: 
-                # Check if cluster is larger than 2 voxels. If not, assume it 
-                # is a round vessel
-            
-                #find centre coordinate of cluster (row column)
-                clusterCoords   = np.nonzero(cluster)
-                centre          = [int(np.mean(clusterCoords[0]) + 0.5),
-                                   int(np.mean(clusterCoords[1]) + 0.5)] 
-                
-                # int() always rounds down regardless of decimal value. This 
-                # creates unintended behaviour where centre coordinates could
-                # be off by 1 pixel. This is fixed by adding 0.5 to ensure
-                # rounding is always correct
-                
-                #Get window around cluster in magnitude image
-                magWindow       = scaledMagnitude[centre[0] - winRad:
-                                                  centre[0] + winRad,
-                                                  centre[1] - winRad:
-                                                  centre[1] + winRad ]
-                
-                "Attempt to correct for inconsistent remove non-perpendicular"
-                "behaviour"
-                # Get window around cluster in flow image 
-                # flowWindow       = self._sigFlowPos[centre[0] - winRad:
-                #                                   centre[0] + winRad,
-                #                                   centre[1] - winRad:
-                #                                   centre[1] + winRad ]
-                    
-                #Threshold window to gain magnitude clusters of bright voxels
-                threshold       = scaledMagnitude[centre[0], centre[1]]
-                threshold       *= magnitudeThresh         
-                magWindowThresh = (magWindow >= threshold).astype(np.uint8)
-                
-                # Comment out flowWindow for old version of remove non-perp
-                
-                blobWindow = magWindowThresh #* flowWindow 
-                
-                #Find cluster closest to centre
-                ncomp, labels   = cv2.connectedComponents(blobWindow)
-                distances   = []
-                for n in range(1, ncomp):
-                    distances.append(
-                        np.sqrt(
-                            (np.mean(np.nonzero(labels == n)[0]) - winRad)**2 +
-                            (np.mean(np.nonzero(labels == n)[1]) - winRad)**2))
-                blob = labels == np.argmin(distances) + 1
-                
-                # New attempt at determining blob shape using regionprops. Now
-                # more in line with MATLAB implementation. However, it is not 
-                # exactly the same. Edge cases exist where the axes ratio 
-                # in MATLAB is < 2 but in SELMA it is > 2.
-                    
-                blob_stats = measure.regionprops_table(blob.astype(np.uint8),
-                                                       properties=('centroid',
-                                                       'minor_axis_length',
-                                                       'major_axis_length'))
-                
-                minorRad = blob_stats['minor_axis_length'][0]
-                majorRad = blob_stats['major_axis_length'][0]
-                
-                self._axes_ratio.append(majorRad/minorRad)
-                  
-                'OLD METHOD'
-                # #Find contour of blob, if multiple, concatenate them
-                # contours,_  = cv2.findContours(blob.astype(np.uint8), 1, 1)
-                # cnt         = np.concatenate(contours)
-                # try:
-                #     ellipse     = cv2.fitEllipse(cnt)
-                #     rad1, rad2  = ellipse[1]
-                #     majorRad    = max(rad1, rad2)
-                #     minorRad    = min(rad1, rad2)
-                    
-                # except:
-                #     #if fitEllipse crashes because contour size is too small,
-                #     #assume that it's a round vessel
-                    
-                #     #self._perp_clusters.append(self._clusters[idx])
-                    
-                #     continue
-                
-                #Remove cluster from list if ellipse not circular enough
-                # if minorRad == 0:
-                    
-                    # self._non_perp_clusters.append(self._clusters[idx])
-                    
-                    # #del(self._clusters[idx])
-                    
-                    # continue
-                
-                if majorRad / minorRad > ratioThresh:
-                    
-                    self._non_perp_clusters.append(self._clusters[idx])
-                    
-                else:
-                    
-                    self._perp_clusters.append(self._clusters[idx])
-                    
-            else:
+            if not np.size(np.where(cluster)[0]) > 2: 
                 
                 self._axes_ratio.append(1)
+            
+                self._perp_clusters.append(self._clusters[idx])
+                
+                continue
+            
+            # Check if cluster is larger than 2 voxels. If not, assume it 
+            # is a round vessel
+        
+            #find centre coordinate of cluster (row column)
+            clusterCoords   = np.nonzero(cluster)
+            centre          = [int(np.mean(clusterCoords[0]) + 0.5),
+                               int(np.mean(clusterCoords[1]) + 0.5)] 
+            
+            # int() always rounds down regardless of decimal value. This 
+            # creates unintended behaviour where centre coordinates could
+            # be off by 1 pixel. This is fixed by adding 0.5 to ensure
+            # rounding is always correct
+            
+            #Get window around cluster in magnitude image
+            magWindow       = scaledMagnitude[centre[0] - winRad:
+                                              centre[0] + winRad,
+                                              centre[1] - winRad:
+                                              centre[1] + winRad ]
+            
+            "Attempt to correct for inconsistent remove non-perpendicular"
+            "behaviour"
+            # Get window around cluster in flow image 
+            # flowWindow       = self._sigFlowPos[centre[0] - winRad:
+            #                                   centre[0] + winRad,
+            #                                   centre[1] - winRad:
+            #                                   centre[1] + winRad ]
+                
+            #Threshold window to gain magnitude clusters of bright voxels
+            threshold       = scaledMagnitude[centre[0], centre[1]]
+            threshold       *= magnitudeThresh         
+            magWindowThresh = (magWindow >= threshold).astype(np.uint8)
+            
+            # Comment out flowWindow for old version of remove non-perp
+            
+            blobWindow = magWindowThresh #* flowWindow 
+            
+            #Find cluster closest to centre
+            ncomp, labels   = cv2.connectedComponents(blobWindow)
+            distances   = []
+            for n in range(1, ncomp):
+                distances.append(
+                    np.sqrt(
+                        (np.mean(np.nonzero(labels == n)[0]) - winRad)**2 +
+                        (np.mean(np.nonzero(labels == n)[1]) - winRad)**2))
+            blob = labels == np.argmin(distances) + 1
+            
+            # New attempt at determining blob shape using regionprops. Now
+            # more in line with MATLAB implementation. However, it is not 
+            # exactly the same. Edge cases exist where the axes ratio 
+            # in MATLAB is < 2 but in SELMA it is > 2.
+                
+            blob_stats = measure.regionprops_table(blob.astype(np.uint8),
+                                                   properties=('centroid',
+                                                   'minor_axis_length',
+                                                   'major_axis_length'))
+            
+            minorRad = blob_stats['minor_axis_length'][0]
+            majorRad = blob_stats['major_axis_length'][0]
+            
+            self._axes_ratio.append(majorRad/minorRad)
+                          
+            if majorRad / minorRad > ratioThresh:
+                
+                self._non_perp_clusters.append(self._clusters[idx])
+                
+            else:
                 
                 self._perp_clusters.append(self._clusters[idx])
 
@@ -1280,121 +1236,10 @@ class SELMADataObject:
         self._velocityDict[0] = velocity_dict
         
         self._signalObject.setProgressBarSignal.emit(100)
-        
-    def _makeBatchAnalysisDict(self):
-        """"Makes a dictionary containing the following statistics per scan:
-            No. of vessels
-            V_mean
-            V_mean SEM
-            PI_mean
-            PI_mean SEM
-            mean Velocity Trace
-        """
-        
-        self._batchAnalysisDict = dict()
-        
-        # if self._readFromSettings('deduplicate'):
 
-        self._batchAnalysisDict['No_of_vessels'] = self._velocityDict[0][
-                                                        'No. included vessels'] 
-        self._batchAnalysisDict['V_mean'] = self._velocityDict[0][
-                                                        'Vmean vessels'] 
-        self._batchAnalysisDict['PI_mean'] = self._velocityDict[0][
-                                                        'PI_norm vessels']
-                
-        self._batchAnalysisDict['V_mean_SEM'] = self._velocityDict[0][
-                                                        'Vmean SEM'] 
-        self._batchAnalysisDict['PI_mean_SEM'] = self._velocityDict[0][
-                                                        'PI_norm SEM']  
-        self._batchAnalysisDict['Filename'] = self._dcmFilename   
+ 
+        
 
-        velocityTrace = np.zeros((self._batchAnalysisDict['No_of_vessels'],
-                                  len(self._correctedVelocityFrames)))
-                
-        for blob in range(1, self._batchAnalysisDict['No_of_vessels'] + 1):
-            
-            for vessel in range(0,len(self._vesselDict)):
-                
-                if self._vesselDict[vessel]['iblob'] == blob and (
-                        self._vesselDict[vessel]['ipixel'] == 1):
-
-                    for num in range(1,len(self._correctedVelocityFrames) + 1):
-                       
-                       if num < 10:
-                               
-                           numStr = '0' + str(num)
-                               
-                       else:
-                               
-                           numStr = str(num)
-                           
-                       velocityTrace[blob - 1,num - 1] = abs(self._vesselDict[
-                                                      vessel]['Vpha' + numStr])
-                    
-                    break
-
-        self._batchAnalysisDict['Velocity_trace'] = np.mean(velocityTrace,
-                                                            axis=0)
-
-    def _writeToFile(self):
-        """
-        Creates a filename for the output and passes it to writeVesselDict
-        along with the vesselDict object to be written. The velocityDict 
-        object is written to a different file. 
-        """
-
-        #Message if no vessels were found
-        if len(np.nonzero(self._lone_vessels)[0]) == 0:
-            
-            self._signalObject.errorMessageSignal.emit("No vessels Found")
-            return
-        
-        #Get filename for textfile output for vesselData
-        fname = self._dcmFilename[:-4]
-        fname += "-Vessel_Data.txt"
-        
-        #Get filename for textfile output for velocityData
-        fname_vel = self._dcmFilename[:-4]
-        fname_vel += "-averagePIandVelocity_Data.txt"
-        
-        addonDict = self.getAddonDict()
-        
-        SELMADataIO.writeVesselDict(self._vesselDict,
-                                    addonDict,
-                                    fname)
-        
-        SELMADataIO.writeVelocityDict(self._velocityDict,
-                                    addonDict,
-                                    fname_vel)
-        
-    def getAddonDict(self):
-        """Makes a dictionary that contains the necessary information for
-        repeating the analysis.""" 
-        
-        COMPANY, APPNAME, version = SELMAGUISettings.getInfo()
-        COMPANY             = COMPANY.split()[0]
-        APPNAME             = APPNAME.split()[0]
-        version             = version.split()[0]
-        settings            = QtCore.QSettings(COMPANY, APPNAME)
-        
-        addonDict   = dict()
-        
-        for key in settings.allKeys():
-            addonDict[key]  = settings.value(key)
-        
-        venc                = self._selmaDicom.getTags()['venc']
-        addonDict['venc']   = venc
-        addonDict['version']= version
-        
-        date                = time.localtime()
-        datestr     = str(date[2]) + '/' + str(date[1]) + '/' + str(date[0])
-        timestr     = str(date[3]) + ':' + str(date[4]) + ':' + str(date[5])
-        addonDict['date']   = datestr
-        addonDict['time']   = timestr
-        
-        addonDict['filename'] = self._dcmFilename
-        
-        return addonDict
     
         
     
