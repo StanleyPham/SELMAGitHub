@@ -162,7 +162,7 @@ def clusterVessels(self):
                 Furthermore, we refactored the code to make the function more 
                 easy to understand. 
         """    
-    
+
     BasalGanglia           = self._readFromSettings('BasalGanglia')
     SemiovalCentre         = self._readFromSettings('SemiovalCentre')
     

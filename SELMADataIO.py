@@ -167,7 +167,8 @@ def _writeToFile(self):
     along with the vesselDict object to be written. The velocityDict 
     object is written to a different file. 
     """
-
+    
+    #TODO: Add scan name to error message of no vessels found
     #Message if no vessels were found
     if len(np.nonzero(self._lone_vessels)[0]) == 0:
         
@@ -206,7 +207,7 @@ def getAddonDict(self):
     
     for key in settings.allKeys():
         addonDict[key]  = settings.value(key)
-    
+ 
     venc                = self._selmaDicom.getTags()['venc']
     addonDict['venc']   = venc
     addonDict['version']= version

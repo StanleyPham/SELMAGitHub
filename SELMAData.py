@@ -746,11 +746,12 @@ class SELMADataObject:
                 -Remove cluster based on ratio
         
         """
-        
+   
         if self._readFromSettings('SemiovalCentre'):
             
             self._perp_clusters = []
             self._non_perp_clusters = []
+            self._Noperp_clusters = []
             
             return
         
@@ -758,6 +759,7 @@ class SELMADataObject:
             
             self._perp_clusters = []
             self._non_perp_clusters = []
+            self._Noperp_clusters = []
     
             return 
         

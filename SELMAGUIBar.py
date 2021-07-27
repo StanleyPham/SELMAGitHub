@@ -37,18 +37,18 @@ class BarWidget(QtWidgets.QWidget):
             "Select clustering...")
         self.clusterSelect = QtWidgets.QComboBox()
         self.clusterSelect.addItems(["Basal Ganglia",
-                                     "Andere dingen",
-                                     "Custom clustering"])
-        
+                                     "Semioval Centre",
+                                     "Advanced Clustering"])
+ 
         self.clusterSelect.activated.connect(self.switchClustering)
-        
+
         #Create hidden custom clustering tool
         self.customClustering   = QtWidgets.QWidget()
         ccLayout                = QtWidgets.QGridLayout()
         
-        posMagLab   = QtWidgets.QLabel("Pos. mag.")
-        negMagLab   = QtWidgets.QLabel("Neg. mag.")
-        isoMagLab   = QtWidgets.QLabel("Iso. mag.")
+        posMagLab   = QtWidgets.QLabel("Pos. Mag.")
+        negMagLab   = QtWidgets.QLabel("Neg. Mag.")
+        isoMagLab   = QtWidgets.QLabel("Iso. Mag.")
         
         posMagBox   = QtWidgets.QCheckBox()
         posMagBox.stateChanged.connect(self.customMagChanged)
@@ -96,9 +96,23 @@ class BarWidget(QtWidgets.QWidget):
         self.customClustering.close()
         
     def switchClustering(self):
-        
+      
         idx     = self.clusterSelect.currentIndex()
-        if idx == 2: #Custom clustering
+        
+        if idx == 0: #Basal Ganglia
+            self.settings.setValue('BasalGanglia',1)
+            self.settings.setValue('SemiovalCentre',0)
+            self.settings.setValue('AdvancedClustering',0)
+            self.customClustering.close()
+        elif idx == 1: #Semioval Centre
+            self.settings.setValue('BasalGanglia',0)
+            self.settings.setValue('SemiovalCentre',1)
+            self.settings.setValue('AdvancedClustering',0)
+            self.customClustering.close()
+        elif idx == 2: #Advanced Clustering
+            self.settings.setValue('BasalGanglia',0)
+            self.settings.setValue('SemiovalCentre',0)
+            self.settings.setValue('AdvancedClustering',1)
             self.customClustering.show()
         elif self.customClustering.isVisible():
             self.customClustering.close()
