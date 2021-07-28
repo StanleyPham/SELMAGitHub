@@ -34,7 +34,7 @@ class BarWidget(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout()
         
         self.clusterLabel   = QtWidgets.QLabel(
-            "Select clustering...")
+            "Select clustering...") # Potentially change label?
         self.clusterSelect = QtWidgets.QComboBox()
         self.clusterSelect.addItems(["Basal Ganglia",
                                      "Semioval Centre",

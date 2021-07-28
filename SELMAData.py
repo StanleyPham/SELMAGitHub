@@ -631,18 +631,22 @@ class SELMADataObject:
         Creates an exclusion mask around the outer edges of the image with a 
         certain width.
         """
-        
         ignoreOuterBand         = self._readFromSettings('ignoreOuterBand')
         self._outerBandMask     = np.zeros(self._mask.shape)
         if not ignoreOuterBand:
             return
         
         band                            = 80    #TODO, get from settings
-        self._outerBandMask[:band, :]   = 1
-        self._outerBandMask[:, :band]   = 1
-        self._outerBandMask[-band:, :]  = 1
-        self._outerBandMask[:, -band:]  = 1
+        # self._outerBandMask[:band, :]   = 1
+        # self._outerBandMask[:, :band]   = 1
+        # self._outerBandMask[-band:, :]  = 1
+        # self._outerBandMask[:, -band:]  = 1
         
+        _,th = cv2.threshold(self._medianMagnitudeFrame.astype(np.uint8),0,
+                               1,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+        
+        kernel = np.ones((band, band), np.uint8)
+        self._outerBandMask = cv2.erode(th,kernel)
         
     def _updateMask(self):
         """
@@ -661,7 +665,7 @@ class SELMADataObject:
         maskMinGhost    = mask  ^ ghost
         
         #Make mask without outer edge
-        outer           = outer * mask
+        outer           = (outer == False) * mask
         maskMinOuter    = mask  ^ outer
         
         #Combine all masks
