@@ -21,13 +21,13 @@ class BarWidget(QtWidgets.QWidget):
     
     def __init__(self):
         super(BarWidget, self).__init__()
-        self._initUI()
         
         COMPANY, APPNAME, _ = SELMAGUISettings.getInfo()
         COMPANY             = COMPANY.split()[0]
         APPNAME             = APPNAME.split()[0]
         self.settings = QtCore.QSettings(COMPANY, APPNAME)
         
+        self._initUI()
         
     def _initUI(self):
         
@@ -100,19 +100,33 @@ class BarWidget(QtWidgets.QWidget):
         idx     = self.clusterSelect.currentIndex()
         
         if idx == 0: #Basal Ganglia
-            self.settings.setValue('BasalGanglia',1)
-            self.settings.setValue('SemiovalCentre',0)
-            self.settings.setValue('AdvancedClustering',0)
+            self.settings.setValue('BasalGanglia',          'true')
+            self.settings.setValue('SemiovalCentre',        'false')
+            self.settings.setValue('AdvancedClustering',    'false')
+            
+            self.settings.setValue('PositiveMagnitude',     'true') 
+            self.settings.setValue('NegativeMagnitude',     'false') 
+            self.settings.setValue('IsointenseMagnitude',   'false') 
+            self.settings.setValue('PositiveFlow',          'true') 
+            self.settings.setValue('NegativeFlow',          'false')
+            
             self.customClustering.close()
         elif idx == 1: #Semioval Centre
-            self.settings.setValue('BasalGanglia',0)
-            self.settings.setValue('SemiovalCentre',1)
-            self.settings.setValue('AdvancedClustering',0)
+            self.settings.setValue('BasalGanglia',          'false')
+            self.settings.setValue('SemiovalCentre',        'true')
+            self.settings.setValue('AdvancedClustering',    'false')
+            
+            self.settings.setValue('PositiveMagnitude',     'true') 
+            self.settings.setValue('NegativeMagnitude',     'true') 
+            self.settings.setValue('IsointenseMagnitude',   'true') 
+            self.settings.setValue('PositiveFlow',          'false') 
+            self.settings.setValue('NegativeFlow',          'true')
+            
             self.customClustering.close()
         elif idx == 2: #Advanced Clustering
-            self.settings.setValue('BasalGanglia',0)
-            self.settings.setValue('SemiovalCentre',0)
-            self.settings.setValue('AdvancedClustering',1)
+            self.settings.setValue('BasalGanglia',          'false')
+            self.settings.setValue('SemiovalCentre',        'false')
+            self.settings.setValue('AdvancedClustering',    'true')
             self.customClustering.show()
         elif self.customClustering.isVisible():
             self.customClustering.close()

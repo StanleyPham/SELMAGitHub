@@ -68,12 +68,12 @@ class SelmaSettings(QtWidgets.QWidget):
         #Add tabs
         self.tabs           = QtWidgets.QTabWidget()
         self.mainTab        = QtWidgets.QWidget()
-        self.structureTab   = QtWidgets.QWidget()
+        #self.structureTab   = QtWidgets.QWidget()
         self.ghostingTab    = QtWidgets.QWidget()
         self.nonPerpTab     = QtWidgets.QWidget()
         self.deduplicateTab = QtWidgets.QWidget()
         self.segmentTab     = QtWidgets.QWidget()
-        self.clusteringTab  = QtWidgets.QWidget()
+        #self.clusteringTab  = QtWidgets.QWidget()
         self.resetTab       = QtWidgets.QWidget()
         
         self.tabs.addTab(self.mainTab,          "General")
@@ -1207,6 +1207,7 @@ class SelmaSettings(QtWidgets.QWidget):
         # settings.setValue('PositiveFlow',           PositiveFlow)
         # settings.setValue('NegativeFlow',           NegativeFlow)
         
+        #import pdb; pdb.set_trace()
         #Send signals
         self.thresholdSignal.emit()
         

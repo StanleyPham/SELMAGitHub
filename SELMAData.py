@@ -631,9 +631,14 @@ class SELMADataObject:
         Creates an exclusion mask around the outer edges of the image with a 
         certain width.
         """
+        
+        #import pdb; pdb.set_trace()
         ignoreOuterBand         = self._readFromSettings('ignoreOuterBand')
         self._outerBandMask     = np.zeros(self._mask.shape)
         if not ignoreOuterBand:
+            
+            self._outerBandMask     = np.zeros(self._mask.shape) + 1
+            
             return
         
         band                            = 80    #TODO, get from settings
@@ -730,6 +735,8 @@ class SELMADataObject:
         """
  
         SELMADataClustering.clusterVessels(self)     
+        
+        #import pdb; pdb.set_trace()
     
     def _removeNonPerpendicular(self):
         
@@ -750,14 +757,6 @@ class SELMADataObject:
                 -Remove cluster based on ratio
         
         """
-   
-        if self._readFromSettings('SemiovalCentre'):
-            
-            self._perp_clusters = []
-            self._non_perp_clusters = []
-            self._Noperp_clusters = []
-            
-            return
         
         if not self._readFromSettings('removeNonPerp'):
             

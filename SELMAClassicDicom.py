@@ -189,6 +189,10 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
                     
                         rescaleSlope        = float(self._DCMs[i]
                                             [dcmRescaleSlopeAddress].value)
+                        if rescaleSlope != 0:
+                            rescaleSlope    = 1 / rescaleSlope
+
+
                         rescaleIntercept    = float(self._DCMs[i]
                                             [dcmRescaleInterceptAddress].value)
                             
