@@ -45,7 +45,7 @@ class SELMADicom:
         self._findVEncoding()
         self._findFrameTypes()
         self._findPixelSpacing()     
-        # self._findRRIntervals()
+        self._findNoiseScalingFactors()
         self._findTargets()
         
         #Get rescale values and apply
@@ -98,11 +98,12 @@ class SELMADicom:
     def getRawModulusFrames(self):
         return self._rawModulusFrames
     
+    def getNoiseScalingFactors(self):
+        return self._tags['R-R Interval'], self._tags['TFE'], self._tage['TR']
+    
     def getPixelSpacing(self):
         return self._tags['pixelSpacing']
-    
-    # def getRRIntervals(self):
-    #     return self._tags['R-R Interval']
+
         
     
     #Setter functions
@@ -269,13 +270,18 @@ class SELMADicom:
         
         self._tags['pixelSpacing'] = ps
         
-    # def _findRRIntervals(self):
-    #     """Find RR intervals in Dicom header, save it to the tags"""
+    def _findNoiseScalingFactors(self):
+        """Find RR intervals and TFE in Dicom header, save it to the tags"""
+ 
+        # Philips
+        RR_interval = self._DCM.CardiacRRIntervalSpecified
+        TFE = self._DCM.GradientEchoTrainLength
+        TR = self._DCM[0x5200, 0x9229][0][0x0018, 0x9112][0][0x0018, 0x0080].value
         
-    #     RR_interval = self._DCM.CardiacRRIntervalSpecified
+        self._tags['R-R Interval'] = RR_interval
+        self._tags['TFE'] = TFE
+        self._tags['TR'] = TR
         
-    #     self._tags['R-R Interval'] = RR_interval
-    
     def _findTargets(self):
         """
         Saves the manufacturer specific names for the phase, velocity,
