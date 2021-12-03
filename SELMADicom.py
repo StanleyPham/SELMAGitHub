@@ -97,13 +97,15 @@ class SELMADicom:
     
     def getRawModulusFrames(self):
         return self._rawModulusFrames
-    
+
     def getNoiseScalingFactors(self):
-        return self._tags['R-R Interval'], self._tags['TFE'], self._tage['TR']
-    
+        return self._tags['R-R Interval'], self._tags['TFE'], self._tags['TR'], self._tags['Temporal resolution']
+
     def getPixelSpacing(self):
         return self._tags['pixelSpacing']
-
+    
+    # def getRRIntervals(self):
+    #     return self._tags['R-R Interval']
         
     
     #Setter functions
@@ -270,18 +272,30 @@ class SELMADicom:
         
         self._tags['pixelSpacing'] = ps
         
+
     def _findNoiseScalingFactors(self):
         """Find RR intervals and TFE in Dicom header, save it to the tags"""
- 
+
         # Philips
-        RR_interval = self._DCM.CardiacRRIntervalSpecified
-        TFE = self._DCM.GradientEchoTrainLength
-        TR = self._DCM[0x5200, 0x9229][0][0x0018, 0x9112][0][0x0018, 0x0080].value
-        
+        if 'philips' in self._tags['manufacturer'].lower():
+            RR_interval = self._DCM.CardiacRRIntervalSpecified
+            TFE = self._DCM.GradientEchoTrainLength
+            TR = self._DCM[0x5200, 0x9229][0][0x0018, 0x9112][0][0x0018, 0x0080].value
+            
+            Temporal_resolution = 2*TFE*TR
+            
+        # Siemens   
+        if 'siemens' in self._tags['manufacturer'].lower():
+            RR_interval = self._DCM.CardiacRRIntervalSpecified
+            TFE = self._DCM.GradientEchoTrainLength
+            TR = self._DCM[0x5200, 0x9229][0][0x0018, 0x9112][0][0x0018, 0x0080].value
+            
         self._tags['R-R Interval'] = RR_interval
         self._tags['TFE'] = TFE
         self._tags['TR'] = TR
-        
+        self._tags['Temporal resolution'] = Temporal_resolution
+
+    
     def _findTargets(self):
         """
         Saves the manufacturer specific names for the phase, velocity,

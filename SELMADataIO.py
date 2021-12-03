@@ -172,7 +172,7 @@ def _writeToFile(self):
     #Message if no vessels were found
     if len(np.nonzero(self._lone_vessels)[0]) == 0:
         
-        #self._signalObject.errorMessageSignal.emit("No vessels Found")
+        self._signalObject.errorMessageSignal.emit("No vessels Found")
         return
     
     #Get filename for textfile output for vesselData

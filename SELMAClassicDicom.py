@@ -56,7 +56,7 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         self._findVEncoding()
         self._findRescaleValues()    
         self._findFrameTypes()
-        self._findPixelSpacing()    
+        self._findPixelSpacing()   
         self._findNoiseScalingFactors()
         self._findTargets()
         
@@ -66,9 +66,8 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         #Sort the frames on their type
         self._orderFramesOnType()
         
-    
     def getNoiseScalingFactors(self):
-        return self._tags['R-R Interval'], self._tags['TFE'], self._tags['TR']
+         return self._tags['R-R Interval'], self._tags['TFE'], self._tags['TR'], self._tags['Temporal resolution']
     
     ##############################################
     #Overridden functions
@@ -192,6 +191,10 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
                     
                         rescaleSlope        = float(self._DCMs[i]
                                             [dcmRescaleSlopeAddress].value)
+                        if rescaleSlope != 0:
+                            rescaleSlope    = 1 / rescaleSlope
+
+
                         rescaleIntercept    = float(self._DCMs[i]
                                             [dcmRescaleInterceptAddress].value)
                             
@@ -373,18 +376,44 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         
         self._tags['pixelSpacing'] = ps
         
+
     def _findNoiseScalingFactors(self):
         """Find RR intervals and TFE in Dicom header, save it to the tags"""
 
         # Philips
-        RR_interval = (60 / int(self._DCMs[0].HeartRate)) * 1000
-        TFE = self._DCMs[0].EchoTrainLength
-        TR = self._DCMs[0][0x0018, 0x0080].value
+        if 'philips' in self._tags['manufacturer'].lower():
+            
+            HeartRates = np.zeros((len(self._DCMs),1))
+            for i in range(self._numFrames):
+                HeartRates[i] = self._DCMs[i].HeartRate
+                
+            RR_interval = (60 / int(self._DCMs[0].HeartRate)) * 1000
+            TFE = self._DCMs[0].EchoTrainLength
+            TR = self._DCMs[0][0x0018, 0x0080].value
+            
+            Temporal_resolution = 2*TFE*TR
+            
+        # Siemens
+        if 'siemens' in self._tags['manufacturer'].lower():
+            
+            RR_intervals = np.zeros((len(self._DCMs),1))
+            for i in range(self._numFrames):
+                RR_intervals[i] = self._DCMs[i].NominalInterval
+                
+            RR_interval = np.max(RR_intervals)
+            TFE = self._DCMs[0].EchoTrainLength
+            TR = self._DCMs[0].RepetitionTime
+            
+            Temporal_resolution = TR
+            
+        # GE
+        #if 'ge' in self._tags['manufacturer'].lower():
         
         self._tags['R-R Interval'] = RR_interval
         self._tags['TFE'] = TFE
         self._tags['TR'] = TR
-        
+        self._tags['Temporal resolution'] = Temporal_resolution
+
     def _findTargets(self):
         """
         Saves the manufacturer specific names for the phase, velocity,
@@ -405,8 +434,8 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         if 'siemens' in self._tags['manufacturer']:
             self._tags['targets']['phase']      = 'P'
             self._tags['targets']['velocity']   = 'V'
-            self._tags['targets']['magnitude']  = "MAG"
-            self._tags['targets']['modulus']    = "M"
+            self._tags['targets']['magnitude']  = "M"
+            self._tags['targets']['modulus']    = "MAG"
             
         #GE            
         if 'ge' in self._tags['manufacturer']:            
