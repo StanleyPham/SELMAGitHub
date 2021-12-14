@@ -132,7 +132,7 @@ class SELMADataObject:
         self._subtractMedian()
         
         #Estimate STD of noise in mean Velocity
-        self._estimateVelocitySTD()
+        #self._estimateVelocitySTD()
                 
         #Determine SNR of all voxels
         self._SNR()
@@ -332,7 +332,7 @@ class SELMADataObject:
 
         #Prepares the data to be filtered
         diameter = int(self._getMedianDiameter())
-        
+
         #phase Frames are used in the 3T Test Retest data
         velocityFrames  = np.asarray(self._selmaDicom.getVelocityFrames()) 
         magnitudeFrames = np.asarray(self._selmaDicom.getMagnitudeFrames())
@@ -406,7 +406,7 @@ class SELMADataObject:
         self._correctedVelocityFrames   = (velocityFrames -
                                         self._medianVelocityFrame)
 
-    def _estimateVelocitySTD(self):
+    #def _estimateVelocitySTD(self):
         """ Estimate the spatial standard deviation of the noise in the 
         velocity maps. Using iterative standard deviation estimations, outliers
         in the distribution (vessels) are removed by decreasing the cutoff 
@@ -419,42 +419,43 @@ class SELMADataObject:
         is normally distributed. 
         """
         
-        SD_factor = 3.5 # value derived from simulated data
+        #SD_factor = 3.5 # value derived from simulated data
         
-        meanVelocity    = np.mean(self._correctedVelocityFrames, axis = 0)
+        #meanVelocity    = np.mean(self._correctedVelocityFrames, axis = 0)
 
-        voxel_coordinates = np.where(self._mask == 1)
+        #voxel_coordinates = np.where(self._mask == 1)
         
-        VelocityData = np.zeros((1,len(voxel_coordinates[0])))
+        #VelocityData = np.zeros((1,len(voxel_coordinates[0])))
  
-        for j in range(0,len(voxel_coordinates[0])):
+        #for j in range(0,len(voxel_coordinates[0])):
         
-            VelocityData[0,j] = meanVelocity[voxel_coordinates[0][j],
-                                                    voxel_coordinates[1][j]]
+            #VelocityData[0,j] = meanVelocity[voxel_coordinates[0][j],
+                                                    #voxel_coordinates[1][j]]
             
-        CONVERGED = 0;
-        MAXRUNS = 100;
-        iRun = 0;
-        SD_init = np.std(VelocityData)
-        SD_prev = SD_init
+        #CONVERGED = 0;
+        #MAXRUNS = 100;
+        #iRun = 0;
+        #SD_init = np.std(VelocityData)
+        #SD_prev = SD_init
         
-        while (not CONVERGED) and (iRun < MAXRUNS):
+        #while (not CONVERGED) and (iRun < MAXRUNS):
             
-            VelocityData_dummy = VelocityData
-            outlier_indices = np.where(abs(VelocityData) > 
-                                       (SD_factor * SD_prev))
-            VelocityData_dummy = np.delete(VelocityData_dummy,outlier_indices)
-            SD_curr = np.std(VelocityData_dummy)
+            #VelocityData_dummy = VelocityData
+            #outlier_indices = np.where(abs(VelocityData) > 
+                                       #(SD_factor * SD_prev))
+            #VelocityData_dummy = np.delete(VelocityData_dummy,outlier_indices)
+            #SD_curr = np.std(VelocityData_dummy)
             
-            if abs(SD_curr - SD_prev) < 10 * np.finfo(float).eps:
+            #if abs(SD_curr - SD_prev) < 10 * np.finfo(float).eps:
                 
-                CONVERGED = 1;
+                #CONVERGED = 1;
                 
             # Update counters/ stats
-            iRun = iRun + 1
-            SD_prev = SD_curr
+            #iRun = iRun + 1
+            #SD_prev = SD_curr
             
-        self._velocitySTD = SD_curr
+        #self._velocitySTD = SD_curr
+        
             
     def _SNR(self):
         """Calculates the SNR in the velocity frames. This is done in the 
@@ -475,6 +476,15 @@ class SELMADataObject:
             deviation obtained during the iterative outlier removal.
         """
         
+        magnitudeFrames     = np.asarray(
+                                    self._selmaDicom.getMagnitudeFrames())
+        magnitudeSNR        = div0(magnitudeFrames,
+                                   self._medianRMSSTD)
+        venc                = self._selmaDicom.getTags()['venc']
+
+        self._magnitudeSNRMask = (np.mean(magnitudeSNR, axis = 0) > 2).astype(np.uint8)
+        
+        self._velocitySTD   = venc / np.pi * div0(1, magnitudeSNR)
         self._velocitySNR   = np.mean(div0(self._correctedVelocityFrames,
                                                 self._velocitySTD), axis=0)  
 
@@ -501,17 +511,17 @@ class SELMADataObject:
         NoiseFactor = np.sqrt(RR_interval/Temporal_resolution)
         
         sigma               = self._getSigma() * (PULSATEFactor/NoiseFactor)
-
+        
         if self._readFromSettings('BasalGanglia'):
         
-            sigma               = 2
+            self._sigFlowPos    = (self._velocitySNR > sigma).astype(np.uint8) * self._magnitudeSNRMask
+            self._sigFlowNeg    = (self._velocitySNR < -sigma).astype(np.uint8) * self._magnitudeSNRMask
             
         else:
             
-            sigma               = 3.5
-        
-        self._sigFlowPos    = (self._velocitySNR > sigma).astype(np.uint8)
-        self._sigFlowNeg    = (self._velocitySNR < -sigma).astype(np.uint8)
+            self._sigFlowPos    = (self._velocitySNR > sigma).astype(np.uint8)
+            self._sigFlowNeg    = (self._velocitySNR < -sigma).astype(np.uint8)
+
         self._sigFlow       = self._sigFlowNeg + self._sigFlowPos  
   
     def _removeZeroCrossings(self):

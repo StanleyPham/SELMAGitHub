@@ -421,19 +421,19 @@ class SELMADicom:
     
         for idx in range(self._numFrames):
                         
-            if targets['velocity'] in frameTypes[idx]:
+            if frameTypes[idx] in targets['velocity']:
                 self._velocityFrames.append(self._rescaledFrames[idx])
                 self._rawVelocityFrames.append(self._rawFrames[idx])
                 
-            elif targets['magnitude'] in frameTypes[idx]:
+            elif frameTypes[idx] in targets['magnitude']:
                 self._magnitudeFrames.append(self._rescaledFrames[idx])
                 self._rawMagnitudeFrames.append(self._rawFrames[idx])
                 
-            elif targets['modulus'] in frameTypes[idx]:
+            elif frameTypes[idx] in targets['modulus']:
                 self._modulusFrames.append(self._rescaledFrames[idx])
                 self._rawModulusFrames.append(self._rawFrames[idx])
                 
-            elif targets['phase'] in frameTypes[idx]:
+            elif frameTypes[idx] in targets['phase']:
                 self._phaseFrames.append(self._rescaledFrames[idx])
                 self._rawPhaseFrames.append(self._rawFrames[idx])
             

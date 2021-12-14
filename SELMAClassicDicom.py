@@ -62,7 +62,7 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         
         #Get rescale values and apply
         self._rescaleFrames()
-        
+
         #Sort the frames on their type
         self._orderFramesOnType()
         
@@ -337,7 +337,7 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         
         self._tags['frameTypes'] = []
         
-        # import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         
         #Philips
         if 'philips' in self._tags['manufacturer']:
