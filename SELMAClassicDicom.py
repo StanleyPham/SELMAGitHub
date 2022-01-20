@@ -381,8 +381,6 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
     def _findNoiseScalingFactors(self):
         """Find RR intervals and TFE in Dicom header, save it to the tags"""
 
-        import pdb; pdb.set_trace()
-
         # Philips
         if 'philips' in self._tags['manufacturer'].lower():
             
