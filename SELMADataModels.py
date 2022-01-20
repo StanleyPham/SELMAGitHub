@@ -316,6 +316,8 @@ class SelmaDataModel:
         """
         
         #TODO: add progress feedback
+        
+        self._BatchAnalysisFlag = True
 
         self.signalObject.infoMessageSignal.emit(
             "GUI may become unresponsive while executing batch analysis. "+

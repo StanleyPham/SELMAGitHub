@@ -13,6 +13,7 @@ This module contains the following classes:
 
 import pydicom
 import numpy as np
+import os
 import SELMAGUISettings
 from PyQt5 import QtCore
 # ====================================================================
@@ -290,6 +291,44 @@ class SELMADicom:
             TFE = self._DCM.GradientEchoTrainLength
             TR = self._DCM[0x5200, 0x9229][0][0x0018, 0x9112][0][0x0018, 0x0080].value
             
+        # GE
+        if 'ge' in self._tags['manufacturer'].lower():
+            
+            fn = "Scan_Parameters_GE.txt"
+            fullpath = os.path.join(os.path.dirname(self._dcmFilename), fn)
+            
+            with open (fullpath, "r") as info:
+                data=info.readlines()
+                RR_interval     = data[0].replace('Heart Rate:','')
+                TFE             = data[1].replace('TFE:','')
+                TR              = data[2].replace('TR:','')
+            
+            if RR_interval == "\n":
+            
+                RR_interval = self._DCM.CardiacRRIntervalSpecified
+                
+            else:
+                
+                RR_interval = (60 / int(float(RR_interval))) * 1000
+                
+            if TFE == "\n":
+            
+                TFE = self._DCM.GradientEchoTrainLength
+                
+            else:
+                
+                TFE = float(TFE)
+                
+            if TR == "\n":
+            
+                TR = self._DCM[0x5200, 0x9229][0][0x0018, 0x9112][0][0x0018, 0x0080].value
+                
+            else:
+                
+                TR = float(TR)
+                
+            Temporal_resolution = 2*TFE*TR
+
         self._tags['R-R Interval'] = RR_interval
         self._tags['TFE'] = TFE
         self._tags['TR'] = TR

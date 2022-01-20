@@ -13,6 +13,7 @@ This module contains the following classes:
 import SELMADicom
 import pydicom
 import numpy as np
+import os
 
 # ====================================================================
 
@@ -380,6 +381,8 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
     def _findNoiseScalingFactors(self):
         """Find RR intervals and TFE in Dicom header, save it to the tags"""
 
+        import pdb; pdb.set_trace()
+
         # Philips
         if 'philips' in self._tags['manufacturer'].lower():
             
@@ -407,7 +410,46 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
             Temporal_resolution = TR
             
         # GE
-        #if 'ge' in self._tags['manufacturer'].lower():
+        if 'ge' in self._tags['manufacturer'].lower():
+            
+            fn = "Scan_Parameters_GE.txt"
+            fullpath = os.path.join(os.path.dirname(self._dcmFilenames[0]), fn)
+    
+            with open (fullpath, "r") as info:
+                data=info.readlines()
+                RR_interval     = data[0].replace('Heart Rate:','')
+                TFE             = data[1].replace('TFE:','')
+                TR              = data[2].replace('TR:','')
+                
+            if RR_interval == "\n":
+            
+                RR_intervals = np.zeros((len(self._DCMs),1))
+                for i in range(self._numFrames):
+                    RR_intervals[i] = self._DCMs[i].NominalInterval
+                
+                RR_interval = np.max(RR_intervals)
+                
+            else:
+                
+                RR_interval = (60 / int(float(RR_interval))) * 1000
+                
+            if TFE == "\n":
+            
+                TFE = self._DCMs[0].EchoTrainLength
+                
+            else:
+                
+                TFE = float(TFE)
+                
+            if TR == "\n":
+            
+                TR = self._DCMs[0].RepetitionTime
+                
+            else:
+                
+                TR = float(TR)
+   
+            Temporal_resolution = 2*TFE*TR
         
         self._tags['R-R Interval'] = RR_interval
         self._tags['TFE'] = TFE
