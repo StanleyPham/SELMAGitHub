@@ -15,7 +15,7 @@ import SELMAInterpolate
 import pydicom
 import SimpleITK as sitk
 import numpy as np
-import matlab.engine
+#import matlab.engine
 
 
 class SELMAT1Dicom(SELMADicom.SELMADicom):

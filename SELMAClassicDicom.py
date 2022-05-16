@@ -337,9 +337,7 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         Method differs for each manifacturer."""
         
         self._tags['frameTypes'] = []
-        
-        #import pdb; pdb.set_trace()
-        
+       
         #Philips
         if 'philips' in self._tags['manufacturer']:
             dcmImageTypeAddress         = 0x0008, 0x0008
@@ -412,7 +410,7 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
             
             fn = "Scan_Parameters_GE.txt"
             fullpath = os.path.join(os.path.dirname(self._dcmFilenames[0]), fn)
-    
+
             with open (fullpath, "r") as info:
                 data=info.readlines()
                 RR_interval     = data[0].replace('Heart Rate:','')

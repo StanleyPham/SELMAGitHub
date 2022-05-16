@@ -51,14 +51,14 @@ def obtainFilters(self):
     
     meanVelocity    = np.mean(self._correctedVelocityFrames,axis = 0)
     
-    self._V_cardiac_cycle = np.zeros((len(self._lone_vessels),
+    self._V_cardiac_cycle = np.zeros((len(self._clusters),
                                 self._correctedVelocityFrames.shape[0] 
                                 + 3))
 
-    self._Magnitudes = np.zeros((len(self._lone_vessels),3))
-    self._Flows = np.zeros((len(self._lone_vessels),2))
+    self._Magnitudes = np.zeros((len(self._clusters),3))
+    self._Flows = np.zeros((len(self._clusters),2))
 
-    for idx, vessel in enumerate(self._lone_vessels):
+    for idx, vessel in enumerate(self._clusters):
     
         vesselCoords   = np.nonzero(vessel)
 
@@ -66,7 +66,7 @@ def obtainFilters(self):
                                              vesselCoords[1]])
             
         pidx = np.where(vessel_velocities == max(vessel_velocities))
-         
+        
         self._V_cardiac_cycle[idx,0] = vesselCoords[0][pidx[0][0]]
         self._V_cardiac_cycle[idx,1] = vesselCoords[1][pidx[0][0]]
         
@@ -96,7 +96,7 @@ def filterVelocities(self):
         np.where(self._Magnitudes[:,0] == 1)[0]),:]
     
         self._included_vessels = [i for j, 
-        i in enumerate(self._lone_vessels) 
+        i in enumerate(self._clusters) 
         if j in np.intersect1d(np.where(self._Flows[:,0] == 1)[0]
                                ,np.where(self._Magnitudes[:,0] == 1)[0])]
 
@@ -106,7 +106,7 @@ def filterVelocities(self):
             :,1]  == 1)[0],:]
     
         self._included_vessels = [i for j, 
-        i in enumerate(self._lone_vessels) if j in np.where(self._Flows[:,1] 
+        i in enumerate(self._clusters) if j in np.where(self._Flows[:,1] 
                                                             == 1)[0]]
         
     elif self._readFromSettings('AdvancedClustering'):
@@ -119,7 +119,7 @@ def filterVelocities(self):
                 self._Magnitudes[:,selectedMagnitudes] == 1)[0]),:]
         
         self._included_vessels = [i for j, 
-        i in enumerate(self._lone_vessels) 
+        i in enumerate(self._clusters) 
         if j in np.intersect1d(np.where(self._Flows[:,selectedFlows] == 1)[0],
                     np.where(self._Magnitudes[:,selectedMagnitudes] == 1)[0])]
 

@@ -170,7 +170,7 @@ def _writeToFile(self):
     
     #TODO: Add scan name to error message of no vessels found
     #Message if no vessels were found
-    if len(np.nonzero(self._lone_vessels)[0]) == 0:
+    if len(np.nonzero(self._clusters)[0]) == 0:
         
         self._signalObject.errorMessageSignal.emit("No vessels Found")
         return

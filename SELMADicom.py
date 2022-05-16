@@ -54,6 +54,8 @@ class SELMADicom:
         
         #Sort the frames on their type
         self._orderFramesOnType()
+        
+        self._orderAllFrames()
     
         
     '''Public'''
@@ -79,6 +81,7 @@ class SELMADicom:
         if self._velocityFrames != []:
             return self._velocityFrames
         else:
+
             return self._makeVelocityFrames()[0]
     
     def getMagnitudeFrames(self):
@@ -416,6 +419,9 @@ class SELMADicom:
         """Uses the indices found in findFrameTypes to create an array for
         the magnitude, modulus, and velocity frames."""
       
+        self._velocityIdx               = []
+        self._magnitudeIdx              = []
+        self._modulusIdx                = []
         self._magnitudeFrames           = []
         self._rawMagnitudeFrames        = []
         self._modulusFrames             = []
@@ -457,44 +463,56 @@ class SELMADicom:
                 else:
                     
                     frameTypes[idx] = targets['velocity']
-    
+ 
         for idx in range(self._numFrames):
             
             if 'philips' in self._tags['manufacturer'].lower():
                 
-                if targets['velocity'] in frameTypes[idx]:
+                if (targets['velocity'] in frameTypes[idx] or 
+                frameTypes[idx] in targets['velocity']):
                     self._velocityFrames.append(self._rescaledFrames[idx])
                     self._rawVelocityFrames.append(self._rawFrames[idx])
+                    self._velocityIdx.append(idx)
                 
-                elif frameTypes[idx] in targets['magnitude']:
+                elif (frameTypes[idx] in targets['magnitude'] or
+                      targets['magnitude'] in frameTypes[idx]):
                     self._magnitudeFrames.append(self._rescaledFrames[idx])
                     self._rawMagnitudeFrames.append(self._rawFrames[idx])
+                    self._magnitudeIdx.append(idx)
                 
-                elif frameTypes[idx] in targets['modulus']:
+                elif (frameTypes[idx] in targets['modulus'] or
+                      targets['modulus'] in frameTypes[idx]):
                     self._modulusFrames.append(self._rescaledFrames[idx])
                     self._rawModulusFrames.append(self._rawFrames[idx])
+                    self._modulusIdx.append(idx)
                 
-                elif frameTypes[idx] in targets['phase']:
+                elif (frameTypes[idx] in targets['phase'] or
+                      targets['phase'] in frameTypes[idx]):
                     self._phaseFrames.append(self._rescaledFrames[idx])
                     self._rawPhaseFrames.append(self._rawFrames[idx])
+                    self._velocityIdx.append(idx)
                 
             else:
                         
                 if frameTypes[idx] in targets['velocity']:
                     self._velocityFrames.append(self._rescaledFrames[idx])
                     self._rawVelocityFrames.append(self._rawFrames[idx])
+                    self._velocityIdx.append(idx)
                     
                 elif frameTypes[idx] in targets['magnitude']:
                     self._magnitudeFrames.append(self._rescaledFrames[idx])
                     self._rawMagnitudeFrames.append(self._rawFrames[idx])
+                    self._magnitudeIdx.append(idx)
                 
                 elif frameTypes[idx] in targets['modulus']:
                     self._modulusFrames.append(self._rescaledFrames[idx])
                     self._rawModulusFrames.append(self._rawFrames[idx])
+                    self._modulusIdx.append(idx)
                 
                 elif frameTypes[idx] in targets['phase']:
                     self._phaseFrames.append(self._rescaledFrames[idx])
                     self._rawPhaseFrames.append(self._rawFrames[idx])
+                    self._velocityIdx.append(idx)
 
         self._magnitudeFrames       = np.asarray(self._magnitudeFrames)
         self._rawMagnitudeFrames    = np.asarray(self._rawMagnitudeFrames)
@@ -504,6 +522,19 @@ class SELMADicom:
         self._rawVelocityFrames     = np.asarray(self._rawVelocityFrames)
         self._phaseFrames           = np.asarray(self._phaseFrames)
         self._rawPhaseFrames        = np.asarray(self._rawPhaseFrames)
+        
+    def _orderAllFrames(self):
+        
+        correct_order = np.concatenate((self._magnitudeIdx, self._velocityIdx, 
+                                        self._modulusIdx))
+        
+        self._rescaledFramesOrdered = []
+
+        for idx in correct_order:
+            
+            self._rescaledFramesOrdered.append(self._rescaledFrames[idx])
+
+        self._rescaledFrames = self._rescaledFramesOrdered    
         
     def _makeVelocityFrames(self):
         '''

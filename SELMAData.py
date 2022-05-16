@@ -15,6 +15,7 @@ from scipy.ndimage import gaussian_filter
 import scipy.signal
 import scipy.stats
 import cv2
+import threading
 
 #from multiprocessing import Pool, freeze_support, cpu_count
 
@@ -29,6 +30,7 @@ import SELMADataIO
 import SELMAGUISettings
 import SELMADataClustering
 import SELMADataCalculate
+import SELMADataSelection
 
 # ====================================================================
 
@@ -65,11 +67,20 @@ class SELMADataObject:
                  dcmFilename = None,
                  classic = False):
         
+        COMPANY, APPNAME, _ = SELMAGUISettings.getInfo()
+        COMPANY             = COMPANY.split()[0]
+        APPNAME             = APPNAME.split()[0]
+        self.settings = QtCore.QSettings(COMPANY, APPNAME)
+        
         self._mask          = None
         self._NBmask        = None      #Non binary mask, no treshold applied
         self._t1            = None
         self._vesselMask    = None
         self._selmaDicom    = None
+        
+        self._Included_Vessels = []
+        self._Excluded_Vessels = []
+        self.VesselCounter = 0
         
         if dcmFilename is not None:
             if classic:
@@ -87,7 +98,7 @@ class SELMADataObject:
     # 
     # ------------------------------------------------------------------
     
-    def analyseVessels(self):
+    def analyseVessels(self, BatchAnalysisFlag):
         '''
         The main algorithm of segmenting & analysing the significant vessels.
         It is split in the following parts:
@@ -121,6 +132,12 @@ class SELMADataObject:
                 + "selection. Please make a magnitude and flow cluster " +
                 "selection in the Advanced Clustering tab in the settings.")
                 return 
+            
+        if self._readFromSettings('manualSelection') and (BatchAnalysisFlag == False
+        and self._readFromSettings('BasalGanglia')):
+            
+            self.settings.setValue('removeNonPerp',          'false')
+            self.settings.setValue('deduplicate',            'false')
         
         self._signalObject.setProgressBarSignal.emit(0)
         self._signalObject.setProgressLabelSignal.emit(
@@ -159,19 +176,46 @@ class SELMADataObject:
         self._createVesselMask()
         self._signalObject.setProgressBarSignal.emit(100)
 
-#        Send vessels back to the GUI
+        #Send vessels back to the GUI for vessel selection
         self._signalObject.sendVesselMaskSignal.emit(self._vesselMask)
+ 
+        if self._readFromSettings('manualSelection') and (BatchAnalysisFlag == False
+        and self._readFromSettings('BasalGanglia')):
+            
+            self.settings.setValue('removeNonPerp',          'false')
+            self.settings.setValue('deduplicate',            'false')
+            self._manualSelection()
+            
+        else:
+                   
+            #make dictionary and write to disk
+            self._signalObject.setProgressLabelSignal.emit(
+                        "Writing results to disk")
+            self._makeVesselDict()
+            
+            SELMADataIO._writeToFile(self)
         
-        #make dictionary and write to disk
-        self._signalObject.setProgressLabelSignal.emit(
-                    "Writing results to disk")
-        self._makeVesselDict()
+            self._signalObject.setProgressLabelSignal.emit("")
         
-        SELMADataIO._writeToFile(self)
+    def VesselSelected(self, state):
     
-        self._signalObject.setProgressLabelSignal.emit("")
+        if state == 0:
         
+            self._Excluded_Vessels.append(self.VesselCounter)
+            
+        elif state == 1:
         
+            self._Included_Vessels.append(self.VesselCounter)
+            
+        self.VesselCounter = self.VesselCounter + 1
+        
+        if self.VesselCounter < len(self._clusters):
+  
+            SELMADataSelection.SELMADataSelection.VesselSelection(self)
+            
+        else:
+            
+            SELMADataSelection.SELMADataSelection.FinishSelection(self)
         
     def segmentMask(self):
         if self._t1 is None:
@@ -559,9 +603,7 @@ class SELMADataObject:
                     
         
         """
-        
-        # import pdb; pdb.set_trace()
-        
+
         doGhosting      = self._readFromSettings('doGhosting')
         if not doGhosting:
             self._ghostingMask = np.zeros(self._mask.shape)
@@ -650,8 +692,7 @@ class SELMADataObject:
         ghostingMask        = ghostingMask > 0
         self._ghostingMask  = ghostingMask.astype(np.uint8)
 #        self._signalObject.sendVesselMaskSignal.emit(self._ghostingMask)
-
-        
+      
     def _removeOuterBand(self):
         """
         Creates an exclusion mask around the outer edges of the image with a 
@@ -760,9 +801,7 @@ class SELMADataObject:
         """
  
         SELMADataClustering.clusterVessels(self)     
-        
-        #import pdb; pdb.set_trace()
-    
+
     def _removeNonPerpendicular(self):
         
         """
@@ -782,14 +821,14 @@ class SELMADataObject:
                 -Remove cluster based on ratio
         
         """
-        
-        if not self._readFromSettings('removeNonPerp'):
+      
+        #if not self._readFromSettings('removeNonPerp'):
             
-            self._perp_clusters = []
-            self._non_perp_clusters = []
-            self._Noperp_clusters = []
+            #self._perp_clusters = []
+            #self._non_perp_clusters = []
+            #self._Noperp_clusters = []
     
-            return 
+            #return 
         
         self._non_perp_clusters = []
         self._perp_clusters = []
@@ -913,7 +952,7 @@ class SELMADataObject:
             check whether any of them are <6 pixels apart
             if so, remove both clusters
         """
-         
+
         # Added clauses for seperate scenarios when different settings are
         # turned on or off. This ensures the correct clusters are passed
         # through to the end
@@ -930,7 +969,6 @@ class SELMADataObject:
                 'deduplicate') and not (
                     self._readFromSettings('removeNonPerp')):
             
-            self._lone_vessels = self._clusters
             self._cluster_vessels = []
             
             return
@@ -938,11 +976,11 @@ class SELMADataObject:
         if not self._readFromSettings(
                 'deduplicate') and self._readFromSettings('removeNonPerp'):
             
-            self._lone_vessels = self._perp_clusters
+            self._clusters = self._perp_clusters
             self._cluster_vessels = []
             
             return
-        
+           
         self._lone_vessels = []
         self._cluster_vessels = []
         
@@ -1078,10 +1116,9 @@ class SELMADataObject:
             
                 del(self._lone_vessels[clusterNum - i])
                 
-        
+        self._clusters = self._lone_vessels
             
-    def _calculateParameters(self):
-        
+    def _calculateParameters(self):       
         """
         Function moved to SELMADataCalculate for clarity
         """
@@ -1097,11 +1134,15 @@ class SELMADataObject:
         mask = np.zeros(self._mask.shape,
                         dtype = np.int32)
         
-        for labels in self._included_vessels:
+        for labels in self._clusters:
             mask += labels
         
         self._vesselMask        = mask.astype(bool)
-
+        
+    def _manualSelection(self):
+        
+        SELMADataSelection.SELMADataSelection.VesselSelection(self)
+        
     def _makeVesselDict(self):
         """Makes a dictionary containing the following statistics
         for each voxel in a vessel:
