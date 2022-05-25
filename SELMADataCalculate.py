@@ -130,9 +130,12 @@ def calculateParameters(self):
     velocity. This implementation completely corresponds with the method2
     found in MATLAB.
     """
-  
+    
     obtainFilters(self)
-    filterVelocities(self)
+    
+    if not self._readFromSettings('manualSelection'):
+        
+        filterVelocities(self)
 
     for idx in np.where(self._V_cardiac_cycle[:,3:
                 self._correctedVelocityFrames.shape[0] + 3] > 

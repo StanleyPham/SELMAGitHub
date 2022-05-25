@@ -67,11 +67,6 @@ class SELMADataSelection:
         self._signalObject.finishVesselSelectionSignal.emit(len(self._included_vessels),
                                                             len(self._excluded_vessels))
         
-        #make dictionary and write to disk
-        self._signalObject.setProgressLabelSignal.emit(
-                    "Writing results to disk")
-        self._makeVesselDict()
         
-        SELMADataIO._writeToFile(self)
-    
-        self._signalObject.setProgressLabelSignal.emit("")
+        
+        

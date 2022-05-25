@@ -432,7 +432,13 @@ class SelmaDataModel:
         #SELMADataSelection.SELMADataSelection.VesselIncluded(self, 0)
         self._SDO.VesselSelected(0)
         
+    def RepeatSelectionSlot(self):
         
+        self._SDO.repeatSelection(0)
+        
+    def StopSelectionSlot(self):
+        
+        self._SDO.stopSelection()
         
     #Getter functions
     # ------------------------------------------------------------------    

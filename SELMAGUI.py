@@ -39,6 +39,8 @@ class SGMSignals(QtCore.QObject):
     toggleVesselsSignal = QtCore.pyqtSignal(np.ndarray, int)
     YesButtonSignal     = QtCore.pyqtSignal(int) 
     NoButtonSignal      = QtCore.pyqtSignal(int)
+    repeatSelectionSignal= QtCore.pyqtSignal(int)
+    stopSelectionSignal = QtCore.pyqtSignal(int)
 
 class SELMAMainWindow(QtWidgets.QMainWindow):
     """  """

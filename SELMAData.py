@@ -78,10 +78,6 @@ class SELMADataObject:
         self._vesselMask    = None
         self._selmaDicom    = None
         
-        self._Included_Vessels = []
-        self._Excluded_Vessels = []
-        self.VesselCounter = 0
-        
         if dcmFilename is not None:
             if classic:
                 self._selmaDicom    = SELMAClassicDicom.SELMAClassicDicom(
@@ -172,9 +168,12 @@ class SELMADataObject:
         self._clusterVessels()
         self._removeNonPerpendicular()
         self._deduplicateVessels()
-        self._calculateParameters()
         self._createVesselMask()
         self._signalObject.setProgressBarSignal.emit(100)
+        
+        self._Included_Vessels = []
+        self._Excluded_Vessels = []
+        self.VesselCounter = 0
 
         #Send vessels back to the GUI for vessel selection
         self._signalObject.sendVesselMaskSignal.emit(self._vesselMask)
@@ -185,8 +184,11 @@ class SELMADataObject:
             self.settings.setValue('removeNonPerp',          'false')
             self.settings.setValue('deduplicate',            'false')
             self._manualSelection()
+            self._calculateParameters()
             
         else:
+            
+            self._calculateParameters()
                    
             #make dictionary and write to disk
             self._signalObject.setProgressLabelSignal.emit(
@@ -216,6 +218,30 @@ class SELMADataObject:
         else:
             
             SELMADataSelection.SELMADataSelection.FinishSelection(self)
+            
+    def repeatSelection(self, state):
+        
+        self._Excluded_Vessels = []
+        self._Included_Vessels = []
+        self.VesselCounter = state
+        self._createVesselMask()
+        
+        SELMADataSelection.SELMADataSelection.VesselSelection(self)
+        
+    def stopSelection(self):
+        
+        self._clusters = self._included_vessels
+        
+        self._calculateParameters()
+        
+        #make dictionary and write to disk
+        self._signalObject.setProgressLabelSignal.emit(
+                        "Writing results to disk")
+        self._makeVesselDict()
+            
+        SELMADataIO._writeToFile(self)
+        
+        self._signalObject.setProgressLabelSignal.emit("")
         
     def segmentMask(self):
         if self._t1 is None:
@@ -1117,13 +1143,6 @@ class SELMADataObject:
                 del(self._lone_vessels[clusterNum - i])
                 
         self._clusters = self._lone_vessels
-            
-    def _calculateParameters(self):       
-        """
-        Function moved to SELMADataCalculate for clarity
-        """
- 
-        SELMADataCalculate.calculateParameters(self)
         
     def _createVesselMask(self):
         """
@@ -1138,10 +1157,17 @@ class SELMADataObject:
             mask += labels
         
         self._vesselMask        = mask.astype(bool)
-        
+             
     def _manualSelection(self):
         
         SELMADataSelection.SELMADataSelection.VesselSelection(self)
+            
+    def _calculateParameters(self):       
+        """
+        Function moved to SELMADataCalculate for clarity
+        """
+ 
+        SELMADataCalculate.calculateParameters(self)
         
     def _makeVesselDict(self):
         """Makes a dictionary containing the following statistics

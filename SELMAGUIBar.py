@@ -134,10 +134,19 @@ class BarWidget(QtWidgets.QWidget):
         toggleVesselsBox.stateChanged.connect(self.toggleVessels)
         toggleVesselsBox.setObjectName("togVessels")
         
+        repeatSelectionLab          = QtWidgets.QLabel("Repeat vessel selection?")
+        repeatSelectionYesButton     = QtWidgets.QPushButton("Yes")
+        repeatSelectionNoButton      = QtWidgets.QPushButton("No")
+        repeatSelectionYesButton.pressed.connect(self.repeatSelectionYesButtonPushed)
+        repeatSelectionNoButton.pressed.connect(self.repeatSelectionNoButtonPushed)
+        
         finalselectionLayout.addWidget(toggleMaskLab, 0, 0)
         finalselectionLayout.addWidget(toggleMaskBox, 0, 1)
         finalselectionLayout.addWidget(toggleVesselsLab, 1, 0)
         finalselectionLayout.addWidget(toggleVesselsBox, 1, 1)
+        finalselectionLayout.addWidget(repeatSelectionLab, 2, 0)
+        finalselectionLayout.addWidget(repeatSelectionYesButton, 2, 1)
+        finalselectionLayout.addWidget(repeatSelectionNoButton, 2, 2)
         
         self.finalSelection.setLayout(finalselectionLayout)
         
@@ -282,9 +291,19 @@ class BarWidget(QtWidgets.QWidget):
         
         self.signalObj.NoButtonSignal.emit(1)
         
+    def repeatSelectionYesButtonPushed(self):
         
+        self.signalObj.repeatSelectionSignal.emit(0)
+
+        self._vessels_mask = []
+        self._single_vessel = []
         
+        self.finalSelection.close()
         
+    def repeatSelectionNoButtonPushed(self):
+        
+        self.signalObj.stopSelectionSignal.emit(0)
+        self.finalSelection.close()
         
         
         

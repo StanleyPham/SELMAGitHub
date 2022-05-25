@@ -70,6 +70,8 @@ def main():
     SGM.mainWin.signalObj.toggleVesselsSignal.connect(SGM.toggleVesselsSlot)
     SGM.mainWin.signalObj.YesButtonSignal.connect(SDM.YesButtonSlot)
     SGM.mainWin.signalObj.NoButtonSignal.connect(SDM.NoButtonSlot)
+    SGM.mainWin.signalObj.repeatSelectionSignal.connect(SDM.RepeatSelectionSlot)
+    SGM.mainWin.signalObj.stopSelectionSignal.connect(SDM.StopSelectionSlot)
 
     #Signals from settings
     SGM.mainWin.settingsWindow.thresholdSignal.connect(
