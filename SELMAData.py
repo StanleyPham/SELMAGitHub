@@ -174,7 +174,7 @@ class SELMADataObject:
         self._Included_Vessels = []
         self._Excluded_Vessels = []
         self.VesselCounter = 0
-
+        
         #Send vessels back to the GUI for vessel selection
         self._signalObject.sendVesselMaskSignal.emit(self._vesselMask)
  
@@ -184,7 +184,12 @@ class SELMADataObject:
             self.settings.setValue('removeNonPerp',          'false')
             self.settings.setValue('deduplicate',            'false')
             self._manualSelection()
-            self._calculateParameters()
+            
+            if self._clusters == []:
+                
+                self._included_vessels = []
+                self.stopSelection()
+            #self._calculateParameters()
             
         else:
             
@@ -229,7 +234,7 @@ class SELMADataObject:
         SELMADataSelection.SELMADataSelection.VesselSelection(self)
         
     def stopSelection(self):
-        
+
         self._clusters = self._included_vessels
         
         self._calculateParameters()
@@ -826,7 +831,7 @@ class SELMADataObject:
         Function moved to SELMADataClustering for clarity
         """
  
-        SELMADataClustering.clusterVessels(self)     
+        SELMADataClustering.clusterVessels(self)    
 
     def _removeNonPerpendicular(self):
         

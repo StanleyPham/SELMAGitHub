@@ -18,6 +18,10 @@ class SELMADataSelection:
         self.mask = np.zeros(self._mask.shape,
                             dtype = np.int32)
         
+        if self._clusters == []:
+            
+            return
+    
         self.mask += self._clusters[self.VesselCounter]
         
         self._singleVesselMask        = self.mask.astype(bool)
@@ -36,6 +40,8 @@ class SELMADataSelection:
         self._excluded_vessels = []
         
         for cluster_idx in self._Included_Vessels:
+            
+            
             
             self._included_vessels.append(self._clusters[cluster_idx])
             

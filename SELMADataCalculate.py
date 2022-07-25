@@ -130,16 +130,20 @@ def calculateParameters(self):
     velocity. This implementation completely corresponds with the method2
     found in MATLAB.
     """
-    
+
     obtainFilters(self)
-    
-    if not self._readFromSettings('manualSelection'):
+
+    if not self._readFromSettings('manualSelection'): 
         
         filterVelocities(self)
+    
+    #else:
+        
+        #temp_V_cardiac_cycle = self._V_cardiac_cycle[self._Included_Vessels,:]
 
-    for idx in np.where(self._V_cardiac_cycle[:,3:
+    for idx in np.unique(np.where(self._V_cardiac_cycle[:,3:
                 self._correctedVelocityFrames.shape[0] + 3] > 
-                        self._selmaDicom.getTags()['venc'])[0]:
+                        self._selmaDicom.getTags()['venc'])[0]):
  
         del(self._included_vessels[idx])
 
