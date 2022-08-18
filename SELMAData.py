@@ -550,7 +550,7 @@ class SELMADataObject:
             Scale the corrected velocity maps with the converged standard 
             deviation obtained during the iterative outlier removal.
         """
-        
+
         magnitudeFrames     = np.asarray(
                                     self._selmaDicom.getMagnitudeFrames())
         magnitudeSNR        = div0(magnitudeFrames,
@@ -573,7 +573,7 @@ class SELMADataObject:
             detecting 'significant flow' is lower.
         
         """
-        
+ 
         # Derived from PULSATE data sqrt(mean RR interval/single shot time)
         PULSATEFactor = 2.9085772172269087 
 
@@ -581,9 +581,14 @@ class SELMADataObject:
         TFE                 = self._selmaDicom.getTags()['TFE']
         TR                  = self._selmaDicom.getTags()['TR']
         Temporal_resolution = self._selmaDicom.getTags()['Temporal resolution']
+        
+        if RR_interval == 0:
+            
+            NoiseFactor = PULSATEFactor
+            
+        else:
 
-        # Find way to get TR from DICOM headers
-        NoiseFactor = np.sqrt(RR_interval/Temporal_resolution)
+            NoiseFactor = np.sqrt(RR_interval/Temporal_resolution)
         
         sigma               = self._getSigma() * (PULSATEFactor/NoiseFactor)
         
