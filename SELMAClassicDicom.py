@@ -98,15 +98,26 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
             dcmRescaleInterceptAddress  = 0x2005, 0x100D
             dcmRescaleSlopeAddress      = 0x2005, 0x100E
             
-            
-            for i in range(self._numFrames):
-                rescaleSlope        = float(self._DCMs[i]
+            try: 
+                for i in range(self._numFrames):
+                    rescaleSlope        = float(self._DCMs[i]
                                         [dcmRescaleSlopeAddress].value)
-                rescaleIntercept    = float(self._DCMs[i]
+                    rescaleIntercept    = float(self._DCMs[i]
                                         [dcmRescaleInterceptAddress].value)
                 
-                rescaleSlopes.append(rescaleSlope)
-                rescaleIntercepts.append(rescaleIntercept)
+                    rescaleSlopes.append(rescaleSlope)
+                    rescaleIntercepts.append(rescaleIntercept)
+            except:
+                    address1                    = 0x0040, 0x9096
+                    dcmRescaleInterceptAddress  = 0x0040, 0x9224
+                    dcmRescaleSlopeAddress      = 0x0040, 0x9225
+                    
+                    for i in range(self._numFrames):
+                        rescaleSlope        = float(self._DCMs[i][address1][0][dcmRescaleSlopeAddress].value)
+                        rescaleIntercept    = float(self._DCMs[i][address1][0][dcmRescaleInterceptAddress].value)
+                    
+                        rescaleSlopes.append(rescaleSlope)
+                        rescaleIntercepts.append(rescaleIntercept)
 
 
         #Siemens
@@ -250,7 +261,7 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
     def _findVEncoding(self):
         """Gets the velocity encoding maximum in the z-direction from the DCM.
         It's assumed that this is constant for all frames."""
-        
+       
         #First try default location:
         address1    = 0x0018, 0x9197
         address2    = 0x0018, 0x9217
@@ -284,10 +295,21 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         #Philips        
         if 'philips' in self._tags['manufacturer']:
             vencAddress                 = 0x2001, 0x101A
-            venc                        = self._DCMs[0][vencAddress].value
-            venc                        = venc[-1] 
-        
-        
+            
+            #If private location does not work default to intercept value
+            try:
+                venc                        = self._DCMs[0][vencAddress].value
+                venc                        = venc[-1] 
+            except:
+            #Try other frames
+                vencFrames = np.zeros(np.size(range(0,self._numFrames)))
+                for frameNo in range(0,self._numFrames):
+                    
+                    address1                 = 0x0040, 0x9096
+                    address2                 = 0x0040, 0x9224
+                    vencFrames[frameNo]      = -1*self._DCMs[frameNo][address1][0][address2].value
+                    
+                venc = max(vencFrames) #NOT FOOLPROOF YET!!
         #GE
         if 'ge' in self._tags['manufacturer']:
             vencAddress                 = 0x0019, 0x10CC

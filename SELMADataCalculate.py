@@ -157,7 +157,7 @@ def calculateParameters(self):
     MeanCurveOverAllVessels = np.zeros((1,self._correctedVelocityFrames.
                                         shape[0]))
     
-    NormMeanCurvePerVessel = np.zeros((V_cardiac_cycle.shape[0],
+    NormCurvePerVessel = np.zeros((V_cardiac_cycle.shape[0],
                             self._correctedVelocityFrames.shape[0]))
     normMeanCurveOverAllVessels = np.zeros((1,
                                 self._correctedVelocityFrames.shape[0]))
@@ -171,7 +171,7 @@ def calculateParameters(self):
            V_cardiac_cycle[i,3:V_cardiac_cycle.shape[1]]/
            (V_cardiac_cycle.shape[0])))
        
-       NormMeanCurvePerVessel[i,0:self._correctedVelocityFrames.
+       NormCurvePerVessel[i,0:self._correctedVelocityFrames.
         shape[0]] = V_cardiac_cycle[i,3:V_cardiac_cycle.shape[1]]/np.mean(
             V_cardiac_cycle[i,3:V_cardiac_cycle.shape[1]])
        
@@ -180,7 +180,7 @@ def calculateParameters(self):
         V_cardiac_cycle[i,3:V_cardiac_cycle.shape[1]]/np.mean(
         V_cardiac_cycle[i,3:V_cardiac_cycle.shape[1]])/
         (V_cardiac_cycle.shape[0]))
-         
+    
     # Compute mean velocity  
     self._Vmean = np.mean(MeanCurveOverAllVessels)
     
@@ -198,7 +198,7 @@ def calculateParameters(self):
         normMeanCurveOverAllVessels))[1]
     alliminV = np.where(normMeanCurveOverAllVessels == np.min(
         normMeanCurveOverAllVessels))[1]
-    allstdnormV = np.std(NormMeanCurvePerVessel,ddof = 1,axis = 0)
+    allstdnormV = np.std(NormCurvePerVessel,ddof = 1,axis = 0)
     allstdmaxV = allstdnormV[allimaxV];
     allstdminV = allstdnormV[alliminV];
     allsemmaxV = allstdmaxV/np.sqrt(V_cardiac_cycle.shape[0])
@@ -206,3 +206,24 @@ def calculateParameters(self):
     allcovarmaxminV = 0
     self._allsemPI = np.sqrt(allsemmaxV**2 + allsemminV**2 - 2*
                              allcovarmaxminV)[0]
+    # Compute normalised median velocity curves over all vessels
+    normMedianCurveOverAllVessels = np.median(NormCurvePerVessel,0)
+   
+    # Compute PI using normalised velocity curve of cardiac cycle with the 
+    # median over all vessels
+    self._PI_median_norm = (np.max(normMedianCurveOverAllVessels) - np.min(
+        normMedianCurveOverAllVessels))/np.mean(normMedianCurveOverAllVessels)
+    
+    # Compute standard error of the mean of PI_norm (adapted from MATLAB)
+    allimaxV_median = np.where(normMedianCurveOverAllVessels == np.max(
+        normMedianCurveOverAllVessels))[0]
+    alliminV_median = np.where(normMedianCurveOverAllVessels == np.min(
+        normMedianCurveOverAllVessels))[0]
+    allstdnormV_median = np.std(NormCurvePerVessel,ddof = 1,axis = 0)
+    allstdmaxV_median = allstdnormV_median[allimaxV_median];
+    allstdminV_median = allstdnormV_median[alliminV_median];
+    allsemmaxV_median = allstdmaxV_median/np.sqrt(V_cardiac_cycle.shape[0])
+    allsemminV_median = allstdminV_median/np.sqrt(V_cardiac_cycle.shape[0])
+    allcovarmaxminV_median = 0
+    self._allsemPI_median = np.sqrt(allsemmaxV_median**2 + allsemminV_median**2 - 
+                                    2*allcovarmaxminV_median)[0]

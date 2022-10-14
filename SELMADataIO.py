@@ -126,11 +126,15 @@ def _makeBatchAnalysisDict(self):
                                                     'Vmean vessels'] 
     self._batchAnalysisDict['PI_mean'] = self._velocityDict[0][
                                                     'PI_norm vessels']
+    self._batchAnalysisDict['PI_median'] = self._velocityDict[0][
+                                                    'median PI_norm vessels']
             
     self._batchAnalysisDict['V_mean_SEM'] = self._velocityDict[0][
                                                     'Vmean SEM'] 
     self._batchAnalysisDict['PI_mean_SEM'] = self._velocityDict[0][
                                                     'PI_norm SEM']  
+    self._batchAnalysisDict['PI_mdiean_SEM'] = self._velocityDict[0][
+                                                    'median PI_norm SEM'] 
     self._batchAnalysisDict['Filename'] = self._dcmFilename   
 
     velocityTrace = np.zeros((self._batchAnalysisDict['No_of_vessels'],

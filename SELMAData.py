@@ -1335,9 +1335,11 @@ class SELMADataObject:
         velocity_dict['No. included vessels']   = len(self._included_vessels)
         velocity_dict['Vmean vessels']          = round(self._Vmean, 4)
         velocity_dict['PI_norm vessels']        = round(self._PI_norm, 4)
+        velocity_dict['median PI_norm vessels'] = round(self._PI_median_norm, 4)
 
         velocity_dict['Vmean SEM']              = round(self._allsemV, 4)
         velocity_dict['PI_norm SEM']            = round(self._allsemPI, 4)
+        velocity_dict['median PI_norm SEM']     = round(self._allsemPI_median, 4)
         velocity_dict['No. BG mask pixels']     = sum(sum(self._mask == 1))
   
         self._velocityDict[0] = velocity_dict
