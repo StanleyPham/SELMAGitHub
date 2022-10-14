@@ -56,7 +56,8 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         self._findVEncoding()
         self._findRescaleValues()    
         self._findFrameTypes()
-        self._findPixelSpacing()        
+        self._findPixelSpacing()    
+        self._findNoiseScalingFactors()
         self._findTargets()
         
         #Get rescale values and apply
@@ -66,6 +67,8 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         self._orderFramesOnType()
         
     
+    def getNoiseScalingFactors(self):
+        return self._tags['R-R Interval'], self._tags['TFE'], self._tags['TR']
     
     ##############################################
     #Overridden functions
@@ -369,6 +372,18 @@ class SELMAClassicDicom(SELMADicom.SELMADicom):
         ps  = float(self._DCMs[0].PixelSpacing[0])
         
         self._tags['pixelSpacing'] = ps
+        
+    def _findNoiseScalingFactors(self):
+        """Find RR intervals and TFE in Dicom header, save it to the tags"""
+
+        # Philips
+        RR_interval = (60 / int(self._DCMs[0].HeartRate)) * 1000
+        TFE = self._DCMs[0].EchoTrainLength
+        TR = self._DCMs[0][0x0018, 0x0080].value
+        
+        self._tags['R-R Interval'] = RR_interval
+        self._tags['TFE'] = TFE
+        self._tags['TR'] = TR
         
     def _findTargets(self):
         """
