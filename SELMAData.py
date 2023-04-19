@@ -586,14 +586,14 @@ class SELMADataObject:
         
         if RR_interval == 0:
             
-            NoiseFactor = CADASILFactor
+            NoiseFactor = PULSATEFactor
             
         else:
 
             NoiseFactor = np.sqrt(RR_interval/Temporal_resolution)
         
-        sigma               = self._getSigma() * (CADASILFactor/NoiseFactor)
-        sigma               = self._getSigma()
+        sigma               = self._getSigma() * (PULSATEFactor/NoiseFactor)
+        #sigma               = self._getSigma()
         
         if self._readFromSettings('BasalGanglia'):
         
