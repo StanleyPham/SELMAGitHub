@@ -105,6 +105,11 @@ def saveMask(fname, mask):
     elif    ext == ".npy":
         np.save(fname, mask)
         scipy.io.savemat(fname[0:len(fname)-4], {'WMslice': mask})
+        
+        #Workaround for Linux systems
+    else:
+        np.save(fname, mask)
+        scipy.io.savemat(fname, {'WMslice': mask})
     
 def _makeBatchAnalysisDict(self):
     """"Makes a dictionary containing the following statistics per scan:
