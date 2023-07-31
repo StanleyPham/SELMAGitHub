@@ -441,34 +441,63 @@ class SELMADicom:
         #TODO add compatibility for other scanner manufacturers
 
         for idx in range(len(frameTypes)):
-            
-            tempInstanceNumber = int(self._DCM[self._dcmFrameAddress][idx][self._dcmPrivateCreatorAddress][0][self._dcmInstanceNumber].value)
-            self._instanceNumbers.append(tempInstanceNumber)
-            
-            if all(frameTypes[idx][0:3] not in mystring for mystring in targets.values()): #frameTypes[idx]
+
+            if hasattr(self, '_DCM'):
                 
-                tempFrameType = self._DCM[self._dcmFrameAddress][idx]                   \
-                                [self._dcmPrivateCreatorAddress][0]               \
-                                [self._dcmImageTypeAddress].value[3:5]
+                tempInstanceNumber = int(self._DCM[self._dcmFrameAddress][idx][self._dcmPrivateCreatorAddress][0][self._dcmInstanceNumber].value)
+                self._instanceNumbers.append(tempInstanceNumber)
                 
-                if tempFrameType[1] in targets['magnitude']:
+                if all(frameTypes[idx][0:3] not in mystring for mystring in targets.values()): #frameTypes[idx]
                     
-                    frameTypes[idx] = targets['magnitude']
+                    tempFrameType = self._DCM[self._dcmFrameAddress][idx]                   \
+                                    [self._dcmPrivateCreatorAddress][0]               \
+                                    [self._dcmImageTypeAddress].value[3:5]
                     
-                elif tempFrameType[1] in targets['modulus']:
-                    
-                    if tempFrameType[0] in targets['phase']:
-                
-                        frameTypes[idx] = targets['phase']
+                    if tempFrameType[1] in targets['magnitude']:
                         
+                        frameTypes[idx] = targets['magnitude']
+                        
+                    elif tempFrameType[1] in targets['modulus']:
+                        
+                        if tempFrameType[0] in targets['phase']:
+                    
+                            frameTypes[idx] = targets['phase']
+                            
+                        else:
+                            
+                            frameTypes[idx] = targets['modulus']
+                            
                     else:
-                        
-                        frameTypes[idx] = targets['modulus']
-                        
-                else:
+                    
+                        frameTypes[idx] = targets['velocity']
+           
+            elif hasattr(self, '_DCMs'):
                 
-                    frameTypes[idx] = targets['velocity']
-        
+                tempInstanceNumber = int(self._DCMs[idx][self._dcmInstanceNumber].value)
+                self._instanceNumbers.append(tempInstanceNumber)
+                
+                if all(frameTypes[idx][0:3] not in mystring for mystring in targets.values()): #frameTypes[idx]
+                    
+                    tempFrameType = self._tags['frameTypes'][idx]
+                    
+                    if tempFrameType in targets['magnitude']:
+                        
+                        frameTypes[idx] = targets['magnitude']
+                        
+                    elif tempFrameType in targets['modulus']:
+                        
+                        if tempFrameType in targets['phase']:
+                    
+                            frameTypes[idx] = targets['phase']
+                            
+                        else:
+                            
+                            frameTypes[idx] = targets['modulus']
+                            
+                    else:
+                    
+                        frameTypes[idx] = targets['velocity']
+    
         for idx in range(self._numFrames):
             
             if 'philips' in self._tags['manufacturer'].lower():
