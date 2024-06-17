@@ -497,7 +497,7 @@ class SELMADicom:
                     else:
                     
                         frameTypes[idx] = targets['velocity']
-    
+
         for idx in range(self._numFrames):
             
             if 'philips' in self._tags['manufacturer'].lower():
@@ -558,12 +558,26 @@ class SELMADicom:
         self._rawPhaseFrames        = np.asarray(self._rawPhaseFrames)
         self._instanceNumbers       = np.asarray(self._instanceNumbers)
         
-        self._instanceNumbersVelocity = self._instanceNumbers[np.asarray(self._velocityIdx)]
-        self._instanceNumbersMagnitude = self._instanceNumbers[np.asarray(self._magnitudeIdx)]
-        self._instanceNumbersModulus = self._instanceNumbers[np.asarray(self._modulusIdx)]
+        if 'ge' in self._tags['manufacturer'].lower():
+            
+            self._instanceNumbersVelocity = []
+            self._instanceNumbersMagnitude = []
+            self._instanceNumbersModulus = []
+            
+        else:
+        
+            self._instanceNumbersVelocity = self._instanceNumbers[np.asarray(self._velocityIdx)]
+            self._instanceNumbersMagnitude = self._instanceNumbers[np.asarray(self._magnitudeIdx)]
+            self._instanceNumbersModulus = self._instanceNumbers[np.asarray(self._modulusIdx)]
+            
+            
         
     def _orderAllFrames(self):
-                
+        
+        if 'ge' in self._tags['manufacturer'].lower():
+            
+            return
+                     
         reorderMatrixVelocity = np.stack((self._velocityIdx, self._instanceNumbersVelocity))
         
         reorderMatrixVelocity = reorderMatrixVelocity[:, np.argsort(reorderMatrixVelocity[-1, :])]
@@ -578,6 +592,8 @@ class SELMADicom:
         
         correct_order = np.concatenate((reorderMatrixMagnitude[0,:], reorderMatrixVelocity[0,:], 
                                         reorderMatrixModulus[0,:]))
+        
+        correct_order = correct_order.astype(int)
         
         self._magnitudeFramesOrdered            = []
         self._rawMagnitudeFramesOrdered         = []
@@ -607,6 +623,7 @@ class SELMADicom:
                 self._phaseFramesOrdered.append(self._phaseFrames[temp_vel_index])
                 self._rawPhaseFramesOrdered.append(self._rawPhaseFrames[temp_vel_index])
             
+
             temp_mod_index = self._modulusIdx.index(reorderMatrixModulus[0,idx])
             
             self._modulusFramesOrdered.append(self._modulusFrames[temp_mod_index])

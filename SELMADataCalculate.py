@@ -226,4 +226,4 @@ def calculateParameters(self):
     allsemminV_median = allstdminV_median/np.sqrt(V_cardiac_cycle.shape[0])
     allcovarmaxminV_median = 0
     self._allsemPI_median = np.sqrt(allsemmaxV_median**2 + allsemminV_median**2 - 
-                                    2*allcovarmaxminV_median)[0]
+                                   # 2*allcovarmaxminV_median)[0]
