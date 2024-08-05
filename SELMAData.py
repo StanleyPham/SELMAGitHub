@@ -840,7 +840,7 @@ class SELMADataObject:
         """
  
         SELMADataClustering.clusterVessels(self)    
-
+        
     def _removeNonPerpendicular(self):
         
         """

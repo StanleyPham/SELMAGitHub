@@ -88,7 +88,7 @@ def obtainFilters(self):
         :,vesselCoords[0][pidx[0][0]],vesselCoords[1][pidx[0][0]]].ravel()
     
 def filterVelocities(self):
-      
+          
     if self._readFromSettings('BasalGanglia'):
                         
         self._V_cardiac_cycle = self._V_cardiac_cycle[np.intersect1d(
@@ -204,8 +204,16 @@ def calculateParameters(self):
     allsemmaxV = allstdmaxV/np.sqrt(V_cardiac_cycle.shape[0])
     allsemminV = allstdminV/np.sqrt(V_cardiac_cycle.shape[0])
     allcovarmaxminV = 0
-    self._allsemPI = np.sqrt(allsemmaxV**2 + allsemminV**2 - 2*
+    
+    if self._clusters == []:
+        
+        self._allsemPI = 0
+        
+    else:
+    
+        self._allsemPI = np.sqrt(allsemmaxV**2 + allsemminV**2 - 2*
                              allcovarmaxminV)[0]
+        
     # Compute normalised median velocity curves over all vessels
     normMedianCurveOverAllVessels = np.median(NormCurvePerVessel,0)
    
@@ -225,5 +233,11 @@ def calculateParameters(self):
     allsemmaxV_median = allstdmaxV_median/np.sqrt(V_cardiac_cycle.shape[0])
     allsemminV_median = allstdminV_median/np.sqrt(V_cardiac_cycle.shape[0])
     allcovarmaxminV_median = 0
-
-    self._allsemPI_median = np.sqrt(allsemmaxV_median**2 + allsemminV_median**2 - 2*allcovarmaxminV_median)[0]
+    
+    if self._clusters == []:
+        
+        self._allsemPI_median = 0
+        
+    else:
+        
+        self._allsemPI_median = np.sqrt(allsemmaxV_median**2 + allsemminV_median**2 - 2*allcovarmaxminV_median)[0]

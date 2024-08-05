@@ -180,8 +180,16 @@ class BarWidget(QtWidgets.QWidget):
         idx     = self.clusterSelect.currentIndex()
         
         if idx == 0: # No clustering selected
-            self._signalObject.errorMessageSignal.emit(
-            "Please select clustering setting before starting analysis.")
+            self.settings.setValue('BasalGanglia',          'false')
+            self.settings.setValue('SemiovalCentre',        'false')
+            self.settings.setValue('AdvancedClustering',    'false')
+        
+            self.settings.setValue('PositiveMagnitude',     'false') 
+            self.settings.setValue('NegativeMagnitude',     'false') 
+            self.settings.setValue('IsointenseMagnitude',   'false') 
+            self.settings.setValue('PositiveFlow',          'false') 
+            self.settings.setValue('NegativeFlow',          'false')
+ 
         
         elif idx == 1: #Basal Ganglia
             self.settings.setValue('BasalGanglia',          'true')
