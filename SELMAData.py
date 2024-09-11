@@ -108,11 +108,12 @@ class SELMADataObject:
             return
         
         if (self._readFromSettings('BasalGanglia') + 
-            self._readFromSettings('SemiovalCentre')) == 0:
+            self._readFromSettings('SemiovalCentre') + self._readFromSettings('MiddleCerebralArtery')
+            ) == 0:
             
             self._signalObject.errorMessageSignal.emit("No structure " +
-            "selected. Please select either Basal Ganglia or Semioval Centre "
-            "from the Structure tab in the settings.")
+            "selected. Please select a structure from the structure list in "+ 
+            "the bottom right hand corner.")
             
             return
  
@@ -132,6 +133,11 @@ class SELMADataObject:
         if self._readFromSettings('manualSelection') and (BatchAnalysisFlag == False
         and self._readFromSettings('BasalGanglia')):
             
+            self.settings.setValue('removeNonPerp',          'false')
+            self.settings.setValue('deduplicate',            'false')
+            
+        if self._readFromSettings('MiddleCerebralArtery'):
+    
             self.settings.setValue('removeNonPerp',          'false')
             self.settings.setValue('deduplicate',            'false')
         
@@ -364,7 +370,7 @@ class SELMADataObject:
                
         alpha       = self._readFromSettings('confidenceInter') #0.05
         alpha       = 1 - alpha
-
+        
         interval    = scipy.stats.norm.interval(alpha)[1]
 
         return interval    
@@ -558,8 +564,15 @@ class SELMADataObject:
         venc                = self._selmaDicom.getTags()['venc']
 
         self._magnitudeSNR = magnitudeSNR
-        self._magnitudeSNRMask = (np.mean(magnitudeSNR, axis = 0) > 2).astype(np.uint8)
         
+        if self._readFromSettings('BasalGanglia'):
+        
+            self._magnitudeSNRMask = (np.mean(magnitudeSNR, axis = 0) > 2).astype(np.uint8)
+            
+        elif self._readFromSettings('MiddleCerebralArtery'):
+            
+            self._magnitudeSNRMask = (np.mean(magnitudeSNR, axis = 0) > 20).astype(np.uint8)
+               
         self._velocitySTD   = venc / np.pi * div0(1, magnitudeSNR)
         self._velocitySNR   = np.mean(div0(self._correctedVelocityFrames,
                                                 self._velocitySTD), axis=0)  
@@ -595,7 +608,7 @@ class SELMADataObject:
         sigma               = self._getSigma() * (PULSATEFactor/NoiseFactor)
         #sigma               = self._getSigma()
         
-        if self._readFromSettings('BasalGanglia'):
+        if not self._readFromSettings('SemiovalCentre'):
         
             self._sigFlowPos    = (self._velocitySNR > sigma).astype(np.uint8) * self._magnitudeSNRMask
             self._sigFlowNeg    = (self._velocitySNR < -sigma).astype(np.uint8) * self._magnitudeSNRMask
@@ -1244,8 +1257,7 @@ class SELMADataObject:
 
         meanVelocitySNR_vessels    = np.abs(self._velocitySNR) * self._vesselMask
         meanVelocitySNR_vessels    = meanVelocitySNR_vessels[np.nonzero(meanVelocitySNR_vessels)].mean()
-   
-        
+
         #Keep track of the progress to emit to the progressbar
         i       = 0 
         # total   = np.sum(np.asarray(self._clusters * self._sigFlowPos))
@@ -1352,10 +1364,13 @@ class SELMADataObject:
         velocity_dict['Vmean vessels']          = round(self._Vmean, 4)
         velocity_dict['PI_norm vessels']        = round(self._PI_norm, 4)
         velocity_dict['median PI_norm vessels'] = round(self._PI_median_norm, 4)
+        
+        if not self._readFromSettings('MiddleCerebralArtery'):
 
-        velocity_dict['Vmean SEM']              = round(self._allsemV, 4)
-        velocity_dict['PI_norm SEM']            = round(self._allsemPI, 4)
-        velocity_dict['median PI_norm SEM']     = round(self._allsemPI_median, 4)
+            velocity_dict['Vmean SEM']              = round(self._allsemV, 4)
+            velocity_dict['PI_norm SEM']            = round(self._allsemPI, 4)
+            velocity_dict['median PI_norm SEM']     = round(self._allsemPI_median, 4)
+            
         velocity_dict['No. BG mask pixels']     = sum(sum(self._mask == 1))
         
         velocity_dict['mean SNR magnitude mask'] = round(meanMagnitudeSNR, 4)

@@ -109,6 +109,20 @@ def filterVelocities(self):
         i in enumerate(self._clusters) if j in np.where(self._Flows[:,1] 
                                                             == 1)[0]]
         
+    elif self._readFromSettings('MiddleCerebralArtery'):
+
+        sums = np.zeros((len(self._clusters),1))
+        
+        for idx in enumerate(self._clusters):
+            
+            sums[idx[0],0] = sum(sum(self._clusters[idx[0]]))
+            
+        M1 = []
+        M1.append(self._clusters[int(np.where(sums == max(sums))[0])])
+        self._included_vessels = M1
+        
+        self._V_cardiac_cycle = self._V_cardiac_cycle[np.where(sums == max(sums))[0],:]
+                   
     elif self._readFromSettings('AdvancedClustering'):
     
         selectedMagnitudes = np.where(self._Magnitude_filter == 1)[0]
@@ -140,13 +154,13 @@ def calculateParameters(self):
     #else:
         
         #temp_V_cardiac_cycle = self._V_cardiac_cycle[self._Included_Vessels,:]
-
+        
     for idx in np.unique(np.where(self._V_cardiac_cycle[:,3:
-                self._correctedVelocityFrames.shape[0] + 3] > 
-                        self._selmaDicom.getTags()['venc'])[0]):
- 
-        del(self._included_vessels[idx])
-
+                    self._correctedVelocityFrames.shape[0] + 3] > 
+                            self._selmaDicom.getTags()['venc'])[0]):
+     
+            del(self._included_vessels[idx])
+                
     V_cardiac_cycle = abs(self._V_cardiac_cycle)
     
     V_cardiac_cycle = np.delete(V_cardiac_cycle, np.where(
@@ -189,31 +203,6 @@ def calculateParameters(self):
     self._PI_norm = (np.max(normMeanCurveOverAllVessels) - np.min(
         normMeanCurveOverAllVessels))/np.mean(normMeanCurveOverAllVessels)
     
-    # Compute standard error of the mean of Vmean (adapted from MATLAB)
-    allstdV = np.std(VmeanPerVesselList,ddof = 1)
-    self._allsemV = allstdV/np.sqrt(V_cardiac_cycle.shape[0])
-    
-    # Compute standard error of the mean of PI_norm (adapted from MATLAB)
-    allimaxV = np.where(normMeanCurveOverAllVessels == np.max(
-        normMeanCurveOverAllVessels))[1]
-    alliminV = np.where(normMeanCurveOverAllVessels == np.min(
-        normMeanCurveOverAllVessels))[1]
-    allstdnormV = np.std(NormCurvePerVessel,ddof = 1,axis = 0)
-    allstdmaxV = allstdnormV[allimaxV];
-    allstdminV = allstdnormV[alliminV];
-    allsemmaxV = allstdmaxV/np.sqrt(V_cardiac_cycle.shape[0])
-    allsemminV = allstdminV/np.sqrt(V_cardiac_cycle.shape[0])
-    allcovarmaxminV = 0
-    
-    if self._clusters == []:
-        
-        self._allsemPI = 0
-        
-    else:
-    
-        self._allsemPI = np.sqrt(allsemmaxV**2 + allsemminV**2 - 2*
-                             allcovarmaxminV)[0]
-        
     # Compute normalised median velocity curves over all vessels
     normMedianCurveOverAllVessels = np.median(NormCurvePerVessel,0)
    
@@ -222,22 +211,49 @@ def calculateParameters(self):
     self._PI_median_norm = (np.max(normMedianCurveOverAllVessels) - np.min(
         normMedianCurveOverAllVessels))/np.mean(normMedianCurveOverAllVessels)
     
-    # Compute standard error of the mean of PI_norm (adapted from MATLAB)
-    allimaxV_median = np.where(normMedianCurveOverAllVessels == np.max(
-        normMedianCurveOverAllVessels))[0]
-    alliminV_median = np.where(normMedianCurveOverAllVessels == np.min(
-        normMedianCurveOverAllVessels))[0]
-    allstdnormV_median = np.std(NormCurvePerVessel,ddof = 1,axis = 0)
-    allstdmaxV_median = allstdnormV_median[allimaxV_median];
-    allstdminV_median = allstdnormV_median[alliminV_median];
-    allsemmaxV_median = allstdmaxV_median/np.sqrt(V_cardiac_cycle.shape[0])
-    allsemminV_median = allstdminV_median/np.sqrt(V_cardiac_cycle.shape[0])
-    allcovarmaxminV_median = 0
+    if not self._readFromSettings('MiddleCerebralArtery'):
     
-    if self._clusters == []:
+        # Compute standard error of the mean of Vmean (adapted from MATLAB)
+        allstdV = np.std(VmeanPerVesselList,ddof = 1)
+        self._allsemV = allstdV/np.sqrt(V_cardiac_cycle.shape[0])
         
-        self._allsemPI_median = 0
+        # Compute standard error of the mean of PI_norm (adapted from MATLAB)
+        allimaxV = np.where(normMeanCurveOverAllVessels == np.max(
+            normMeanCurveOverAllVessels))[1]
+        alliminV = np.where(normMeanCurveOverAllVessels == np.min(
+            normMeanCurveOverAllVessels))[1]
+        allstdnormV = np.std(NormCurvePerVessel,ddof = 1,axis = 0)
+        allstdmaxV = allstdnormV[allimaxV];
+        allstdminV = allstdnormV[alliminV];
+        allsemmaxV = allstdmaxV/np.sqrt(V_cardiac_cycle.shape[0])
+        allsemminV = allstdminV/np.sqrt(V_cardiac_cycle.shape[0])
+        allcovarmaxminV = 0
         
-    else:
+        if self._clusters == []:
+            
+            self._allsemPI = 0
+            
+        else:
         
-        self._allsemPI_median = np.sqrt(allsemmaxV_median**2 + allsemminV_median**2 - 2*allcovarmaxminV_median)[0]
+            self._allsemPI = np.sqrt(allsemmaxV**2 + allsemminV**2 - 2*
+                                 allcovarmaxminV)[0]
+            
+        # Compute standard error of the mean of PI_norm (adapted from MATLAB)
+        allimaxV_median = np.where(normMedianCurveOverAllVessels == np.max(
+            normMedianCurveOverAllVessels))[0]
+        alliminV_median = np.where(normMedianCurveOverAllVessels == np.min(
+            normMedianCurveOverAllVessels))[0]
+        allstdnormV_median = np.std(NormCurvePerVessel,ddof = 1,axis = 0)
+        allstdmaxV_median = allstdnormV_median[allimaxV_median];
+        allstdminV_median = allstdnormV_median[alliminV_median];
+        allsemmaxV_median = allstdmaxV_median/np.sqrt(V_cardiac_cycle.shape[0])
+        allsemminV_median = allstdminV_median/np.sqrt(V_cardiac_cycle.shape[0])
+        allcovarmaxminV_median = 0
+        
+        if self._clusters == []:
+            
+            self._allsemPI_median = 0
+            
+        else:
+            
+            self._allsemPI_median = np.sqrt(allsemmaxV_median**2 + allsemminV_median**2 - 2*allcovarmaxminV_median)[0]

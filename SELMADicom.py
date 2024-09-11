@@ -568,7 +568,11 @@ class SELMADicom:
         
             self._instanceNumbersVelocity = self._instanceNumbers[np.asarray(self._velocityIdx)]
             self._instanceNumbersMagnitude = self._instanceNumbers[np.asarray(self._magnitudeIdx)]
-            self._instanceNumbersModulus = self._instanceNumbers[np.asarray(self._modulusIdx)]
+
+            if self._modulusIdx != []:
+            
+                self._instanceNumbersModulus = self._instanceNumbers[np.asarray(self._modulusIdx)]
+                
             
             
         
@@ -585,15 +589,22 @@ class SELMADicom:
         reorderMatrixMagnitude = np.stack((self._magnitudeIdx, self._instanceNumbersMagnitude))
         
         reorderMatrixMagnitude = reorderMatrixMagnitude[:, np.argsort(reorderMatrixMagnitude[-1, :])]
+
+        if self._modulusIdx != []:
         
-        reorderMatrixModulus = np.stack((self._modulusIdx, self._instanceNumbersModulus))
+            reorderMatrixModulus = np.stack((self._modulusIdx, self._instanceNumbersModulus))
         
-        reorderMatrixModulus = reorderMatrixModulus[:, np.argsort(reorderMatrixModulus[-1, :])]
+            reorderMatrixModulus = reorderMatrixModulus[:, np.argsort(reorderMatrixModulus[-1, :])]
         
-        correct_order = np.concatenate((reorderMatrixMagnitude[0,:], reorderMatrixVelocity[0,:], 
+            correct_order = np.concatenate((reorderMatrixMagnitude[0,:], reorderMatrixVelocity[0,:], 
                                         reorderMatrixModulus[0,:]))
+            
+        else:
+                
+            correct_order = np.concatenate((reorderMatrixMagnitude[0,:], reorderMatrixVelocity[0,:]))
         
         correct_order = correct_order.astype(int)
+                
         
         self._magnitudeFramesOrdered            = []
         self._rawMagnitudeFramesOrdered         = []
@@ -623,11 +634,12 @@ class SELMADicom:
                 self._phaseFramesOrdered.append(self._phaseFrames[temp_vel_index])
                 self._rawPhaseFramesOrdered.append(self._rawPhaseFrames[temp_vel_index])
             
-
-            temp_mod_index = self._modulusIdx.index(reorderMatrixModulus[0,idx])
+            if self._modulusIdx != []:
+                
+                temp_mod_index = self._modulusIdx.index(reorderMatrixModulus[0,idx])
             
-            self._modulusFramesOrdered.append(self._modulusFrames[temp_mod_index])
-            self._rawModulusFramesOrdered.append(self._rawModulusFrames[temp_mod_index])
+                self._modulusFramesOrdered.append(self._modulusFrames[temp_mod_index])
+                self._rawModulusFramesOrdered.append(self._rawModulusFrames[temp_mod_index])
         
         self._magnitudeFrames       = self._magnitudeFramesOrdered
         self._rawMagnitudeFrames    = self._rawMagnitudeFramesOrdered     

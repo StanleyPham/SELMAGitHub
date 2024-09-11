@@ -1247,6 +1247,7 @@ class SelmaSettings(QtWidgets.QWidget):
         
         settings.setValue('BasalGanglia',          'false')
         settings.setValue('SemiovalCentre',        'false')
+        settings.setValue('MiddleCerebralArtery',  'false')
         settings.setValue('AdvancedClustering',    'false')
         
         settings.setValue('PositiveMagnitude',     'false') 

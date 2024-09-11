@@ -43,12 +43,14 @@ class BarWidget(QtWidgets.QWidget):
         self.clusterSelect.addItems([" ",
                                      "Basal Ganglia",
                                      "Semioval Centre",
+                                     "Middle Cerebral Artery",
                                      "Advanced Clustering"])
         
         # Initialise GUI bar settings
         
         self.settings.setValue('BasalGanglia',          'false')
         self.settings.setValue('SemiovalCentre',        'false')
+        self.settings.setValue('MiddleCerebralArtery',  'false')
         self.settings.setValue('AdvancedClustering',    'false')
         
         self.settings.setValue('PositiveMagnitude',     'false') 
@@ -182,6 +184,7 @@ class BarWidget(QtWidgets.QWidget):
         if idx == 0: # No clustering selected
             self.settings.setValue('BasalGanglia',          'false')
             self.settings.setValue('SemiovalCentre',        'false')
+            self.settings.setValue('MiddleCerebralArtery',  'false')
             self.settings.setValue('AdvancedClustering',    'false')
         
             self.settings.setValue('PositiveMagnitude',     'false') 
@@ -194,6 +197,7 @@ class BarWidget(QtWidgets.QWidget):
         elif idx == 1: #Basal Ganglia
             self.settings.setValue('BasalGanglia',          'true')
             self.settings.setValue('SemiovalCentre',        'false')
+            self.settings.setValue('MiddleCerebralArtery',  'false')
             self.settings.setValue('AdvancedClustering',    'false')
             
             self.settings.setValue('PositiveMagnitude',     'true') 
@@ -206,6 +210,7 @@ class BarWidget(QtWidgets.QWidget):
         elif idx == 2: #Semioval Centre
             self.settings.setValue('BasalGanglia',          'false')
             self.settings.setValue('SemiovalCentre',        'true')
+            self.settings.setValue('MiddleCerebralArtery',  'false')
             self.settings.setValue('AdvancedClustering',    'false')
             
             self.settings.setValue('PositiveMagnitude',     'true') 
@@ -215,9 +220,23 @@ class BarWidget(QtWidgets.QWidget):
             self.settings.setValue('NegativeFlow',          'true')
             
             self.customClustering.close()
-        elif idx == 3: #Advanced Clustering
+        elif idx == 3: #Middle Cerebral Artery
             self.settings.setValue('BasalGanglia',          'false')
             self.settings.setValue('SemiovalCentre',        'false')
+            self.settings.setValue('MiddleCerebralArtery',  'true')
+            self.settings.setValue('AdvancedClustering',    'false')
+            
+            self.settings.setValue('PositiveMagnitude',     'true') 
+            self.settings.setValue('NegativeMagnitude',     'true') 
+            self.settings.setValue('IsointenseMagnitude',   'true') 
+            self.settings.setValue('PositiveFlow',          'false') 
+            self.settings.setValue('NegativeFlow',          'true')
+            
+            self.customClustering.close()
+        elif idx == 4: #Advanced Clustering
+            self.settings.setValue('BasalGanglia',          'false')
+            self.settings.setValue('SemiovalCentre',        'false')
+            self.settings.setValue('MiddleCerebralArtery',  'false')
             self.settings.setValue('AdvancedClustering',    'true')
             self.customClustering.show()
         elif self.customClustering.isVisible():
