@@ -469,6 +469,7 @@ class SELMADataObject:
             self._medianVelocityFrame   = scipy.signal.medfilt2d(
                                                         meanVelocityFrame,
                                                         diameter)
+        
             self._medianMagnitudeFrame  = scipy.signal.medfilt2d(
                                                         meanMagnitudeFrame,
                                                         diameter)
@@ -571,7 +572,7 @@ class SELMADataObject:
             
         elif self._readFromSettings('MiddleCerebralArtery'):
             
-            self._magnitudeSNRMask = (np.mean(magnitudeSNR, axis = 0) > 20).astype(np.uint8)
+            self._magnitudeSNRMask = (np.mean(magnitudeSNR, axis = 0) > 10).astype(np.uint8)
                
         self._velocitySTD   = venc / np.pi * div0(1, magnitudeSNR)
         self._velocitySNR   = np.mean(div0(self._correctedVelocityFrames,
